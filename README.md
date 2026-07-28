@@ -72,7 +72,7 @@ Service-Role-Key nötig ist, der niemals im Client landen darf.
 6. ✅ Modul Training (Serienbuchung, Zeitbalken, Bewertung); Offline-Fähigkeit folgt in Schritt 9
 7. ✅ Modul Spiele (Spielplan-Import, Aufstellung, Bewertung, Kommentare)
 8. ✅ Modul Finanzen (Budget, Belege, Journal, Exporte)
-9. Offline-Sync-Layer & PWA-Feinschliff
+9. ✅ Offline-Sync-Layer & PWA-Feinschliff (Lesen offline, Schreiben nur online)
 10. ✅ Design-Politur (Vereinslogo & -farben eingebunden), Responsive/Touch-Feinschliff folgt laufend
 
 ## Design/Theme

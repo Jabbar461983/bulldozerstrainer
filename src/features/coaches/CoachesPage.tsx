@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTrainers, deleteTrainer } from './api';
 import type { TrainerRow } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
+import { withCache } from '../../lib/withCache';
 import { CreateTrainerDialog } from './CreateTrainerDialog';
 import { EditTrainerDialog } from './EditTrainerDialog';
 import { ImportTrainersDialog } from './ImportTrainersDialog';
@@ -13,6 +15,7 @@ export function CoachesPage() {
   const [trainers, setTrainers] = useState<TrainerRow[] | null>(null);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -21,9 +24,13 @@ export function CoachesPage() {
   async function load() {
     setError(null);
     try {
-      const [trainerRows, teams] = await Promise.all([fetchTrainers(), fetchTeamOptions()]);
-      setTrainers(trainerRows);
-      setTeamOptions(teams);
+      const result = await withCache('coaches-page', async () => {
+        const [trainerRows, teams] = await Promise.all([fetchTrainers(), fetchTeamOptions()]);
+        return { trainerRows, teams };
+      });
+      setTrainers(result.data.trainerRows);
+      setTeamOptions(result.data.teams);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Trainer konnten nicht geladen werden.');
     }
@@ -63,6 +70,7 @@ export function CoachesPage() {
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+      {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       {trainers === null && <p className="text-sm text-text-muted">Lädt…</p>}
       {trainers?.length === 0 && (

@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useAuth } from '../auth/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 import type { Module } from '../auth/permissions';
+import { useOnlineStatus } from '../lib/useOnlineStatus';
 
 interface NavItem {
   to: string;
@@ -75,6 +76,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppLayout() {
   const { profile, isAdmin, canAccess, signOut } = useAuth();
+  const isOnline = useOnlineStatus();
 
   const items = NAV_ITEMS.filter((item) => {
     if (item.adminOnly) return isAdmin;
@@ -100,6 +102,12 @@ export function AppLayout() {
           </button>
         </div>
       </header>
+
+      {!isOnline && (
+        <div className="bg-warning/10 px-4 py-1.5 text-center text-xs font-medium text-warning">
+          Offline – es werden zuletzt geladene Daten angezeigt.
+        </div>
+      )}
 
       <div className="flex flex-1">
         {/* Desktop-Sidebar */}

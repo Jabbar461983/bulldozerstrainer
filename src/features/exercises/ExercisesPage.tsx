@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { ChipMultiPicker } from '../../components/ChipMultiPicker';
+import { OfflineNotice } from '../../components/OfflineNotice';
 import { useAuth } from '../../auth/AuthContext';
 import { fetchExercises, deleteExercise, EXERCISE_FOCUS_OPTIONS } from './api';
 import type { ExerciseRow } from './api';
 import { fetchCategories } from '../../lib/categories';
 import type { Category, ExerciseFocus } from '../../types/database';
+import { withCache } from '../../lib/withCache';
 import { CreateExerciseDialog } from './CreateExerciseDialog';
 import { EditExerciseDialog } from './EditExerciseDialog';
 
@@ -17,6 +19,7 @@ export function ExercisesPage() {
   const [focusFilter, setFocusFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ExerciseRow | null>(null);
@@ -24,9 +27,13 @@ export function ExercisesPage() {
   async function load() {
     setError(null);
     try {
-      const [exerciseRows, categoryRows] = await Promise.all([fetchExercises(), fetchCategories()]);
-      setExercises(exerciseRows);
-      setCategories(categoryRows);
+      const result = await withCache('exercises-page', async () => {
+        const [exerciseRows, categoryRows] = await Promise.all([fetchExercises(), fetchCategories()]);
+        return { exerciseRows, categoryRows };
+      });
+      setExercises(result.data.exerciseRows);
+      setCategories(result.data.categoryRows);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Übungen konnten nicht geladen werden.');
     }
@@ -75,6 +82,7 @@ export function ExercisesPage() {
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+      {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       <div className="flex flex-col gap-2">
         <ChipMultiPicker

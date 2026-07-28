@@ -29,12 +29,25 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/rest/v1') || url.pathname.startsWith('/storage/v1'),
+            // Datenabfragen: immer möglichst aktuell, mit Offline-Fallback auf den letzten Stand.
+            urlPattern: ({ url }) => url.pathname.startsWith('/rest/v1'),
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-cache',
+              cacheName: 'supabase-data-cache',
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+          {
+            // Storage-Objekte (Fotos/Videos) werden über signierte URLs mit wechselndem
+            // Token geladen; ignoreSearch sorgt dafür, dass dieselbe Datei trotzdem aus dem
+            // Cache bedient wird, statt bei jedem neuen Token erneut heruntergeladen zu werden.
+            urlPattern: ({ url }) => url.pathname.startsWith('/storage/v1'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'supabase-storage-cache',
+              matchOptions: { ignoreSearch: true },
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
         ],

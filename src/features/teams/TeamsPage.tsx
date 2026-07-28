@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchCategories, fetchTeams, fetchAssignableUsers, deleteCategory, deleteTeam } from './api';
 import type { AssignableUser, TeamRow } from './api';
 import type { Category } from '../../types/database';
+import { withCache } from '../../lib/withCache';
 import { CreateCategoryDialog } from './CreateCategoryDialog';
 import { EditCategoryDialog } from './EditCategoryDialog';
 import { CreateTeamDialog } from './CreateTeamDialog';
@@ -14,6 +16,7 @@ export function TeamsPage() {
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [users, setUsers] = useState<AssignableUser[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const [showCreateCategory, setShowCreateCategory] = useState(false);
@@ -24,14 +27,18 @@ export function TeamsPage() {
   async function load() {
     setError(null);
     try {
-      const [categoryRows, teamRows, userRows] = await Promise.all([
-        fetchCategories(),
-        fetchTeams(),
-        fetchAssignableUsers(),
-      ]);
-      setCategories(categoryRows);
-      setTeams(teamRows);
-      setUsers(userRows);
+      const result = await withCache('teams-page', async () => {
+        const [categoryRows, teamRows, userRows] = await Promise.all([
+          fetchCategories(),
+          fetchTeams(),
+          fetchAssignableUsers(),
+        ]);
+        return { categoryRows, teamRows, userRows };
+      });
+      setCategories(result.data.categoryRows);
+      setTeams(result.data.teamRows);
+      setUsers(result.data.userRows);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Daten konnten nicht geladen werden.');
     }
@@ -79,6 +86,7 @@ export function TeamsPage() {
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+      {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       {categories === null && <p className="text-sm text-text-muted">Lädt…</p>}
       {categories?.length === 0 && (

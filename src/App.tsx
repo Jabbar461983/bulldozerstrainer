@@ -5,6 +5,7 @@ import { LoginPage } from './auth/LoginPage';
 import { RequestPasswordResetPage } from './auth/RequestPasswordResetPage';
 import { ResetPasswordPage } from './auth/ResetPasswordPage';
 import { AppLayout } from './layout/AppLayout';
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { TeamsPage } from './features/teams/TeamsPage';
 import { UsersPage } from './features/users/UsersPage';
@@ -19,6 +20,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <PwaUpdatePrompt />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/passwort-vergessen" element={<RequestPasswordResetPage />} />

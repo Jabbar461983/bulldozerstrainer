@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchPlayers, deletePlayer } from './api';
 import type { PlayerRow } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
+import { withCache } from '../../lib/withCache';
 import { CreatePlayerDialog } from './CreatePlayerDialog';
 import { EditPlayerDialog } from './EditPlayerDialog';
 import { ImportPlayersDialog } from './ImportPlayersDialog';
@@ -13,6 +15,7 @@ export function PlayersPage() {
   const [players, setPlayers] = useState<PlayerRow[] | null>(null);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -21,9 +24,13 @@ export function PlayersPage() {
   async function load() {
     setError(null);
     try {
-      const [playerRows, teams] = await Promise.all([fetchPlayers(), fetchTeamOptions()]);
-      setPlayers(playerRows);
-      setTeamOptions(teams);
+      const result = await withCache('players-page', async () => {
+        const [playerRows, teams] = await Promise.all([fetchPlayers(), fetchTeamOptions()]);
+        return { playerRows, teams };
+      });
+      setPlayers(result.data.playerRows);
+      setTeamOptions(result.data.teams);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Spieler konnten nicht geladen werden.');
     }
@@ -61,6 +68,7 @@ export function PlayersPage() {
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+      {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       {players === null && <p className="text-sm text-text-muted">Lädt…</p>}
       {players?.length === 0 && (

@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Select } from '../../components/Select';
+import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
 import { todayIso } from '../../lib/dates';
+import { withCache } from '../../lib/withCache';
 import { fetchGames } from './api';
 import type { Game } from '../../types/database';
 import { CreateGameDialog } from './CreateGameDialog';
@@ -16,15 +18,16 @@ export function GamesPage() {
   const [teamId, setTeamId] = useState('');
   const [games, setGames] = useState<Game[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   useEffect(() => {
-    fetchTeamOptions()
-      .then((teams) => {
-        setTeamOptions(teams);
-        if (teams.length > 0) setTeamId(teams[0].teamId);
+    withCache('team-options', fetchTeamOptions)
+      .then((result) => {
+        setTeamOptions(result.data);
+        if (result.data.length > 0) setTeamId(result.data[0].teamId);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Teams konnten nicht geladen werden.'));
   }, []);
@@ -35,7 +38,9 @@ export function GamesPage() {
     if (!currentTeamId) return;
     setError(null);
     try {
-      setGames(await fetchGames(currentTeamId));
+      const result = await withCache(`games:${currentTeamId}`, () => fetchGames(currentTeamId));
+      setGames(result.data);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Spiele konnten nicht geladen werden.');
     }
@@ -122,6 +127,7 @@ export function GamesPage() {
       )}
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+      {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       {games === null && teamId && <p className="text-sm text-text-muted">Lädt…</p>}
 

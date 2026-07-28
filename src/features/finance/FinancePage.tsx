@@ -3,9 +3,11 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Select } from '../../components/Select';
 import { Input, Label } from '../../components/Input';
+import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
 import { currentSeason } from '../../lib/dates';
+import { withCache } from '../../lib/withCache';
 import { useAuth } from '../../auth/AuthContext';
 import { accessibleTeamIds } from '../../auth/permissions';
 import { fetchBudget, fetchReceipts } from './api';
@@ -23,13 +25,14 @@ export function FinancePage() {
   const [budget, setBudget] = useState<Budget | null>(null);
   const [receipts, setReceipts] = useState<ReceiptRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [showCreateReceipt, setShowCreateReceipt] = useState(false);
 
   useEffect(() => {
-    fetchTeamOptions()
-      .then((teams) => {
+    withCache('team-options', fetchTeamOptions)
+      .then((result) => {
         const scope = accessibleTeamIds('finanzen', isAdmin, memberships);
-        const filtered = scope.allTeams ? teams : teams.filter((t) => scope.teamIds.includes(t.teamId));
+        const filtered = scope.allTeams ? result.data : result.data.filter((t) => scope.teamIds.includes(t.teamId));
         setTeamOptions(filtered);
         if (filtered.length > 0) setTeamId(filtered[0].teamId);
       })
@@ -43,12 +46,16 @@ export function FinancePage() {
     if (!currentTeamId || !currentSeasonValue) return;
     setError(null);
     try {
-      const [budgetRow, receiptRows] = await Promise.all([
-        fetchBudget(currentTeamId, currentSeasonValue),
-        fetchReceipts(currentTeamId, currentSeasonValue),
-      ]);
-      setBudget(budgetRow);
-      setReceipts(receiptRows);
+      const result = await withCache(`finance:${currentTeamId}:${currentSeasonValue}`, async () => {
+        const [budgetRow, receiptRows] = await Promise.all([
+          fetchBudget(currentTeamId, currentSeasonValue),
+          fetchReceipts(currentTeamId, currentSeasonValue),
+        ]);
+        return { budgetRow, receiptRows };
+      });
+      setBudget(result.data.budgetRow);
+      setReceipts(result.data.receiptRows);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Finanzdaten konnten nicht geladen werden.');
     }
@@ -95,6 +102,7 @@ export function FinancePage() {
       )}
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+      {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       {receipts === null && teamId && <p className="text-sm text-text-muted">Lädt…</p>}
 
