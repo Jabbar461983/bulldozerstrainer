@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/*
+ * Platzhalter-Theme (Vereinsfarben/Logo folgen in Schritt 10 "Design-Politur").
+ * Alle Farben laufen über CSS-Variablen (Präfix --club-), damit der spätere
+ * Austausch gegen die echten Vereinsfarben zentral an einer Stelle erfolgt.
+ */
+:root {
+  --club-primary: #0f172a;
+  --club-primary-foreground: #f8fafc;
+  --club-accent: #0284c7;
+  --club-accent-foreground: #ffffff;
+
+  --club-bg: #f8fafc;
+  --club-surface: #ffffff;
+  --club-surface-alt: #f1f5f9;
+  --club-border: #e2e8f0;
+  --club-text: #0f172a;
+  --club-text-muted: #64748b;
+
+  --club-success: #16a34a;
+  --club-warning: #d97706;
+  --club-danger: #dc2626;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --club-bg: #0b1120;
+  --club-surface: #111827;
+  --club-surface-alt: #1e293b;
+  --club-border: #2a3441;
+  --club-text: #e2e8f0;
+  --club-text-muted: #94a3b8;
+
+  --club-accent: #38bdf8;
+  --club-accent-foreground: #0b1120;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --club-bg: #0b1120;
+    --club-surface: #111827;
+    --club-surface-alt: #1e293b;
+    --club-border: #2a3441;
+    --club-text: #e2e8f0;
+    --club-text-muted: #94a3b8;
+
+    --club-accent: #38bdf8;
+    --club-accent-foreground: #0b1120;
+
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-primary: var(--club-primary);
+  --color-primary-foreground: var(--club-primary-foreground);
+  --color-accent: var(--club-accent);
+  --color-accent-foreground: var(--club-accent-foreground);
+  --color-bg: var(--club-bg);
+  --color-surface: var(--club-surface);
+  --color-surface-alt: var(--club-surface-alt);
+  --color-border: var(--club-border);
+  --color-text: var(--club-text);
+  --color-text-muted: var(--club-text-muted);
+  --color-success: var(--club-success);
+  --color-warning: var(--club-warning);
+  --color-danger: var(--club-danger);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--club-bg);
+  color: var(--club-text);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Touch-optimierte Tap-Targets (Eisfeld-Bedienung) */
+button,
+[role='button'],
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  touch-action: manipulation;
+}
