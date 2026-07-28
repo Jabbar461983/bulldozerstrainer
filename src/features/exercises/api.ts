@@ -16,6 +16,17 @@ export const MAX_MEDIA_FILE_SIZE = 50 * 1024 * 1024;
 const MEDIA_BUCKET = 'exercise-media';
 const SIGNED_URL_TTL_SECONDS = 3600;
 
+export interface ExerciseOption {
+  id: string;
+  title: string;
+}
+
+export async function fetchExerciseOptions(): Promise<ExerciseOption[]> {
+  const { data, error } = await supabase.from('exercises').select('id, title').order('title', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export interface ExerciseMediaView {
   type: 'image' | 'video';
   path: string;
