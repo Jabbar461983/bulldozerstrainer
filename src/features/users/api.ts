@@ -1,12 +1,10 @@
 import { supabase } from '../../lib/supabase';
-import type { CoachRole, Profile, Team, Category } from '../../types/database';
+import type { CoachRole, Profile } from '../../types/database';
+import { fetchTeamOptions } from '../../lib/teams';
+import type { TeamOption } from '../../lib/teams';
 
-export interface TeamOption {
-  teamId: string;
-  teamName: string;
-  categoryName: string;
-  season: string;
-}
+export { fetchTeamOptions };
+export type { TeamOption };
 
 export interface UserTeamRoleView {
   teamId: string;
@@ -17,24 +15,6 @@ export interface UserTeamRoleView {
 
 export interface UserRow extends Profile {
   teamRoles: UserTeamRoleView[];
-}
-
-export async function fetchTeamOptions(): Promise<TeamOption[]> {
-  const { data: teams, error: teamsError } = await supabase
-    .from('teams')
-    .select('*')
-    .order('season', { ascending: false });
-  if (teamsError) throw teamsError;
-  const { data: categories, error: categoriesError } = await supabase.from('categories').select('*');
-  if (categoriesError) throw categoriesError;
-
-  const categoryById = new Map((categories ?? []).map((c: Category) => [c.id, c]));
-  return (teams ?? []).map((t: Team) => ({
-    teamId: t.id,
-    teamName: t.name,
-    categoryName: categoryById.get(t.category_id)?.name ?? '?',
-    season: t.season,
-  }));
 }
 
 export async function fetchUsers(): Promise<UserRow[]> {
