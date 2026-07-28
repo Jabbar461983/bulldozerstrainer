@@ -61,7 +61,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/teams',
-    label: 'Teams',
+    label: 'Teamverwaltung',
     adminOnly: true,
     icon: <Icon d="M4 20a4 4 0 018 0M12 20a4 4 0 018 0M8 12a3 3 0 100-6 3 3 0 000 6zm8 0a3 3 0 100-6 3 3 0 000 6z" />,
   },

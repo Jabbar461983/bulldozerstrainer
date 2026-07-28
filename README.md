@@ -66,7 +66,7 @@ Service-Role-Key nötig ist, der niemals im Client landen darf.
 
 1. ✅ PWA-Grundgerüst, Backend-Anbindung, Auth
 2. ✅ Rollen- & Berechtigungssystem inkl. Userverwaltung
-3. Teamverwaltung
+3. ✅ Teamverwaltung
 4. Modul Spieler & Trainer (Excel-Import)
 5. Modul Übungen (Übungsdatenbank)
 6. Modul Training (Serienbuchung, Zeitbalken, Bewertung, offline-first)
