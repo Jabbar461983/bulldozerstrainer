@@ -68,7 +68,7 @@ Service-Role-Key nötig ist, der niemals im Client landen darf.
 2. ✅ Rollen- & Berechtigungssystem inkl. Userverwaltung
 3. ✅ Teamverwaltung
 4. ✅ Modul Spieler & Trainer (CSV-Import)
-5. Modul Übungen (Übungsdatenbank)
+5. ✅ Modul Übungen (Übungsdatenbank)
 6. Modul Training (Serienbuchung, Zeitbalken, Bewertung, offline-first)
 7. Modul Spiele (Aufstellung, Bewertung, Kommentare)
 8. Modul Finanzen (Budget, Belege, Journal, Exporte)

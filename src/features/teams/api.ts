@@ -1,5 +1,8 @@
 import { supabase } from '../../lib/supabase';
 import type { Category, CoachRole, Profile, Team } from '../../types/database';
+import { fetchCategories } from '../../lib/categories';
+
+export { fetchCategories };
 
 export interface CoachAssignmentView {
   userId: string;
@@ -31,12 +34,6 @@ function friendlyError(err: unknown, fallback: string): Error {
     return new Error(fallback);
   }
   return err instanceof Error ? err : new Error(fallback);
-}
-
-export async function fetchCategories(): Promise<Category[]> {
-  const { data, error } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
-  if (error) throw error;
-  return data ?? [];
 }
 
 export async function fetchAssignableUsers(): Promise<AssignableUser[]> {
