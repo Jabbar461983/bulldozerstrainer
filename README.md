@@ -31,7 +31,17 @@ npm run dev
 3. `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` in `.env.local` eintragen.
 4. Ersten Admin-Account anlegen: Supabase Dashboard → Authentication → Add
    user, danach in der Tabelle `profiles` das Feld `is_admin` auf `true`
-   setzen (die weitere Benutzerverwaltung über die App-UI folgt in Schritt 2).
+   setzen. Alle weiteren Benutzer können danach über die App (Benutzer­
+   verwaltung) angelegt werden.
+5. Edge Functions deployen (werden für Anlegen/Löschen von Benutzer-Logins
+   durch die Userverwaltung benötigt):
+   ```bash
+   supabase functions deploy admin-create-user
+   supabase functions deploy admin-delete-user
+   ```
+   `SUPABASE_URL`, `SUPABASE_ANON_KEY` und `SUPABASE_SERVICE_ROLE_KEY` stehen
+   Edge Functions automatisch als Umgebungsvariablen zur Verfügung, es ist
+   keine zusätzliche Konfiguration nötig.
 
 ## Datenmodell
 
@@ -41,10 +51,21 @@ Spiele, Finanzen) und `0002_rls.sql` für die Rechtematrix (Row Level
 Security): Admin hat vollen Zugriff, Headcoach/Assistenzcoach nur auf
 zugewiesene Teams; Finanzen ist Assistenzcoaches nicht zugänglich.
 
+## Benutzerverwaltung
+
+Unter „Benutzer“ (nur für Admins sichtbar) können neue Trainer-/Admin-Konten
+angelegt werden. Der neue Benutzer erhält eine Einladungs-E-Mail von Supabase
+und vergibt darüber sein eigenes Passwort. Team- und Rollenzuweisungen
+(Headcoach/Assistenzcoach je Team) sowie der Admin-Status lassen sich
+jederzeit bearbeiten; das Löschen eines Kontos entfernt Auth-User, Profil und
+alle Rollen-Zuweisungen unwiderruflich. Das Anlegen/Löschen von Logins läuft
+über die beiden Edge Functions in `supabase/functions/`, da dafür der
+Service-Role-Key nötig ist, der niemals im Client landen darf.
+
 ## Ausbau-Roadmap
 
 1. ✅ PWA-Grundgerüst, Backend-Anbindung, Auth
-2. Rollen- & Berechtigungssystem inkl. Userverwaltung
+2. ✅ Rollen- & Berechtigungssystem inkl. Userverwaltung
 3. Teamverwaltung
 4. Modul Spieler & Trainer (Excel-Import)
 5. Modul Übungen (Übungsdatenbank)

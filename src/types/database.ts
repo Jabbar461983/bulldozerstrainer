@@ -223,9 +223,12 @@ export interface Receipt {
 
 // Minimal-Interface für den typisierten Supabase-Client. Da wir keine
 // generierten Typen aus einem Live-Projekt beziehen, halten wir das
-// Database-Generic bewusst locker (Record<string, any>-ähnlich), damit der
-// Client trotzdem mit `.from('players')` etc. typsicher an den obigen
-// Interfaces arbeitet.
+// Database-Generic bewusst locker, damit der Client trotzdem mit
+// `.from('players')` etc. typsicher an den obigen Interfaces arbeitet.
+// Für insert()/update()-Aufrufe reicht die Typinferenz von
+// @supabase/postgrest-js über dieses handgeschriebene Schema nicht immer
+// aus; an den entsprechenden Stellen wird der Query-Builder dafür gezielt
+// mit `as any` entschärft statt das Schema künstlich zu verbiegen.
 export interface Database {
   public: {
     Tables: {
