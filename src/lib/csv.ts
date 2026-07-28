@@ -107,3 +107,71 @@ export function parseRosterCsv(text: string): RosterImportRow[] {
     };
   });
 }
+
+function parseTimeCell(value: string): string | null {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const [, h, m] = match;
+  return `${h.padStart(2, '0')}:${m}`;
+}
+
+export interface FixtureImportRow {
+  date: string | null;
+  rawDate: string;
+  time: string | null;
+  location: string;
+  homeTeam: string;
+  awayTeam: string;
+  season: string;
+  valid: boolean;
+  error?: string;
+}
+
+const DATE_HEADERS = ['datum', 'date'];
+const TIME_HEADERS = ['zeit', 'time', 'uhrzeit'];
+const LOCATION_HEADERS = ['ort', 'location', 'spielort'];
+const HOME_HEADERS = ['heim', 'heimteam', 'home', 'home team'];
+const AWAY_HEADERS = ['gast', 'gastteam', 'away', 'away team', 'auswärts'];
+const SEASON_HEADERS = ['saison', 'season'];
+
+export function parseFixtureCsv(text: string): FixtureImportRow[] {
+  const rows = parseCsv(text);
+  if (rows.length === 0) {
+    throw new CsvFormatError('Die Datei enthält keine Daten.');
+  }
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const dateIdx = header.findIndex((h) => DATE_HEADERS.includes(h));
+  const timeIdx = header.findIndex((h) => TIME_HEADERS.includes(h));
+  const locationIdx = header.findIndex((h) => LOCATION_HEADERS.includes(h));
+  const homeIdx = header.findIndex((h) => HOME_HEADERS.includes(h));
+  const awayIdx = header.findIndex((h) => AWAY_HEADERS.includes(h));
+  const seasonIdx = header.findIndex((h) => SEASON_HEADERS.includes(h));
+
+  if (dateIdx === -1 || homeIdx === -1 || awayIdx === -1) {
+    throw new CsvFormatError(
+      'Die Datei benötigt mindestens die Spalten "Datum", "Heim" und "Gast" (erste Zeile = Überschriften).',
+    );
+  }
+
+  return rows.slice(1).map((cols) => {
+    const rawDate = (cols[dateIdx] ?? '').trim();
+    const date = parseDateCell(rawDate);
+    const homeTeam = (cols[homeIdx] ?? '').trim();
+    const awayTeam = (cols[awayIdx] ?? '').trim();
+    const time = timeIdx === -1 ? null : parseTimeCell((cols[timeIdx] ?? '').trim());
+    const location = locationIdx === -1 ? '' : (cols[locationIdx] ?? '').trim();
+    const season = seasonIdx === -1 ? '' : (cols[seasonIdx] ?? '').trim();
+    const valid = Boolean(date) && homeTeam.length > 0 && awayTeam.length > 0;
+    return {
+      date,
+      rawDate,
+      time,
+      location,
+      homeTeam,
+      awayTeam,
+      season,
+      valid,
+      error: valid ? undefined : 'Datum/Heim/Gast fehlt oder Datum ungültig',
+    };
+  });
+}

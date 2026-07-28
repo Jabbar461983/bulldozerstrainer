@@ -4,18 +4,11 @@ import { Card } from '../../components/Card';
 import { Select } from '../../components/Select';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
+import { todayIso } from '../../lib/dates';
 import { fetchTrainings } from './api';
 import type { Training } from '../../types/database';
 import { CreateTrainingDialog } from './CreateTrainingDialog';
 import { TrainingDetailDialog } from './TrainingDetailDialog';
-
-function todayIso() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 export function TrainingsPage() {
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
