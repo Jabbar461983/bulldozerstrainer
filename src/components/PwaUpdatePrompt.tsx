@@ -20,7 +20,7 @@ export function PwaUpdatePrompt() {
   }
 
   return (
-    <div className="fixed inset-x-4 bottom-20 z-30 mx-auto flex max-w-md flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3 shadow-lg sm:bottom-4">
+    <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3 shadow-lg sm:bottom-4">
       <p className="text-sm text-text">
         {needRefresh ? 'Neue Version verfügbar.' : 'App ist jetzt offline verfügbar.'}
       </p>
