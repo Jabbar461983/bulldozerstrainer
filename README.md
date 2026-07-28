@@ -52,16 +52,14 @@ zugewiesene Teams; Finanzen ist Assistenzcoaches nicht zugänglich.
 7. Modul Spiele (Aufstellung, Bewertung, Kommentare)
 8. Modul Finanzen (Budget, Belege, Journal, Exporte)
 9. Offline-Sync-Layer & PWA-Feinschliff
-10. Design-Politur (Feinschliff Vereinslogo, Responsive/Touch)
+10. ✅ Design-Politur (Vereinslogo & -farben eingebunden), Responsive/Touch-Feinschliff folgt laufend
 
 ## Design/Theme
 
-Vereinsfarben (Dunkelgrün `#0b5d36` / Gold `#b8952e`) sind als CSS-Variablen
-mit Präfix `--club-` in `src/index.css` zentralisiert. Das Logo
-(`public/logo.svg`, daraus abgeleitet `public/favicon.svg` und
-`public/icons/icon-*.png`) ist aktuell eine anhand der Vorlage von Hand
-nachgebaute Vektor-Version, da die Originaldatei in dieser Session nicht als
-Datei verfügbar war. Sobald die Originaldatei (z. B. als hochauflösendes
-PNG/SVG) eingecheckt werden kann, einfach `public/logo.svg` ersetzen und die
-Icons in `public/icons/` neu daraus exportieren – der Rest der App verweist
-nur auf diese Pfade.
+Original-Vereinslogo liegt unter `public/logo-bulldozers_farbig.png` und wird
+in Login-Seite und App-Header verwendet. Favicon (`public/favicon-32.png`,
+`favicon-48.png`) und PWA-Icons (`public/icons/icon-192.png`,
+`icon-512.png`) sind daraus exportiert (weißer Hintergrund, damit sie auch
+als maskierbares Android-Icon funktionieren). Die Vereinsfarben Dunkelgrün
+`#007057` und Gold `#ba990e` wurden direkt aus dem Logo gesampelt und sind
+als CSS-Variablen mit Präfix `--club-` in `src/index.css` zentralisiert.

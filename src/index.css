@@ -1,17 +1,16 @@
 @import "tailwindcss";
 
 /*
- * Platzhalter-Theme (Vereinsfarben/Logo folgen in Schritt 10 "Design-Politur").
- * Alle Farben laufen über CSS-Variablen (Präfix --club-), damit der spätere
- * Austausch gegen die echten Vereinsfarben zentral an einer Stelle erfolgt.
+ * Vereinsfarben, direkt aus dem Original-Logo (public/logo-bulldozers_farbig.png)
+ * gesampelt. Alle Farben laufen über CSS-Variablen (Präfix --club-).
  */
 :root {
   /* Vereinsfarben Streethockeyclub Bulldozers Kernenried-Zauggenried */
-  --club-primary: #0b5d36;
+  --club-primary: #007057;
   --club-primary-foreground: #ffffff;
-  --club-accent: #0b5d36;
+  --club-accent: #007057;
   --club-accent-foreground: #ffffff;
-  --club-gold: #b8952e;
+  --club-gold: #ba990e;
   --club-gold-foreground: #ffffff;
 
   --club-bg: #f7f8f6;

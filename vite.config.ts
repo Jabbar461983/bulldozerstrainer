@@ -10,13 +10,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
+      includeAssets: ['favicon-32.png', 'favicon-48.png', 'logo-bulldozers_farbig.png', 'icons/*.png'],
       manifest: {
         name: 'Bulldozers Junioren Manager',
         short_name: 'Bulldozers',
         description: 'App zur Strukturierung der Juniorenabteilung des Streethockeyclub Bulldozers Kernenried-Zauggenried',
-        theme_color: '#0b5d36',
-        background_color: '#0b5d36',
+        theme_color: '#007057',
+        background_color: '#007057',
         display: 'standalone',
         start_url: '/',
         icons: [

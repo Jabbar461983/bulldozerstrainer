@@ -86,7 +86,7 @@ export function AppLayout() {
     <div className="flex min-h-full flex-col bg-bg text-text">
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="Bulldozers" className="size-9" />
+          <img src="/logo-bulldozers_farbig.png" alt="Bulldozers" className="size-9 object-contain" />
           <span className="text-sm font-semibold sm:text-base">Bulldozers Junioren Manager</span>
         </div>
         <div className="flex items-center gap-2">

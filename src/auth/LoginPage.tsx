@@ -30,7 +30,11 @@ export function LoginPage() {
     <div className="flex min-h-full items-center justify-center bg-bg px-4 py-10">
       <Card className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <img src="/logo.svg" alt="Bulldozers Kernenried-Zauggenried" className="h-20 w-auto" />
+          <img
+            src="/logo-bulldozers_farbig.png"
+            alt="Streethockeyclub Bulldozers Kernenried-Zauggenried"
+            className="h-24 w-auto"
+          />
           <h1 className="text-lg font-semibold text-text">Bulldozers Junioren Manager</h1>
           <p className="text-sm text-text-muted">Anmeldung für Trainer &amp; Admin</p>
         </div>
