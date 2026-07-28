@@ -6,17 +6,20 @@
  * Austausch gegen die echten Vereinsfarben zentral an einer Stelle erfolgt.
  */
 :root {
-  --club-primary: #0f172a;
-  --club-primary-foreground: #f8fafc;
-  --club-accent: #0284c7;
+  /* Vereinsfarben Streethockeyclub Bulldozers Kernenried-Zauggenried */
+  --club-primary: #0b5d36;
+  --club-primary-foreground: #ffffff;
+  --club-accent: #0b5d36;
   --club-accent-foreground: #ffffff;
+  --club-gold: #b8952e;
+  --club-gold-foreground: #ffffff;
 
-  --club-bg: #f8fafc;
+  --club-bg: #f7f8f6;
   --club-surface: #ffffff;
-  --club-surface-alt: #f1f5f9;
-  --club-border: #e2e8f0;
-  --club-text: #0f172a;
-  --club-text-muted: #64748b;
+  --club-surface-alt: #eef1ec;
+  --club-border: #dde3dc;
+  --club-text: #10241a;
+  --club-text-muted: #5a6b62;
 
   --club-success: #16a34a;
   --club-warning: #d97706;
@@ -26,30 +29,30 @@
 }
 
 :root[data-theme='dark'] {
-  --club-bg: #0b1120;
-  --club-surface: #111827;
-  --club-surface-alt: #1e293b;
-  --club-border: #2a3441;
-  --club-text: #e2e8f0;
-  --club-text-muted: #94a3b8;
+  --club-bg: #0b1512;
+  --club-surface: #12201a;
+  --club-surface-alt: #182a22;
+  --club-border: #24382f;
+  --club-text: #e7efe9;
+  --club-text-muted: #93a89c;
 
-  --club-accent: #38bdf8;
-  --club-accent-foreground: #0b1120;
+  --club-accent: #2f9d63;
+  --club-accent-foreground: #06150e;
 
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --club-bg: #0b1120;
-    --club-surface: #111827;
-    --club-surface-alt: #1e293b;
-    --club-border: #2a3441;
-    --club-text: #e2e8f0;
-    --club-text-muted: #94a3b8;
+    --club-bg: #0b1512;
+    --club-surface: #12201a;
+    --club-surface-alt: #182a22;
+    --club-border: #24382f;
+    --club-text: #e7efe9;
+    --club-text-muted: #93a89c;
 
-    --club-accent: #38bdf8;
-    --club-accent-foreground: #0b1120;
+    --club-accent: #2f9d63;
+    --club-accent-foreground: #06150e;
 
     color-scheme: dark;
   }
@@ -60,6 +63,8 @@
   --color-primary-foreground: var(--club-primary-foreground);
   --color-accent: var(--club-accent);
   --color-accent-foreground: var(--club-accent-foreground);
+  --color-gold: var(--club-gold);
+  --color-gold-foreground: var(--club-gold-foreground);
   --color-bg: var(--club-bg);
   --color-surface: var(--club-surface);
   --color-surface-alt: var(--club-surface-alt);
@@ -90,7 +95,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Touch-optimierte Tap-Targets (Eisfeld-Bedienung) */
+/* Touch-optimierte Tap-Targets (Bedienung direkt am Spielfeldrand) */
 button,
 [role='button'],
 input,

@@ -1,9 +1,9 @@
-# Junioren Manager
+# Bulldozers Junioren Manager
 
-PWA zur Strukturierung der Juniorenabteilung eines Eishockey-/Sportvereins:
-Teamverwaltung, Finanzen, Training, Spiele sowie Spieler- und Trainerdaten.
-Mobile-first (primäre Nutzung: Smartphone am Eisfeld), installierbar, mit
-Light-/Dark-Mode.
+PWA zur Strukturierung der Juniorenabteilung des Streethockeyclub Bulldozers
+Kernenried-Zauggenried: Teamverwaltung, Finanzen, Training, Spiele sowie
+Spieler- und Trainerdaten. Mobile-first (primäre Nutzung: Smartphone am
+Spielfeldrand), installierbar, mit Light-/Dark-Mode.
 
 Status: iterativer Aufbau nach Konzept. Aktueller Stand siehe unten.
 
@@ -52,11 +52,16 @@ zugewiesene Teams; Finanzen ist Assistenzcoaches nicht zugänglich.
 7. Modul Spiele (Aufstellung, Bewertung, Kommentare)
 8. Modul Finanzen (Budget, Belege, Journal, Exporte)
 9. Offline-Sync-Layer & PWA-Feinschliff
-10. Design-Politur (Vereinsfarben/Logo, Feinschliff)
+10. Design-Politur (Feinschliff Vereinslogo, Responsive/Touch)
 
 ## Design/Theme
 
-Die Vereinsfarben und das Logo liegen noch nicht vor. Bis dahin läuft die App
-mit einem neutralen Platzhalter-Theme; alle Farben sind als CSS-Variablen mit
-Präfix `--club-` in `src/index.css` zentralisiert und werden in Schritt 10
-gegen die echten Werte getauscht.
+Vereinsfarben (Dunkelgrün `#0b5d36` / Gold `#b8952e`) sind als CSS-Variablen
+mit Präfix `--club-` in `src/index.css` zentralisiert. Das Logo
+(`public/logo.svg`, daraus abgeleitet `public/favicon.svg` und
+`public/icons/icon-*.png`) ist aktuell eine anhand der Vorlage von Hand
+nachgebaute Vektor-Version, da die Originaldatei in dieser Session nicht als
+Datei verfügbar war. Sobald die Originaldatei (z. B. als hochauflösendes
+PNG/SVG) eingecheckt werden kann, einfach `public/logo.svg` ersetzen und die
+Icons in `public/icons/` neu daraus exportieren – der Rest der App verweist
+nur auf diese Pfade.
