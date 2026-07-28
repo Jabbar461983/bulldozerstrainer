@@ -8,12 +8,7 @@ import { CoachAssignmentPicker } from './CoachAssignmentPicker';
 import { createTeam } from './api';
 import type { AssignableUser, CoachAssignmentInput } from './api';
 import type { Category } from '../../types/database';
-
-function defaultSeason() {
-  const now = new Date();
-  const year = now.getFullYear();
-  return now.getMonth() >= 6 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
-}
+import { currentSeason as defaultSeason } from '../../lib/dates';
 
 interface CreateTeamDialogProps {
   categories: Category[];

@@ -4,6 +4,17 @@ function detectDelimiter(firstLine: string): ',' | ';' {
   return semicolonCount > commaCount ? ';' : ',';
 }
 
+function escapeCsvField(value: string): string {
+  if (/[";\n]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+export function toCsv(rows: (string | number)[][]): string {
+  return rows.map((row) => row.map((cell) => escapeCsvField(String(cell))).join(';')).join('\r\n');
+}
+
 export function parseCsv(text: string): string[][] {
   const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const firstLineEnd = normalized.indexOf('\n');

@@ -5,3 +5,9 @@ export function todayIso(): string {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+export function currentSeason(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  return now.getMonth() >= 6 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
+}
