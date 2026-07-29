@@ -130,7 +130,12 @@ export function ExercisesPage() {
                     {exercise.learning_content}
                   </p>
                 )}
-                {exercise.description && <p className="mt-1 text-sm text-text-muted">{exercise.description}</p>}
+                {exercise.description && (
+                  <p className="mt-1 text-sm text-text-muted">
+                    <span className="font-medium text-text">Beschreibung: </span>
+                    {exercise.description}
+                  </p>
+                )}
                 {exercise.variants && (
                   <p className="mt-1 text-sm text-text-muted">
                     <span className="font-medium text-text">Varianten: </span>
