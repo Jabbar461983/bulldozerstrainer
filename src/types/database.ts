@@ -1,7 +1,7 @@
 // Handgeschriebene Typen passend zu supabase/migrations/*.sql.
 // Bei Bedarf später ersetzbar durch `supabase gen types typescript`.
 
-export type CoachRole = 'headcoach' | 'assistant_coach';
+export type CoachRole = 'headcoach' | 'assistant_coach' | 'finance';
 export type AppRole = 'admin' | CoachRole;
 
 export interface Profile {

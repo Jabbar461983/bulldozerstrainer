@@ -2,15 +2,23 @@ import type { CoachRole } from '../types/database';
 
 export type Module = 'finanzen' | 'training' | 'spiele' | 'spieler' | 'uebungen' | 'trainer';
 
-// Rechtematrix aus dem Konzept: Finanzen nur Admin+Headcoach, alles andere
-// auch für Assistenzcoach (jeweils nur im eigenen Team-Scope).
+// Rechtematrix aus dem Konzept: Finanzen für Admin, Headcoach und die
+// dedizierte Finanzen-Rolle; alles andere auch für Assistenzcoach (jeweils
+// nur im eigenen Team-Scope). Die Finanzen-Rolle hat ausschliesslich Zugriff
+// auf das Finanzen-Modul.
 const MODULE_ROLES: Record<Module, CoachRole[]> = {
-  finanzen: ['headcoach'],
+  finanzen: ['headcoach', 'finance'],
   training: ['headcoach', 'assistant_coach'],
   spiele: ['headcoach', 'assistant_coach'],
   spieler: ['headcoach', 'assistant_coach'],
   uebungen: ['headcoach', 'assistant_coach'],
   trainer: ['headcoach', 'assistant_coach'],
+};
+
+export const ROLE_LABELS: Record<CoachRole, string> = {
+  headcoach: 'Headcoach',
+  assistant_coach: 'Assistenzcoach',
+  finance: 'Finanzen',
 };
 
 export function moduleAllowsRole(module: Module, role: CoachRole): boolean {

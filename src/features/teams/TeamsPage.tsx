@@ -5,6 +5,7 @@ import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchCategories, fetchTeams, fetchAssignableUsers, deleteCategory, deleteTeam } from './api';
 import type { AssignableUser, TeamRow } from './api';
 import type { Category } from '../../types/database';
+import { ROLE_LABELS } from '../../auth/permissions';
 import { withCache } from '../../lib/withCache';
 import { CreateCategoryDialog } from './CreateCategoryDialog';
 import { EditCategoryDialog } from './EditCategoryDialog';
@@ -153,7 +154,7 @@ export function TeamsPage() {
                           key={a.userId + a.role}
                           className="rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                         >
-                          {a.firstName} {a.lastName} – {a.role === 'headcoach' ? 'Headcoach' : 'Assistenzcoach'}
+                          {a.firstName} {a.lastName} – {ROLE_LABELS[a.role]}
                         </span>
                       ))}
                     </div>

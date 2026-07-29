@@ -1,5 +1,6 @@
 import { Button } from '../../components/Button';
 import { Select } from '../../components/Select';
+import { ROLE_LABELS } from '../../auth/permissions';
 import type { CoachRole } from '../../types/database';
 import type { TeamOption, TeamRoleInput } from './api';
 
@@ -8,11 +9,6 @@ interface TeamRolePickerProps {
   value: TeamRoleInput[];
   onChange: (value: TeamRoleInput[]) => void;
 }
-
-const ROLE_LABELS: Record<CoachRole, string> = {
-  headcoach: 'Headcoach',
-  assistant_coach: 'Assistenzcoach',
-};
 
 export function TeamRolePicker({ teamOptions, value, onChange }: TeamRolePickerProps) {
   function update(index: number, patch: Partial<TeamRoleInput>) {
@@ -64,6 +60,7 @@ export function TeamRolePicker({ teamOptions, value, onChange }: TeamRolePickerP
             >
               <option value="headcoach">{ROLE_LABELS.headcoach}</option>
               <option value="assistant_coach">{ROLE_LABELS.assistant_coach}</option>
+              <option value="finance">{ROLE_LABELS.finance}</option>
             </Select>
             <Button
               type="button"

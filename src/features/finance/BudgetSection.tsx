@@ -13,7 +13,8 @@ interface BudgetSectionProps {
 }
 
 export function BudgetSection({ teamId, season, budget, onSaved }: BudgetSectionProps) {
-  const { isAdmin, profile } = useAuth();
+  const { isAdmin, profile, memberships } = useAuth();
+  const canEditBudget = isAdmin || memberships.some((m) => m.teamId === teamId && m.role === 'finance');
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState(budget?.amount != null ? String(budget.amount) : '0');
   const [saving, setSaving] = useState(false);
@@ -49,12 +50,12 @@ export function BudgetSection({ teamId, season, budget, onSaved }: BudgetSection
           />
         )}
       </div>
-      {isAdmin && !editing && (
+      {canEditBudget && !editing && (
         <Button variant="secondary" onClick={() => setEditing(true)}>
           Bearbeiten
         </Button>
       )}
-      {isAdmin && editing && (
+      {canEditBudget && editing && (
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setEditing(false)}>
             Abbrechen

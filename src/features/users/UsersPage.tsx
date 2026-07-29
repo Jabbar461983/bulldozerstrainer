@@ -4,6 +4,7 @@ import { Card } from '../../components/Card';
 import { useAuth } from '../../auth/AuthContext';
 import { fetchUsers, fetchTeamOptions, deleteUser, sendPasswordReset } from './api';
 import type { UserRow, TeamOption } from './api';
+import { ROLE_LABELS } from '../../auth/permissions';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 
@@ -117,7 +118,7 @@ export function UsersPage() {
                     className="rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                   >
                     {tr.categoryName} · {tr.teamName} –{' '}
-                    {tr.role === 'headcoach' ? 'Headcoach' : 'Assistenzcoach'}
+                    {ROLE_LABELS[tr.role]}
                   </span>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 import { Button } from '../../components/Button';
 import { Select } from '../../components/Select';
+import { ROLE_LABELS } from '../../auth/permissions';
 import type { CoachRole } from '../../types/database';
 import type { AssignableUser, CoachAssignmentInput } from './api';
 
@@ -8,11 +9,6 @@ interface CoachAssignmentPickerProps {
   value: CoachAssignmentInput[];
   onChange: (value: CoachAssignmentInput[]) => void;
 }
-
-const ROLE_LABELS: Record<CoachRole, string> = {
-  headcoach: 'Headcoach',
-  assistant_coach: 'Assistenzcoach',
-};
 
 export function CoachAssignmentPicker({ users, value, onChange }: CoachAssignmentPickerProps) {
   function update(index: number, patch: Partial<CoachAssignmentInput>) {
@@ -64,6 +60,7 @@ export function CoachAssignmentPicker({ users, value, onChange }: CoachAssignmen
             >
               <option value="headcoach">{ROLE_LABELS.headcoach}</option>
               <option value="assistant_coach">{ROLE_LABELS.assistant_coach}</option>
+              <option value="finance">{ROLE_LABELS.finance}</option>
             </Select>
             <Button type="button" variant="ghost" onClick={() => remove(index)} aria-label="Zeile entfernen">
               ✕

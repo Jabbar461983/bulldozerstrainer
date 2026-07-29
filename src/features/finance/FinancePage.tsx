@@ -77,7 +77,7 @@ export function FinancePage() {
       {teamOptions !== null && teamOptions.length === 0 && (
         <Card>
           <p className="text-sm text-text-muted">
-            Dir ist kein Team als Headcoach zugewiesen. Bitte wende dich an einen Admin.
+            Dir ist kein Team für Finanzen zugewiesen. Bitte wende dich an einen Admin.
           </p>
         </Card>
       )}
