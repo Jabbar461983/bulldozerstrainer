@@ -7,6 +7,7 @@ import { Select } from '../../components/Select';
 import { TrainingExercisesEditor } from './TrainingExercisesEditor';
 import { TrainingRatingSection } from './TrainingRatingSection';
 import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
+import { TrainingTrainersEditor } from './TrainingTrainersEditor';
 import { updateTraining, deleteTraining, fetchTrainingExercises } from './api';
 import { exportTrainingPdf } from './trainingPdf';
 import type { Training, TrainingFieldType } from '../../types/database';
@@ -145,6 +146,11 @@ export function TrainingDetailDialog({ training, teamLabel, onClose, onSaved, on
           </div>
           {error && <p className="text-sm text-danger">{error}</p>}
         </form>
+
+        <div className="border-t border-border pt-4">
+          <Label>Trainer</Label>
+          <TrainingTrainersEditor trainingId={training.id} teamId={training.team_id} />
+        </div>
 
         <div className="border-t border-border pt-4">
           <Label>Übungen &amp; Zeitbalken</Label>

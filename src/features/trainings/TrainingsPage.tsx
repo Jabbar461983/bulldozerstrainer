@@ -2,23 +2,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Select } from '../../components/Select';
+import { StarRating } from '../../components/StarRating';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
 import { todayIso } from '../../lib/dates';
 import { withCache } from '../../lib/withCache';
-import { fetchTrainings } from './api';
+import { fetchTrainings, fetchTrainingsOverview } from './api';
+import type { TrainingOverviewInfo } from './api';
 import type { Training } from '../../types/database';
 import { CreateTrainingDialog } from './CreateTrainingDialog';
+import { CopyTrainingDialog } from './CopyTrainingDialog';
 import { TrainingDetailDialog } from './TrainingDetailDialog';
 
 export function TrainingsPage() {
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
   const [teamId, setTeamId] = useState('');
   const [trainings, setTrainings] = useState<Training[] | null>(null);
+  const [overview, setOverview] = useState<Record<string, TrainingOverviewInfo>>({});
   const [error, setError] = useState<string | null>(null);
   const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showCopy, setShowCopy] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
 
   useEffect(() => {
@@ -37,6 +42,9 @@ export function TrainingsPage() {
       const result = await withCache(`trainings:${currentTeamId}`, () => fetchTrainings(currentTeamId));
       setTrainings(result.data);
       setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
+      const ids = result.data.map((t) => t.id);
+      const overviewResult = await withCache(`training-overview:${currentTeamId}`, () => fetchTrainingsOverview(ids));
+      setOverview(overviewResult.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Trainings konnten nicht geladen werden.');
     }
@@ -57,6 +65,7 @@ export function TrainingsPage() {
   }, [trainings]);
 
   function renderTraining(training: Training) {
+    const info = overview[training.id];
     return (
       <Card
         key={training.id}
@@ -77,12 +86,22 @@ export function TrainingsPage() {
               })}
               {training.start_time && ` · ${training.start_time.slice(0, 5)}`}
             </p>
-            <p className="text-sm text-text-muted">{training.duration_minutes} Min.</p>
+            <p className="text-sm text-text-muted">
+              {training.duration_minutes} Min.
+              {info && ` · ${info.plannedMinutes} Min. verplant`}
+            </p>
           </div>
-          <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
-            {training.field_type === 'off_field' ? 'Off Field' : 'On Field'}
-          </span>
+          <div className="flex items-center gap-2">
+            {info?.ratingStars && <StarRating value={info.ratingStars} readOnly size="sm" />}
+            <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
+              {training.field_type === 'off_field' ? 'Off Field' : 'On Field'}
+            </span>
+          </div>
         </div>
+        {info?.ratingByName && <p className="mt-1 text-xs text-text-muted">Bewertet von {info.ratingByName}</p>}
+        {info && info.trainerNames.length > 0 && (
+          <p className="mt-1 text-xs text-text-muted">Trainer: {info.trainerNames.join(', ')}</p>
+        )}
         {training.notes && <p className="mt-1 truncate text-sm text-text-muted">{training.notes}</p>}
       </Card>
     );
@@ -92,9 +111,18 @@ export function TrainingsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold text-text">Training</h1>
-        <Button disabled={!teamId} onClick={() => setShowCreate(true)}>
-          + Neues Training
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            disabled={!teamId || !trainings || trainings.length === 0}
+            onClick={() => setShowCopy(true)}
+          >
+            Kopieren
+          </Button>
+          <Button disabled={!teamId} onClick={() => setShowCreate(true)}>
+            + Neues Training
+          </Button>
+        </div>
       </div>
 
       {teamOptions !== null && teamOptions.length === 0 && (
@@ -147,6 +175,18 @@ export function TrainingsPage() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
+            void load(teamId);
+          }}
+        />
+      )}
+
+      {showCopy && teamId && (
+        <CopyTrainingDialog
+          teamId={teamId}
+          trainings={trainings ?? []}
+          onClose={() => setShowCopy(false)}
+          onCreated={() => {
+            setShowCopy(false);
             void load(teamId);
           }}
         />

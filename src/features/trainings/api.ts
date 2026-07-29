@@ -5,6 +5,7 @@ import type {
   TrainingExercise,
   TrainingFieldType,
   TrainingRating,
+  TrainingTrainer,
 } from '../../types/database';
 import { fetchExerciseMediaByIds } from '../exercises/api';
 import type { ExerciseMediaView } from '../exercises/api';
@@ -25,6 +26,107 @@ export async function fetchTrainings(teamId: string): Promise<Training[]> {
   return data ?? [];
 }
 
+export interface TrainingOverviewInfo {
+  plannedMinutes: number;
+  ratingStars: number | null;
+  ratingByName: string | null;
+  trainerNames: string[];
+}
+
+export async function fetchTrainingsOverview(trainingIds: string[]): Promise<Record<string, TrainingOverviewInfo>> {
+  const overview: Record<string, TrainingOverviewInfo> = {};
+  for (const id of trainingIds) {
+    overview[id] = { plannedMinutes: 0, ratingStars: null, ratingByName: null, trainerNames: [] };
+  }
+  if (trainingIds.length === 0) return overview;
+
+  const { data: exerciseRows, error: exerciseError } = await supabase
+    .from('training_exercises')
+    .select('training_id, duration_minutes')
+    .in('training_id', trainingIds);
+  if (exerciseError) throw exerciseError;
+
+  const { data: ratingRows, error: ratingError } = await supabase
+    .from('training_ratings')
+    .select('training_id, stars, created_by')
+    .eq('is_admin_feedback', false)
+    .in('training_id', trainingIds);
+  if (ratingError) throw ratingError;
+
+  const { data: trainerLinkRows, error: trainerLinkError } = await supabase
+    .from('training_trainers')
+    .select('training_id, trainer_id')
+    .in('training_id', trainingIds);
+  if (trainerLinkError) throw trainerLinkError;
+
+  type RatingRow = { training_id: string; stars: number; created_by: string | null };
+  type TrainerLinkRow = { training_id: string; trainer_id: string };
+
+  const raterIds = Array.from(
+    new Set((ratingRows as RatingRow[] ?? []).map((r) => r.created_by).filter((id): id is string => !!id)),
+  );
+  let raterNameById = new Map<string, string>();
+  if (raterIds.length > 0) {
+    const { data: profileRows, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name')
+      .in('id', raterIds);
+    if (profileError) throw profileError;
+    raterNameById = new Map(
+      (profileRows ?? []).map((p: { id: string; first_name: string; last_name: string }) => [
+        p.id,
+        `${p.first_name} ${p.last_name}`,
+      ]),
+    );
+  }
+
+  const trainerIds = Array.from(new Set((trainerLinkRows as TrainerLinkRow[] ?? []).map((r) => r.trainer_id)));
+  let trainerNameById = new Map<string, string>();
+  if (trainerIds.length > 0) {
+    const { data: trainerRows, error: trainerError } = await supabase
+      .from('trainers')
+      .select('id, first_name, last_name')
+      .in('id', trainerIds);
+    if (trainerError) throw trainerError;
+    trainerNameById = new Map(
+      (trainerRows ?? []).map((t: { id: string; first_name: string; last_name: string }) => [
+        t.id,
+        `${t.first_name} ${t.last_name}`,
+      ]),
+    );
+  }
+
+  for (const row of (exerciseRows as { training_id: string; duration_minutes: number }[] ?? [])) {
+    overview[row.training_id].plannedMinutes += row.duration_minutes;
+  }
+  for (const row of (ratingRows as RatingRow[] ?? [])) {
+    overview[row.training_id].ratingStars = row.stars;
+    overview[row.training_id].ratingByName = row.created_by ? raterNameById.get(row.created_by) ?? null : null;
+  }
+  for (const row of (trainerLinkRows as TrainerLinkRow[] ?? [])) {
+    const name = trainerNameById.get(row.trainer_id);
+    if (name) overview[row.training_id].trainerNames.push(name);
+  }
+
+  return overview;
+}
+
+export async function fetchTrainingTrainers(trainingId: string): Promise<TrainingTrainer[]> {
+  const { data, error } = await supabase.from('training_trainers').select('*').eq('training_id', trainingId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function replaceTrainingTrainers(trainingId: string, trainerIds: string[]) {
+  const { error: deleteError } = await supabase.from('training_trainers').delete().eq('training_id', trainingId);
+  if (deleteError) throw deleteError;
+  if (trainerIds.length === 0) return;
+  const rows = trainerIds.map((trainerId) => ({ training_id: trainingId, trainer_id: trainerId }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: insertError } = await (supabase.from('training_trainers') as any).insert(rows);
+  if (insertError) throw insertError;
+}
+
 export interface CreateTrainingPayload {
   team_id: string;
   date: string;
@@ -36,7 +138,7 @@ export interface CreateTrainingPayload {
   repeatWeeks?: number;
 }
 
-export async function createTraining(payload: CreateTrainingPayload) {
+export async function createTraining(payload: CreateTrainingPayload): Promise<string[]> {
   const { repeatWeeks = 0, ...base } = payload;
   const seriesId = repeatWeeks > 0 ? crypto.randomUUID() : null;
   const dates = [base.date];
@@ -46,9 +148,38 @@ export async function createTraining(payload: CreateTrainingPayload) {
     }
   }
   const rows = dates.map((date) => ({ ...base, date, series_id: seriesId }));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('trainings') as any).insert(rows);
+  const { data, error } = await (supabase.from('trainings') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .insert(rows)
+    .select('id');
   if (error) throw error;
+  return (data ?? []).map((r: { id: string }) => r.id);
+}
+
+export async function duplicateTrainingContent(sourceTrainingId: string, targetTrainingId: string) {
+  const [exercises, trainerLinks] = await Promise.all([
+    fetchTrainingExercises(sourceTrainingId),
+    fetchTrainingTrainers(sourceTrainingId),
+  ]);
+
+  if (exercises.length > 0) {
+    const rows = exercises.map((e) => ({
+      training_id: targetTrainingId,
+      exercise_id: e.exercise_id,
+      duration_minutes: e.duration_minutes,
+      notes: e.notes,
+      sort_order: e.sort_order,
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('training_exercises') as any).insert(rows);
+    if (error) throw error;
+  }
+
+  if (trainerLinks.length > 0) {
+    await replaceTrainingTrainers(
+      targetTrainingId,
+      trainerLinks.map((t) => t.trainer_id),
+    );
+  }
 }
 
 export async function updateTraining(

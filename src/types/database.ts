@@ -144,6 +144,11 @@ export interface TrainingAbsence {
   trainer_id: string | null;
 }
 
+export interface TrainingTrainer {
+  training_id: string;
+  trainer_id: string;
+}
+
 export interface TrainingRating {
   id: string;
   training_id: string;
@@ -294,6 +299,11 @@ export interface Database {
         Row: TrainingAbsence;
         Insert: Partial<TrainingAbsence>;
         Update: Partial<TrainingAbsence>;
+      };
+      training_trainers: {
+        Row: TrainingTrainer;
+        Insert: Partial<TrainingTrainer>;
+        Update: Partial<TrainingTrainer>;
       };
       games: { Row: Game; Insert: Partial<Game>; Update: Partial<Game> };
       game_lineups: {
