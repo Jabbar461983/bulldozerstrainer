@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
-import { fetchExerciseOptions, EXERCISE_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS } from '../exercises/api';
+import { fetchExerciseOptions, ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS } from '../exercises/api';
 import type { ExerciseOption } from '../exercises/api';
 import type { ExerciseFocus, TrainingFieldType } from '../../types/database';
 
@@ -37,8 +37,6 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
     }
   }
 
-  const focusOptions = fieldType === 'off_field' ? OFF_FIELD_FOCUS_OPTIONS : EXERCISE_FOCUS_OPTIONS;
-
   const categoryExercises = useMemo(
     () => exercises.filter((e) => e.age_category_ids.includes(categoryId)),
     [exercises, categoryId],
@@ -67,19 +65,53 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
                 Für die Alterskategorie dieses Teams sind noch keine passenden Übungen hinterlegt.
               </p>
             )}
-            {focusOptions.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setSelectedFocus(f)}
-                className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt"
-              >
-                {f}
-                <span className="text-xs font-normal text-text-muted">
-                  {fieldExercises.filter((e) => e.focus_areas.includes(f)).length} Übungen
-                </span>
-              </button>
-            ))}
+
+            {fieldType === 'off_field' ? (
+              OFF_FIELD_FOCUS_OPTIONS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setSelectedFocus(f)}
+                  className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt"
+                >
+                  {f}
+                  <span className="text-xs font-normal text-text-muted">
+                    {fieldExercises.filter((e) => e.focus_areas.includes(f)).length} Übungen
+                  </span>
+                </button>
+              ))
+            ) : (
+              <>
+                {ON_FIELD_FOCUS_OPTIONS.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setSelectedFocus(f)}
+                    className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt"
+                  >
+                    {f}
+                    <span className="text-xs font-normal text-text-muted">
+                      {fieldExercises.filter((e) => e.focus_areas.includes(f)).length} Übungen
+                    </span>
+                  </button>
+                ))}
+
+                <p className="mt-2 text-xs font-medium uppercase tracking-wide text-text-muted">Off Field</p>
+                {OFF_FIELD_FOCUS_OPTIONS.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setSelectedFocus(f)}
+                    className="flex items-center justify-between rounded-lg border border-border px-2.5 py-1.5 text-left text-xs font-medium text-text-muted hover:bg-surface-alt"
+                  >
+                    {f}
+                    <span className="text-xs font-normal text-text-muted">
+                      {fieldExercises.filter((e) => e.focus_areas.includes(f)).length} Übungen
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
           </>
         )}
 
