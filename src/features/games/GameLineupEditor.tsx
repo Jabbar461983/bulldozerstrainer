@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Select } from '../../components/Select';
 import { fetchTeamPlayerRoster, fetchGameLineup, replaceGameLineup } from './api';
@@ -13,12 +13,38 @@ interface LineupSlotDef {
   blockNumber: number | null;
 }
 
-function buildSlots(): LineupSlotDef[] {
+function buildSlots(isU9: boolean): LineupSlotDef[] {
   const slots: LineupSlotDef[] = [
     { key: 'goalie-1', groupLabel: 'Torhüter', slotLabel: 'Torhüter', position: 'goalie', blockNumber: null },
     { key: 'goalie-2', groupLabel: 'Torhüter', slotLabel: 'Torhüter', position: 'goalie', blockNumber: null },
   ];
   for (let block = 1; block <= 4; block++) {
+    if (isU9) {
+      slots.push(
+        {
+          key: `block-${block}-defense-1`,
+          groupLabel: `Block ${block}`,
+          slotLabel: 'Verteidigung',
+          position: 'defense',
+          blockNumber: block,
+        },
+        {
+          key: `block-${block}-center`,
+          groupLabel: `Block ${block}`,
+          slotLabel: 'Center',
+          position: 'center',
+          blockNumber: block,
+        },
+        {
+          key: `block-${block}-wing-1`,
+          groupLabel: `Block ${block}`,
+          slotLabel: 'Flügel',
+          position: 'wing',
+          blockNumber: block,
+        },
+      );
+      continue;
+    }
     slots.push(
       {
         key: `block-${block}-defense-1`,
@@ -60,15 +86,17 @@ function buildSlots(): LineupSlotDef[] {
   return slots;
 }
 
-const SLOTS = buildSlots();
 const BLOCK_NUMBERS = [1, 2, 3, 4];
 
 interface GameLineupEditorProps {
   gameId: string;
   teamId: string;
+  categoryName: string;
 }
 
-export function GameLineupEditor({ gameId, teamId }: GameLineupEditorProps) {
+export function GameLineupEditor({ gameId, teamId, categoryName }: GameLineupEditorProps) {
+  const isU9 = categoryName.trim().toLowerCase() === 'u9';
+  const SLOTS = useMemo(() => buildSlots(isU9), [isU9]);
   const [roster, setRoster] = useState<RosterPlayer[] | null>(null);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -111,7 +139,7 @@ export function GameLineupEditor({ gameId, teamId }: GameLineupEditorProps) {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId, teamId]);
+  }, [gameId, teamId, isU9]);
 
   function updateSlot(slotKey: string, playerId: string) {
     setAssignments((prev) => {

@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import type { Game, GameAbsence, GameLineup, GameLineupPosition, GameRating, GameRatingCategory, PlayerGameComment } from '../../types/database';
+import type { Game, GameAbsence, GameLineup, GameLineupPosition, GameRating, GameRatingCategory, PlayerNote } from '../../types/database';
 import type { FixtureImportRow } from '../../lib/csv';
 import { fetchTeamPlayerRoster, fetchTeamTrainerRoster } from '../../lib/roster';
 import type { RosterPlayer, RosterTrainer } from '../../lib/roster';
@@ -148,19 +148,22 @@ export async function saveGameRating(
   }
 }
 
-export interface GameCommentRow extends PlayerGameComment {
+export interface GameCommentRow extends PlayerNote {
   playerName: string;
 }
 
+// Spielerkommentare landen in player_notes (source='game'), damit sie auch
+// in den Notizen des Spielers (PlayerNotes.tsx) erscheinen.
 export async function fetchGameComments(gameId: string): Promise<GameCommentRow[]> {
   const { data: comments, error: commentsError } = await supabase
-    .from('player_game_comments')
+    .from('player_notes')
     .select('*')
-    .eq('game_id', gameId)
+    .eq('source', 'game')
+    .eq('source_id', gameId)
     .order('created_at', { ascending: false });
   if (commentsError) throw commentsError;
 
-  const playerIds = Array.from(new Set((comments ?? []).map((c: PlayerGameComment) => c.player_id)));
+  const playerIds = Array.from(new Set((comments ?? []).map((c: PlayerNote) => c.player_id)));
   let nameById = new Map<string, string>();
   if (playerIds.length > 0) {
     const { data: players, error: playersError } = await supabase
@@ -176,25 +179,14 @@ export async function fetchGameComments(gameId: string): Promise<GameCommentRow[
     );
   }
 
-  return (comments ?? []).map((c: PlayerGameComment) => ({
+  return (comments ?? []).map((c: PlayerNote) => ({
     ...c,
     playerName: nameById.get(c.player_id) ?? 'Unbekannt',
   }));
 }
 
-export async function addGameComment(
-  gameId: string,
-  playerId: string,
-  date: string,
-  note: string,
-  createdBy: string | null,
-) {
-  const { error } = await (supabase.from('player_game_comments') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-    .insert({ game_id: gameId, player_id: playerId, date, note, created_by: createdBy });
-  if (error) throw error;
-}
-
-export async function deleteGameComment(id: string) {
-  const { error } = await supabase.from('player_game_comments').delete().eq('id', id);
+export async function addGameComment(gameId: string, playerId: string, note: string, createdBy: string | null) {
+  const { error } = await (supabase.from('player_notes') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .insert({ player_id: playerId, source: 'game', source_id: gameId, note, created_by: createdBy });
   if (error) throw error;
 }

@@ -13,12 +13,13 @@ import type { Game } from '../../types/database';
 interface GameDetailDialogProps {
   game: Game;
   teamId: string;
+  categoryName: string;
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
 }
 
-export function GameDetailDialog({ game, teamId, onClose, onSaved, onDeleted }: GameDetailDialogProps) {
+export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved, onDeleted }: GameDetailDialogProps) {
   const [date, setDate] = useState(game.date);
   const [time, setTime] = useState(game.time ?? '');
   const [location, setLocation] = useState(game.location ?? '');
@@ -152,7 +153,7 @@ export function GameDetailDialog({ game, teamId, onClose, onSaved, onDeleted }: 
 
         <div className="border-t border-border pt-4">
           <Label>Aufstellung</Label>
-          <GameLineupEditor gameId={game.id} teamId={teamId} />
+          <GameLineupEditor gameId={game.id} teamId={teamId} categoryName={categoryName} />
         </div>
 
         <div className="border-t border-border pt-4">
@@ -167,7 +168,7 @@ export function GameDetailDialog({ game, teamId, onClose, onSaved, onDeleted }: 
 
         <div className="border-t border-border pt-4">
           <Label>Spielerkommentare</Label>
-          <GameComments gameId={game.id} teamId={teamId} gameDate={date} />
+          <GameComments gameId={game.id} teamId={teamId} />
         </div>
       </div>
     </Modal>

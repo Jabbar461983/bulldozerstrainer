@@ -180,6 +180,7 @@ export function GamesPage() {
         <GameDetailDialog
           game={selectedGame}
           teamId={teamId}
+          categoryName={selectedTeam?.categoryName ?? ''}
           onClose={() => setSelectedGame(null)}
           onSaved={() => {
             setSelectedGame(null);
