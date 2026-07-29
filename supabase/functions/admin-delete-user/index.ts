@@ -1,10 +1,13 @@
-import { adminClient, json, requireAdmin } from '../_shared/admin.ts';
+import { adminClient, corsHeaders, json, requireAdmin } from '../_shared/admin.ts';
 
 interface DeleteUserBody {
   user_id: string;
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
   if (req.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
