@@ -18,8 +18,16 @@ interface TrainingPresentationProps {
   onClose: () => void;
 }
 
+interface ProgramItem {
+  title: string;
+  durationMinutes: number;
+  startClock: string | null;
+  endClock: string | null;
+}
+
 type Page =
   | { type: 'overview' }
+  | { type: 'program'; items: ProgramItem[] }
   | { type: 'exercise'; exercise: TrainingExerciseRow; startClock: string | null; endClock: string | null }
   | { type: 'closing' };
 
@@ -84,16 +92,17 @@ export function TrainingPresentation({ training, teamId, trainings, onClose }: T
   }, [training.id, teamId]);
 
   const pages = useMemo<Page[]>(() => {
-    const result: Page[] = [{ type: 'overview' }];
+    const programItems: ProgramItem[] = [];
+    const exercisePages: Page[] = [];
     let cursor = training.start_time;
     for (const exercise of exercises ?? []) {
       const startClock = cursor;
       const endClock = cursor ? addMinutesToTime(cursor, exercise.duration_minutes) : null;
-      result.push({ type: 'exercise', exercise, startClock, endClock });
+      programItems.push({ title: exercise.exerciseTitle, durationMinutes: exercise.duration_minutes, startClock, endClock });
+      exercisePages.push({ type: 'exercise', exercise, startClock, endClock });
       cursor = endClock;
     }
-    result.push({ type: 'closing' });
-    return result;
+    return [{ type: 'overview' }, { type: 'program', items: programItems }, ...exercisePages, { type: 'closing' }];
   }, [exercises, training.start_time]);
 
   const upcomingItems = useMemo<UpcomingItem[]>(() => {
@@ -186,6 +195,35 @@ export function TrainingPresentation({ training, teamId, trainings, onClose }: T
                 <h2 className="mb-2 text-sm font-semibold text-text-muted">Notizen</h2>
                 <p className="whitespace-pre-wrap text-sm text-text">{training.notes}</p>
               </div>
+            )}
+          </div>
+        )}
+
+        {exercises && page.type === 'program' && (
+          <div className="flex flex-col gap-4">
+            <h1 className="text-2xl font-semibold text-text">Programm</h1>
+            {page.items.length === 0 ? (
+              <p className="text-sm text-text-muted">Noch keine Übungen eingeplant.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {page.items.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 text-sm"
+                  >
+                    <span className="font-medium text-text">{item.title}</span>
+                    <span className="shrink-0 text-right text-text-muted">
+                      {item.durationMinutes} Min.
+                      {item.startClock && item.endClock && (
+                        <>
+                          <br />
+                          {item.startClock.slice(0, 5)}–{item.endClock.slice(0, 5)}
+                        </>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}
