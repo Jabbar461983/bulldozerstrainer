@@ -9,9 +9,10 @@ interface ChipMultiPickerProps {
   options: ChipOption[];
   value: string[];
   onChange: (value: string[]) => void;
+  size?: 'sm' | 'md';
 }
 
-export function ChipMultiPicker({ options, value, onChange }: ChipMultiPickerProps) {
+export function ChipMultiPicker({ options, value, onChange, size = 'md' }: ChipMultiPickerProps) {
   function toggle(v: string) {
     onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
   }
@@ -22,7 +23,8 @@ export function ChipMultiPicker({ options, value, onChange }: ChipMultiPickerPro
         <label
           key={o.value}
           className={clsx(
-            'flex min-h-9 cursor-pointer items-center rounded-full border px-3.5 py-2 text-sm transition',
+            'flex cursor-pointer items-center rounded-full border transition',
+            size === 'sm' ? 'min-h-7 px-2.5 py-1 text-xs' : 'min-h-9 px-3.5 py-2 text-sm',
             value.includes(o.value)
               ? 'border-accent bg-accent/10 text-accent'
               : 'border-border text-text-muted hover:bg-surface-alt',

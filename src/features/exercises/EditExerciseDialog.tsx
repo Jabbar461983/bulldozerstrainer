@@ -5,7 +5,7 @@ import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { ChipMultiPicker } from '../../components/ChipMultiPicker';
 import { ExerciseMediaGallery } from './ExerciseMediaGallery';
-import { EXERCISE_FOCUS_OPTIONS, updateExercise } from './api';
+import { ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS, updateExercise } from './api';
 import type { ExerciseRow } from './api';
 import type { Category, ExerciseFocus } from '../../types/database';
 
@@ -18,7 +18,9 @@ interface EditExerciseDialogProps {
 
 export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: EditExerciseDialogProps) {
   const [title, setTitle] = useState(exercise.title);
+  const [learningContent, setLearningContent] = useState(exercise.learning_content ?? '');
   const [description, setDescription] = useState(exercise.description ?? '');
+  const [variants, setVariants] = useState(exercise.variants ?? '');
   const [focusAreas, setFocusAreas] = useState<string[]>(exercise.focus_areas);
   const [categoryIds, setCategoryIds] = useState<string[]>(exercise.age_category_ids);
   const [media, setMedia] = useState(exercise.media);
@@ -32,7 +34,9 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
     try {
       await updateExercise(exercise.id, {
         title,
+        learning_content: learningContent || null,
         description: description || null,
+        variants: variants || null,
         focus_areas: focusAreas as ExerciseFocus[],
         age_category_ids: categoryIds,
       });
@@ -65,6 +69,16 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
           <Input id="title" required value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div>
+          <Label htmlFor="learningContent">Lerninhalte (optional)</Label>
+          <textarea
+            id="learningContent"
+            rows={3}
+            value={learningContent}
+            onChange={(e) => setLearningContent(e.target.value)}
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+        </div>
+        <div>
           <Label htmlFor="description">Beschreibung (optional)</Label>
           <textarea
             id="description"
@@ -75,12 +89,32 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
           />
         </div>
         <div>
-          <Label>Fokus-Bereiche</Label>
-          <ChipMultiPicker
-            options={EXERCISE_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
-            value={focusAreas}
-            onChange={setFocusAreas}
+          <Label htmlFor="variants">Varianten (optional)</Label>
+          <textarea
+            id="variants"
+            rows={3}
+            value={variants}
+            onChange={(e) => setVariants(e.target.value)}
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
+        </div>
+        <div className="flex flex-col gap-3">
+          <div>
+            <Label>On Field</Label>
+            <ChipMultiPicker
+              options={ON_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
+              value={focusAreas}
+              onChange={setFocusAreas}
+            />
+          </div>
+          <div>
+            <Label>Off Field</Label>
+            <ChipMultiPicker
+              options={OFF_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
+              value={focusAreas}
+              onChange={setFocusAreas}
+            />
+          </div>
         </div>
         <div>
           <Label>Alterskategorien</Label>

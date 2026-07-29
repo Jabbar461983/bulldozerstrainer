@@ -75,13 +75,23 @@ export interface PlayerNote {
 }
 
 export type ExerciseFocus =
+  // On Field
   | 'Angriff'
   | 'Verteidigung'
   | 'Schuss'
   | 'Passspiel'
   | 'Powerplay'
   | 'Boxplay'
-  | 'Torhüter';
+  | 'Torhüter'
+  | 'Spiel'
+  // Off Field
+  | 'Kraft'
+  | 'Ausdauer'
+  | 'Koordination'
+  | 'Schnelligkeit'
+  | 'Off Field Spiel';
+
+export type TrainingFieldType = 'on_field' | 'off_field';
 
 export interface ExerciseMedia {
   type: 'image' | 'video';
@@ -92,7 +102,9 @@ export interface ExerciseMedia {
 export interface Exercise {
   id: string;
   title: string;
+  learning_content: string | null;
   description: string | null;
+  variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
   media: ExerciseMedia[];
@@ -108,6 +120,7 @@ export interface Training {
   start_time: string | null;
   duration_minutes: number;
   series_id: string | null;
+  field_type: TrainingFieldType;
   notes: string | null;
   created_by: string | null;
   created_at: string;

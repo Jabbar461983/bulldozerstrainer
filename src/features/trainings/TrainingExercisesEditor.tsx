@@ -11,15 +11,17 @@ import {
   reorderTrainingExercises,
 } from './api';
 import type { TrainingExerciseRow } from './api';
+import type { TrainingFieldType } from '../../types/database';
 
 const DEFAULT_EXERCISE_DURATION = 10;
 
 interface TrainingExercisesEditorProps {
   trainingId: string;
   totalMinutes: number;
+  fieldType: TrainingFieldType;
 }
 
-export function TrainingExercisesEditor({ trainingId, totalMinutes }: TrainingExercisesEditorProps) {
+export function TrainingExercisesEditor({ trainingId, totalMinutes, fieldType }: TrainingExercisesEditorProps) {
   const [rows, setRows] = useState<TrainingExerciseRow[] | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -196,7 +198,7 @@ export function TrainingExercisesEditor({ trainingId, totalMinutes }: TrainingEx
       {error && <p className="text-sm text-danger">{error}</p>}
 
       {showAddDialog && (
-        <AddTrainingExerciseDialog onClose={() => setShowAddDialog(false)} onAdd={handleAdd} />
+        <AddTrainingExerciseDialog fieldType={fieldType} onClose={() => setShowAddDialog(false)} onAdd={handleAdd} />
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import { Card } from '../../components/Card';
 import { ChipMultiPicker } from '../../components/ChipMultiPicker';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { useAuth } from '../../auth/AuthContext';
-import { fetchExercises, deleteExercise, EXERCISE_FOCUS_OPTIONS } from './api';
+import { fetchExercises, deleteExercise, ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS } from './api';
 import type { ExerciseRow } from './api';
 import { fetchCategories } from '../../lib/categories';
 import type { Category, ExerciseFocus } from '../../types/database';
@@ -84,12 +84,23 @@ export function ExercisesPage() {
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
       {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
-      <div className="flex flex-col gap-2">
-        <ChipMultiPicker
-          options={EXERCISE_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
-          value={focusFilter}
-          onChange={setFocusFilter}
-        />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">On Field</p>
+          <ChipMultiPicker
+            options={ON_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
+            value={focusFilter}
+            onChange={setFocusFilter}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">Off Field</p>
+          <ChipMultiPicker
+            options={OFF_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
+            value={focusFilter}
+            onChange={setFocusFilter}
+          />
+        </div>
         {categories.length > 0 && (
           <ChipMultiPicker
             options={categories.map((c) => ({ value: c.id, label: c.name }))}
@@ -113,7 +124,19 @@ export function ExercisesPage() {
             <Card key={exercise.id} className="flex flex-col gap-3">
               <div>
                 <p className="font-medium text-text">{exercise.title}</p>
+                {exercise.learning_content && (
+                  <p className="mt-1 text-sm text-text-muted">
+                    <span className="font-medium text-text">Lerninhalte: </span>
+                    {exercise.learning_content}
+                  </p>
+                )}
                 {exercise.description && <p className="mt-1 text-sm text-text-muted">{exercise.description}</p>}
+                {exercise.variants && (
+                  <p className="mt-1 text-sm text-text-muted">
+                    <span className="font-medium text-text">Varianten: </span>
+                    {exercise.variants}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-1.5">
