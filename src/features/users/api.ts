@@ -2,6 +2,7 @@ import { supabase } from '../../lib/supabase';
 import type { CoachRole, Profile } from '../../types/database';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
+import { functionErrorMessage } from '../../lib/functionsError';
 
 export { fetchTeamOptions };
 export type { TeamOption };
@@ -59,7 +60,7 @@ export async function createUser(payload: {
   team_roles: TeamRoleInput[];
 }) {
   const { data, error } = await supabase.functions.invoke('admin-create-user', { body: payload });
-  if (error) throw error;
+  if (error) throw new Error(await functionErrorMessage(error, 'Benutzer konnte nicht angelegt werden.'));
   if (data?.error) throw new Error(data.error);
   return data;
 }
@@ -68,7 +69,7 @@ export async function deleteUser(userId: string) {
   const { data, error } = await supabase.functions.invoke('admin-delete-user', {
     body: { user_id: userId },
   });
-  if (error) throw error;
+  if (error) throw new Error(await functionErrorMessage(error, 'Benutzer konnte nicht gelöscht werden.'));
   if (data?.error) throw new Error(data.error);
   return data;
 }
