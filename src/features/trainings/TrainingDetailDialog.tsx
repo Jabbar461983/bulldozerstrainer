@@ -34,6 +34,7 @@ export function TrainingDetailDialog({
   const [duration, setDuration] = useState(training.duration_minutes);
   const [fieldType, setFieldType] = useState<TrainingFieldType>(training.field_type);
   const [notes, setNotes] = useState(training.notes ?? '');
+  const [information, setInformation] = useState(training.information ?? '');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -63,6 +64,7 @@ export function TrainingDetailDialog({
         duration_minutes: duration,
         field_type: fieldType,
         notes: notes || null,
+        information: information || null,
       });
       onSaved();
     } catch (err) {
@@ -149,6 +151,16 @@ export function TrainingDetailDialog({
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            />
+          </div>
+          <div>
+            <Label htmlFor="information">Informationen (optional)</Label>
+            <textarea
+              id="information"
+              rows={3}
+              value={information}
+              onChange={(e) => setInformation(e.target.value)}
               className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
           </div>

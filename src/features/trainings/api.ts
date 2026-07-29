@@ -134,6 +134,7 @@ export interface CreateTrainingPayload {
   duration_minutes: number;
   field_type: TrainingFieldType;
   notes: string | null;
+  information: string | null;
   created_by: string | null;
   repeatWeeks?: number;
 }
@@ -184,7 +185,7 @@ export async function duplicateTrainingContent(sourceTrainingId: string, targetT
 
 export async function updateTraining(
   id: string,
-  updates: Partial<Pick<Training, 'date' | 'start_time' | 'duration_minutes' | 'field_type' | 'notes'>>,
+  updates: Partial<Pick<Training, 'date' | 'start_time' | 'duration_minutes' | 'field_type' | 'notes' | 'information'>>,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('trainings') as any).update(updates).eq('id', id);
@@ -199,6 +200,7 @@ export async function deleteTraining(id: string) {
 export interface TrainingExerciseRow extends TrainingExercise {
   exerciseTitle: string;
   exerciseDescription: string | null;
+  exerciseVariants: string | null;
   media: ExerciseMediaView[];
 }
 
@@ -211,18 +213,20 @@ export async function fetchTrainingExercises(trainingId: string): Promise<Traini
   if (rowsError) throw rowsError;
 
   const exerciseIds = Array.from(new Set((rows ?? []).map((r: TrainingExercise) => r.exercise_id)));
-  let infoById = new Map<string, { title: string; description: string | null }>();
+  let infoById = new Map<string, { title: string; description: string | null; variants: string | null }>();
   if (exerciseIds.length > 0) {
     const { data: exercises, error: exercisesError } = await supabase
       .from('exercises')
-      .select('id, title, description')
+      .select('id, title, description, variants')
       .in('id', exerciseIds);
     if (exercisesError) throw exercisesError;
     infoById = new Map(
-      (exercises ?? []).map((e: { id: string; title: string; description: string | null }) => [
-        e.id,
-        { title: e.title, description: e.description },
-      ]),
+      (exercises ?? []).map(
+        (e: { id: string; title: string; description: string | null; variants: string | null }) => [
+          e.id,
+          { title: e.title, description: e.description, variants: e.variants },
+        ],
+      ),
     );
   }
   const mediaById = await fetchExerciseMediaByIds(exerciseIds);
@@ -231,6 +235,7 @@ export async function fetchTrainingExercises(trainingId: string): Promise<Traini
     ...r,
     exerciseTitle: infoById.get(r.exercise_id)?.title ?? 'Unbekannte Übung',
     exerciseDescription: infoById.get(r.exercise_id)?.description ?? null,
+    exerciseVariants: infoById.get(r.exercise_id)?.variants ?? null,
     media: mediaById.get(r.exercise_id) ?? [],
   }));
 }

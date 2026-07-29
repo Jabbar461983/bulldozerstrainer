@@ -59,6 +59,7 @@ export function CopyTrainingDialog({ teamId, trainings, onClose, onCreated }: Co
         duration_minutes: source.duration_minutes,
         field_type: source.field_type,
         notes: source.notes,
+        information: source.information,
         created_by: profile?.id ?? null,
       });
       if (ids.length > 0) {
@@ -116,7 +117,8 @@ export function CopyTrainingDialog({ teamId, trainings, onClose, onCreated }: Co
         </div>
 
         <p className="rounded-xl bg-surface-alt p-3 text-sm text-text-muted">
-          Übernimmt Dauer, Trainingsart, Notizen, Übungen &amp; Zeitbalken sowie Trainer 1:1 vom gewählten Training.
+          Übernimmt Dauer, Trainingsart, Notizen, Informationen, Übungen &amp; Zeitbalken sowie Trainer 1:1 vom
+          gewählten Training.
           Danach lässt sich das neue Training frei anpassen.
         </p>
 

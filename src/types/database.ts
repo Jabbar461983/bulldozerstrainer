@@ -122,6 +122,7 @@ export interface Training {
   series_id: string | null;
   field_type: TrainingFieldType;
   notes: string | null;
+  information: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

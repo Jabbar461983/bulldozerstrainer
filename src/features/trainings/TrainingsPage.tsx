@@ -14,6 +14,7 @@ import type { Training } from '../../types/database';
 import { CreateTrainingDialog } from './CreateTrainingDialog';
 import { CopyTrainingDialog } from './CopyTrainingDialog';
 import { TrainingDetailDialog } from './TrainingDetailDialog';
+import { TrainingPresentation } from './TrainingPresentation';
 
 export function TrainingsPage() {
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
@@ -25,6 +26,7 @@ export function TrainingsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showCopy, setShowCopy] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
+  const [presentingTraining, setPresentingTraining] = useState<Training | null>(null);
 
   useEffect(() => {
     withCache('team-options', fetchTeamOptions)
@@ -75,34 +77,51 @@ export function TrainingsPage() {
         onKeyDown={(e) => e.key === 'Enter' && setSelectedTraining(training)}
         className="cursor-pointer"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="font-medium text-text">
-              {new Date(`${training.date}T00:00:00`).toLocaleDateString('de-CH', {
-                weekday: 'short',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })}
-              {training.start_time && ` · ${training.start_time.slice(0, 5)}`}
-            </p>
-            <p className="text-sm text-text-muted">
-              {training.duration_minutes} Min.
-              {info && ` · ${info.plannedMinutes} Min. verplant`}
-            </p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium text-text">
+                  {new Date(`${training.date}T00:00:00`).toLocaleDateString('de-CH', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
+                  {training.start_time && ` · ${training.start_time.slice(0, 5)}`}
+                </p>
+                <p className="text-sm text-text-muted">
+                  {training.duration_minutes} Min.
+                  {info && ` · ${info.plannedMinutes} Min. verplant`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {info?.ratingStars && <StarRating value={info.ratingStars} readOnly size="sm" />}
+                <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
+                  {training.field_type === 'off_field' ? 'Off Field' : 'On Field'}
+                </span>
+              </div>
+            </div>
+            {info?.ratingByName && <p className="mt-1 text-xs text-text-muted">Bewertet von {info.ratingByName}</p>}
+            {info && info.trainerNames.length > 0 && (
+              <p className="mt-1 text-xs text-text-muted">Trainer: {info.trainerNames.join(', ')}</p>
+            )}
+            {training.notes && <p className="mt-1 truncate text-sm text-text-muted">{training.notes}</p>}
           </div>
-          <div className="flex items-center gap-2">
-            {info?.ratingStars && <StarRating value={info.ratingStars} readOnly size="sm" />}
-            <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
-              {training.field_type === 'off_field' ? 'Off Field' : 'On Field'}
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPresentingTraining(training);
+            }}
+            aria-label="Training abspielen"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-accent hover:bg-accent/10"
+          >
+            <svg viewBox="0 0 24 24" className="size-6" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
         </div>
-        {info?.ratingByName && <p className="mt-1 text-xs text-text-muted">Bewertet von {info.ratingByName}</p>}
-        {info && info.trainerNames.length > 0 && (
-          <p className="mt-1 text-xs text-text-muted">Trainer: {info.trainerNames.join(', ')}</p>
-        )}
-        {training.notes && <p className="mt-1 truncate text-sm text-text-muted">{training.notes}</p>}
       </Card>
     );
   }
@@ -206,6 +225,15 @@ export function TrainingsPage() {
             setSelectedTraining(null);
             void load(teamId);
           }}
+        />
+      )}
+
+      {presentingTraining && (
+        <TrainingPresentation
+          training={presentingTraining}
+          teamId={teamId}
+          trainings={trainings ?? []}
+          onClose={() => setPresentingTraining(null)}
         />
       )}
     </div>
