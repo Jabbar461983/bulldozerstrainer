@@ -3,10 +3,11 @@ import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
+import { Select } from '../../components/Select';
 import { TrainingExercisesEditor } from './TrainingExercisesEditor';
 import { TrainingRatingSection } from './TrainingRatingSection';
 import { updateTraining, deleteTraining } from './api';
-import type { Training } from '../../types/database';
+import type { Training, TrainingFieldType } from '../../types/database';
 
 interface TrainingDetailDialogProps {
   training: Training;
@@ -19,6 +20,7 @@ export function TrainingDetailDialog({ training, onClose, onSaved, onDeleted }: 
   const [date, setDate] = useState(training.date);
   const [startTime, setStartTime] = useState(training.start_time ?? '');
   const [duration, setDuration] = useState(training.duration_minutes);
+  const [fieldType, setFieldType] = useState<TrainingFieldType>(training.field_type);
   const [notes, setNotes] = useState(training.notes ?? '');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -33,6 +35,7 @@ export function TrainingDetailDialog({ training, onClose, onSaved, onDeleted }: 
         date,
         start_time: startTime || null,
         duration_minutes: duration,
+        field_type: fieldType,
         notes: notes || null,
       });
       onSaved();
@@ -100,6 +103,17 @@ export function TrainingDetailDialog({ training, onClose, onSaved, onDeleted }: 
             />
           </div>
           <div>
+            <Label htmlFor="fieldType">Trainingsart</Label>
+            <Select
+              id="fieldType"
+              value={fieldType}
+              onChange={(e) => setFieldType(e.target.value as TrainingFieldType)}
+            >
+              <option value="on_field">On Field</option>
+              <option value="off_field">Off Field</option>
+            </Select>
+          </div>
+          <div>
             <Label htmlFor="notes">Notizen (optional)</Label>
             <textarea
               id="notes"
@@ -114,7 +128,7 @@ export function TrainingDetailDialog({ training, onClose, onSaved, onDeleted }: 
 
         <div className="border-t border-border pt-4">
           <Label>Übungen &amp; Zeitbalken</Label>
-          <TrainingExercisesEditor trainingId={training.id} totalMinutes={duration} />
+          <TrainingExercisesEditor trainingId={training.id} totalMinutes={duration} fieldType={fieldType} />
         </div>
 
         <div className="border-t border-border pt-4">

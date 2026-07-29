@@ -3,8 +3,10 @@ import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
+import { Select } from '../../components/Select';
 import { createTraining } from './api';
 import { useAuth } from '../../auth/AuthContext';
+import type { TrainingFieldType } from '../../types/database';
 
 interface CreateTrainingDialogProps {
   teamId: string;
@@ -17,6 +19,7 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(90);
+  const [fieldType, setFieldType] = useState<TrainingFieldType>('on_field');
   const [notes, setNotes] = useState('');
   const [asSeries, setAsSeries] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(9);
@@ -33,6 +36,7 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
         date,
         start_time: startTime || null,
         duration_minutes: duration,
+        field_type: fieldType,
         notes: notes || null,
         created_by: profile?.id ?? null,
         repeatWeeks: asSeries ? repeatWeeks : 0,
@@ -81,6 +85,17 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
           />
+        </div>
+        <div>
+          <Label htmlFor="fieldType">Trainingsart</Label>
+          <Select
+            id="fieldType"
+            value={fieldType}
+            onChange={(e) => setFieldType(e.target.value as TrainingFieldType)}
+          >
+            <option value="on_field">On Field</option>
+            <option value="off_field">Off Field</option>
+          </Select>
         </div>
         <div>
           <Label htmlFor="notes">Notizen (optional)</Label>

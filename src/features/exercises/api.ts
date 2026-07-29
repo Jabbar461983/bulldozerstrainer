@@ -12,7 +12,13 @@ export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
   'Spiel',
 ];
 
-export const OFF_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = ['Kraft', 'Ausdauer', 'Koordination', 'Schnelligkeit'];
+export const OFF_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
+  'Kraft',
+  'Ausdauer',
+  'Koordination',
+  'Schnelligkeit',
+  'Off Field Spiel',
+];
 
 export const EXERCISE_FOCUS_OPTIONS: ExerciseFocus[] = [...ON_FIELD_FOCUS_OPTIONS, ...OFF_FIELD_FOCUS_OPTIONS];
 
@@ -24,10 +30,14 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 export interface ExerciseOption {
   id: string;
   title: string;
+  focus_areas: ExerciseFocus[];
 }
 
 export async function fetchExerciseOptions(): Promise<ExerciseOption[]> {
-  const { data, error } = await supabase.from('exercises').select('id, title').order('title', { ascending: true });
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('id, title, focus_areas')
+    .order('title', { ascending: true });
   if (error) throw error;
   return data ?? [];
 }
@@ -99,7 +109,9 @@ export async function removeExerciseMediaFile(path: string) {
 
 export async function createExercise(payload: {
   title: string;
+  learning_content: string | null;
   description: string | null;
+  variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
   files: File[];
@@ -122,7 +134,9 @@ export async function createExercise(payload: {
 
 export async function updateExercise(
   id: string,
-  updates: Partial<Pick<Exercise, 'title' | 'description' | 'focus_areas' | 'age_category_ids'>>,
+  updates: Partial<
+    Pick<Exercise, 'title' | 'learning_content' | 'description' | 'variants' | 'focus_areas' | 'age_category_ids'>
+  >,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('exercises') as any).update(updates).eq('id', id);

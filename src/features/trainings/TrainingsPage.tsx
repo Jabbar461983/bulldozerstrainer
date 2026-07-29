@@ -76,6 +76,9 @@ export function TrainingsPage() {
             </p>
             <p className="text-sm text-text-muted">{training.duration_minutes} Min.</p>
           </div>
+          <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
+            {training.field_type === 'off_field' ? 'Off Field' : 'On Field'}
+          </span>
         </div>
         {training.notes && <p className="mt-1 truncate text-sm text-text-muted">{training.notes}</p>}
       </Card>

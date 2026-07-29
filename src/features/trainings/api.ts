@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import type { Training, TrainingExercise, TrainingRating } from '../../types/database';
+import type { Training, TrainingExercise, TrainingFieldType, TrainingRating } from '../../types/database';
 
 function addDays(dateStr: string, days: number): string {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -22,6 +22,7 @@ export interface CreateTrainingPayload {
   date: string;
   start_time: string | null;
   duration_minutes: number;
+  field_type: TrainingFieldType;
   notes: string | null;
   created_by: string | null;
   repeatWeeks?: number;
@@ -44,7 +45,7 @@ export async function createTraining(payload: CreateTrainingPayload) {
 
 export async function updateTraining(
   id: string,
-  updates: Partial<Pick<Training, 'date' | 'start_time' | 'duration_minutes' | 'notes'>>,
+  updates: Partial<Pick<Training, 'date' | 'start_time' | 'duration_minutes' | 'field_type' | 'notes'>>,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('trainings') as any).update(updates).eq('id', id);

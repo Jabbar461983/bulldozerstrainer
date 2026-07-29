@@ -124,7 +124,19 @@ export function ExercisesPage() {
             <Card key={exercise.id} className="flex flex-col gap-3">
               <div>
                 <p className="font-medium text-text">{exercise.title}</p>
+                {exercise.learning_content && (
+                  <p className="mt-1 text-sm text-text-muted">
+                    <span className="font-medium text-text">Lerninhalte: </span>
+                    {exercise.learning_content}
+                  </p>
+                )}
                 {exercise.description && <p className="mt-1 text-sm text-text-muted">{exercise.description}</p>}
+                {exercise.variants && (
+                  <p className="mt-1 text-sm text-text-muted">
+                    <span className="font-medium text-text">Varianten: </span>
+                    {exercise.variants}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-1.5">
