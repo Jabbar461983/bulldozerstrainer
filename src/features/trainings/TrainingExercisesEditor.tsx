@@ -152,14 +152,16 @@ export function TrainingExercisesEditor({
                 </Button>
               </div>
               <span className="min-w-0 flex-1 truncate font-medium text-text">{row.exerciseTitle}</span>
-              <Input
-                type="number"
-                min={1}
-                value={row.duration_minutes}
-                disabled={busy}
-                onChange={(e) => void handleDurationChange(row.id, Number(e.target.value))}
-                className="w-14 shrink-0 text-center"
-              />
+              <div className="w-16 shrink-0">
+                <Input
+                  type="number"
+                  min={1}
+                  value={row.duration_minutes}
+                  disabled={busy}
+                  onChange={(e) => void handleDurationChange(row.id, Number(e.target.value))}
+                  className="text-center"
+                />
+              </div>
               <span className="shrink-0 text-xs text-text-muted">Min.</span>
               <Button
                 type="button"
