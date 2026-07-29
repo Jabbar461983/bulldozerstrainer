@@ -68,9 +68,9 @@ export async function replaceTrainerTeams(trainerId: string, teamIds: string[]) 
   if (insertError) throw insertError;
 }
 
-export async function importTrainers(rows: RosterImportRow[], teamId: string) {
-  const validRows = rows.filter((r) => r.valid);
-  for (const row of validRows) {
+export async function importTrainers(rows: { row: RosterImportRow; teamId: string }[]) {
+  for (const { row, teamId } of rows) {
+    if (!row.valid) continue;
     await createTrainer({
       first_name: row.firstName,
       last_name: row.lastName,

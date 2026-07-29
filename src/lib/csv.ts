@@ -78,6 +78,8 @@ export interface RosterImportRow {
   lastName: string;
   birthdate: string | null;
   rawBirthdate: string;
+  rawCategory: string;
+  rawTeam: string;
   valid: boolean;
   error?: string;
 }
@@ -85,6 +87,8 @@ export interface RosterImportRow {
 const FIRST_NAME_HEADERS = ['vorname', 'first name', 'firstname'];
 const LAST_NAME_HEADERS = ['nachname', 'last name', 'lastname'];
 const BIRTHDATE_HEADERS = ['geburtsdatum', 'geburtstag', 'birthdate'];
+const CATEGORY_HEADERS = ['kategorie', 'category'];
+const TEAM_HEADERS = ['team', 'mannschaft'];
 
 export function parseRosterCsv(text: string): RosterImportRow[] {
   const rows = parseCsv(text);
@@ -95,6 +99,8 @@ export function parseRosterCsv(text: string): RosterImportRow[] {
   const firstNameIdx = header.findIndex((h) => FIRST_NAME_HEADERS.includes(h));
   const lastNameIdx = header.findIndex((h) => LAST_NAME_HEADERS.includes(h));
   const birthdateIdx = header.findIndex((h) => BIRTHDATE_HEADERS.includes(h));
+  const categoryIdx = header.findIndex((h) => CATEGORY_HEADERS.includes(h));
+  const teamIdx = header.findIndex((h) => TEAM_HEADERS.includes(h));
 
   if (firstNameIdx === -1 || lastNameIdx === -1) {
     throw new CsvFormatError(
@@ -107,12 +113,16 @@ export function parseRosterCsv(text: string): RosterImportRow[] {
     const lastName = (cols[lastNameIdx] ?? '').trim();
     const rawBirthdate = birthdateIdx === -1 ? '' : (cols[birthdateIdx] ?? '').trim();
     const birthdate = rawBirthdate ? parseDateCell(rawBirthdate) : null;
+    const rawCategory = categoryIdx === -1 ? '' : (cols[categoryIdx] ?? '').trim();
+    const rawTeam = teamIdx === -1 ? '' : (cols[teamIdx] ?? '').trim();
     const valid = firstName.length > 0 && lastName.length > 0;
     return {
       firstName,
       lastName,
       birthdate,
       rawBirthdate,
+      rawCategory,
+      rawTeam,
       valid,
       error: valid ? undefined : 'Vorname/Nachname fehlt',
     };

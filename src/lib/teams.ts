@@ -27,3 +27,27 @@ export async function fetchTeamOptions(): Promise<TeamOption[]> {
     season: t.season,
   }));
 }
+
+/**
+ * Löst Kategorie-/Team-Freitext (z.B. aus einer CSV-Import-Zeile) gegen die
+ * bekannten Teams auf. Liefert nur ein Ergebnis, wenn es eindeutig ist -
+ * mehrdeutige oder unbekannte Angaben ergeben `undefined`, damit der Aufrufer
+ * gezielt auf ein Standard-Team zurückfallen kann.
+ */
+export function resolveTeamOption(
+  teamOptions: TeamOption[],
+  category: string,
+  team: string,
+): TeamOption | undefined {
+  const normalizedTeam = team.trim().toLowerCase();
+  const normalizedCategory = category.trim().toLowerCase();
+  if (!normalizedTeam && !normalizedCategory) return undefined;
+
+  const candidates = teamOptions.filter((t) => {
+    const teamMatches = normalizedTeam ? t.teamName.toLowerCase() === normalizedTeam : true;
+    const categoryMatches = normalizedCategory ? t.categoryName.toLowerCase() === normalizedCategory : true;
+    return teamMatches && categoryMatches;
+  });
+
+  return candidates.length === 1 ? candidates[0] : undefined;
+}

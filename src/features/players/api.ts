@@ -84,9 +84,9 @@ export async function addPlayerNote(playerId: string, note: string, createdBy: s
   if (error) throw error;
 }
 
-export async function importPlayers(rows: RosterImportRow[], teamId: string) {
-  const validRows = rows.filter((r) => r.valid);
-  for (const row of validRows) {
+export async function importPlayers(rows: { row: RosterImportRow; teamId: string }[]) {
+  for (const { row, teamId } of rows) {
+    if (!row.valid) continue;
     await createPlayer({
       first_name: row.firstName,
       last_name: row.lastName,

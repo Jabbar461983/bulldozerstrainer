@@ -3,9 +3,17 @@ import type { ChangeEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Label } from '../../components/Input';
-import { parseFixtureCsv, CsvFormatError } from '../../lib/csv';
+import { parseFixtureCsv, CsvFormatError, toCsv } from '../../lib/csv';
 import type { FixtureImportRow } from '../../lib/csv';
+import { downloadTextFile } from '../../lib/downloadFile';
 import { importGames } from './api';
+
+function buildExampleCsv(): string {
+  const header = ['Datum', 'Zeit', 'Ort', 'Heim', 'Gast', 'Saison'];
+  const row1 = ['15.08.2026', '19:30', 'Halle Kernenried', 'Bulldozers Kernenried-Zauggenried', 'HC Beispiel', '2026/2027'];
+  const row2 = ['22.08.2026', '18:00', 'Auswärts', 'HC Muster', 'Bulldozers Kernenried-Zauggenried', '2026/2027'];
+  return toCsv([header, row1, row2]);
+}
 
 interface ImportGamesDialogProps {
   teamId: string;
@@ -34,6 +42,10 @@ export function ImportGamesDialog({ teamId, categoryId, onClose, onImported }: I
   }
 
   const validCount = rows.filter((r) => r.valid).length;
+
+  function handleDownloadExample() {
+    downloadTextFile('spielplan-import-beispiel.csv', buildExampleCsv());
+  }
 
   async function handleImport() {
     setImporting(true);
@@ -69,6 +81,10 @@ export function ImportGamesDialog({ teamId, categoryId, onClose, onImported }: I
           optional <strong>Zeit</strong> (HH:MM), <strong>Ort</strong> und <strong>Saison</strong> in der ersten
           Zeile. Aus Excel exportierbar über „Datei &gt; Speichern unter &gt; CSV“.
         </p>
+
+        <Button type="button" variant="secondary" onClick={handleDownloadExample} className="self-start">
+          Beispieldatei herunterladen
+        </Button>
 
         <div>
           <Label htmlFor="csvFile">CSV-Datei</Label>

@@ -5,6 +5,7 @@ import { Card } from '../../components/Card';
 import { deleteReceipt } from './api';
 import type { ReceiptRow } from './api';
 import { toCsv } from '../../lib/csv';
+import { downloadTextFile } from '../../lib/downloadFile';
 import { EditReceiptDialog } from './EditReceiptDialog';
 import { ReceiptViewDialog } from './ReceiptViewDialog';
 import { exportAllReceiptsPdf } from './receiptPdf';
@@ -64,16 +65,8 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
       r.balance.toFixed(2),
     ]);
     const csv = toCsv([header, ...csvRows]);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     const safeName = `journal-${teamName}-${season}`.replace(/[\s/\\]+/g, '_');
-    a.download = `${safeName}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`${safeName}.csv`, csv);
   }
 
   async function handleExportAllPdf() {
