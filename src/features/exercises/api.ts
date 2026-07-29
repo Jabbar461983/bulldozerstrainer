@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type { Exercise, ExerciseFocus, ExerciseMedia } from '../../types/database';
 
-export const EXERCISE_FOCUS_OPTIONS: ExerciseFocus[] = [
+export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
   'Angriff',
   'Verteidigung',
   'Schuss',
@@ -9,7 +9,12 @@ export const EXERCISE_FOCUS_OPTIONS: ExerciseFocus[] = [
   'Powerplay',
   'Boxplay',
   'Torhüter',
+  'Spiel',
 ];
+
+export const OFF_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = ['Kraft', 'Ausdauer', 'Koordination', 'Schnelligkeit'];
+
+export const EXERCISE_FOCUS_OPTIONS: ExerciseFocus[] = [...ON_FIELD_FOCUS_OPTIONS, ...OFF_FIELD_FOCUS_OPTIONS];
 
 export const MAX_MEDIA_FILE_SIZE = 50 * 1024 * 1024;
 

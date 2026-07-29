@@ -75,13 +75,20 @@ export interface PlayerNote {
 }
 
 export type ExerciseFocus =
+  // On Field
   | 'Angriff'
   | 'Verteidigung'
   | 'Schuss'
   | 'Passspiel'
   | 'Powerplay'
   | 'Boxplay'
-  | 'Torhüter';
+  | 'Torhüter'
+  | 'Spiel'
+  // Off Field
+  | 'Kraft'
+  | 'Ausdauer'
+  | 'Koordination'
+  | 'Schnelligkeit';
 
 export interface ExerciseMedia {
   type: 'image' | 'video';

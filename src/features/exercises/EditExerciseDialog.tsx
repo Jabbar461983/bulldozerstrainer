@@ -5,7 +5,7 @@ import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { ChipMultiPicker } from '../../components/ChipMultiPicker';
 import { ExerciseMediaGallery } from './ExerciseMediaGallery';
-import { EXERCISE_FOCUS_OPTIONS, updateExercise } from './api';
+import { ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS, updateExercise } from './api';
 import type { ExerciseRow } from './api';
 import type { Category, ExerciseFocus } from '../../types/database';
 
@@ -74,13 +74,23 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
             className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
         </div>
-        <div>
-          <Label>Fokus-Bereiche</Label>
-          <ChipMultiPicker
-            options={EXERCISE_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
-            value={focusAreas}
-            onChange={setFocusAreas}
-          />
+        <div className="flex flex-col gap-3">
+          <div>
+            <Label>On Field</Label>
+            <ChipMultiPicker
+              options={ON_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
+              value={focusAreas}
+              onChange={setFocusAreas}
+            />
+          </div>
+          <div>
+            <Label>Off Field</Label>
+            <ChipMultiPicker
+              options={OFF_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
+              value={focusAreas}
+              onChange={setFocusAreas}
+            />
+          </div>
         </div>
         <div>
           <Label>Alterskategorien</Label>
