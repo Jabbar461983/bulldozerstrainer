@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Select } from '../../components/Select';
-import { fetchTeamPlayerRoster, fetchGameComments, addGameComment } from './api';
+import { fetchTeamPlayerRoster, fetchGameComments, addGameComment, deleteGameComment } from './api';
 import type { RosterPlayer, GameCommentRow } from './api';
 import { useAuth } from '../../auth/AuthContext';
 
@@ -11,7 +11,7 @@ interface GameCommentsProps {
 }
 
 export function GameComments({ gameId, teamId }: GameCommentsProps) {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
   const [comments, setComments] = useState<GameCommentRow[] | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
@@ -46,6 +46,19 @@ export function GameComments({ gameId, teamId }: GameCommentsProps) {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kommentar konnte nicht gespeichert werden.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteGameComment(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kommentar konnte nicht gelöscht werden.');
     } finally {
       setBusy(false);
     }
@@ -87,9 +100,22 @@ export function GameComments({ gameId, teamId }: GameCommentsProps) {
       {comments?.length === 0 && <p className="text-sm text-text-muted">Noch keine Kommentare.</p>}
       <div className="flex flex-col gap-2">
         {comments?.map((c) => (
-          <div key={c.id} className="rounded-xl border border-border p-2 text-sm">
-            <p className="font-medium text-text">{c.playerName}</p>
-            <p className="text-text-muted">{c.note}</p>
+          <div key={c.id} className="flex items-start justify-between gap-2 rounded-xl border border-border p-2 text-sm">
+            <div>
+              <p className="font-medium text-text">{c.playerName}</p>
+              <p className="text-text-muted">{c.note}</p>
+            </div>
+            {isAdmin && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => void handleDelete(c.id)}
+                aria-label="Kommentar löschen"
+              >
+                ✕
+              </Button>
+            )}
           </div>
         ))}
       </div>

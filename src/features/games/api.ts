@@ -190,3 +190,9 @@ export async function addGameComment(gameId: string, playerId: string, note: str
     .insert({ player_id: playerId, source: 'game', source_id: gameId, note, created_by: createdBy });
   if (error) throw error;
 }
+
+// Nur Admins dürfen Spielerkommentare löschen (RLS: player_notes_delete).
+export async function deleteGameComment(id: string) {
+  const { error } = await supabase.from('player_notes').delete().eq('id', id);
+  if (error) throw error;
+}
