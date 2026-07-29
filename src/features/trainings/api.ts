@@ -1,5 +1,7 @@
 import { supabase } from '../../lib/supabase';
-import type { Training, TrainingExercise, TrainingRating } from '../../types/database';
+import type { Training, TrainingAbsence, TrainingExercise, TrainingRating } from '../../types/database';
+import { fetchExerciseMediaByIds } from '../exercises/api';
+import type { ExerciseMediaView } from '../exercises/api';
 
 function addDays(dateStr: string, days: number): string {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -58,6 +60,7 @@ export async function deleteTraining(id: string) {
 
 export interface TrainingExerciseRow extends TrainingExercise {
   exerciseTitle: string;
+  media: ExerciseMediaView[];
 }
 
 export async function fetchTrainingExercises(trainingId: string): Promise<TrainingExerciseRow[]> {
@@ -78,10 +81,12 @@ export async function fetchTrainingExercises(trainingId: string): Promise<Traini
     if (exercisesError) throw exercisesError;
     titleById = new Map((exercises ?? []).map((e: { id: string; title: string }) => [e.id, e.title]));
   }
+  const mediaById = await fetchExerciseMediaByIds(exerciseIds);
 
   return (rows ?? []).map((r: TrainingExercise) => ({
     ...r,
     exerciseTitle: titleById.get(r.exercise_id) ?? 'Unbekannte Übung',
+    media: mediaById.get(r.exercise_id) ?? [],
   }));
 }
 
@@ -178,5 +183,29 @@ export async function addAdminFeedback(
 
 export async function deleteRating(id: string) {
   const { error } = await supabase.from('training_ratings').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function fetchTrainingAbsences(trainingId: string): Promise<TrainingAbsence[]> {
+  const { data, error } = await supabase.from('training_absences').select('*').eq('training_id', trainingId);
+  if (error) throw error;
+  return (data ?? []) as TrainingAbsence[];
+}
+
+export async function addTrainingAbsence(
+  trainingId: string,
+  personType: 'player' | 'trainer',
+  personId: string,
+) {
+  const payload =
+    personType === 'player'
+      ? { training_id: trainingId, person_type: 'player', player_id: personId, trainer_id: null }
+      : { training_id: trainingId, person_type: 'trainer', player_id: null, trainer_id: personId };
+  const { error } = await (supabase.from('training_absences') as any).insert(payload); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (error) throw error;
+}
+
+export async function removeTrainingAbsence(id: string) {
+  const { error } = await supabase.from('training_absences').delete().eq('id', id);
   if (error) throw error;
 }

@@ -46,6 +46,9 @@ export function TrainingsPage() {
     if (teamId) void load(teamId);
   }, [teamId]);
 
+  const selectedTeam = teamOptions?.find((t) => t.teamId === teamId) ?? null;
+  const teamLabel = selectedTeam ? `${selectedTeam.categoryName} · ${selectedTeam.teamName}` : '';
+
   const { upcoming, past } = useMemo(() => {
     const today = todayIso();
     const upcoming = (trainings ?? []).filter((t) => t.date >= today).sort((a, b) => a.date.localeCompare(b.date));
@@ -149,6 +152,7 @@ export function TrainingsPage() {
       {selectedTraining && (
         <TrainingDetailDialog
           training={selectedTraining}
+          teamLabel={teamLabel}
           onClose={() => setSelectedTraining(null)}
           onSaved={() => {
             setSelectedTraining(null);

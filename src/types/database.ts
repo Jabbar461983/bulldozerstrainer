@@ -123,6 +123,14 @@ export interface TrainingExercise {
   sort_order: number;
 }
 
+export interface TrainingAbsence {
+  id: string;
+  training_id: string;
+  person_type: 'player' | 'trainer';
+  player_id: string | null;
+  trainer_id: string | null;
+}
+
 export interface TrainingRating {
   id: string;
   training_id: string;
@@ -268,6 +276,11 @@ export interface Database {
         Row: TrainingRating;
         Insert: Partial<TrainingRating>;
         Update: Partial<TrainingRating>;
+      };
+      training_absences: {
+        Row: TrainingAbsence;
+        Insert: Partial<TrainingAbsence>;
+        Update: Partial<TrainingAbsence>;
       };
       games: { Row: Game; Insert: Partial<Game>; Update: Partial<Game> };
       game_lineups: {

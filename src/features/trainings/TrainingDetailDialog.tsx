@@ -5,24 +5,41 @@ import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { TrainingExercisesEditor } from './TrainingExercisesEditor';
 import { TrainingRatingSection } from './TrainingRatingSection';
-import { updateTraining, deleteTraining } from './api';
+import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
+import { updateTraining, deleteTraining, fetchTrainingExercises } from './api';
+import { exportTrainingPdf } from './trainingPdf';
 import type { Training } from '../../types/database';
 
 interface TrainingDetailDialogProps {
   training: Training;
+  teamLabel: string;
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
 }
 
-export function TrainingDetailDialog({ training, onClose, onSaved, onDeleted }: TrainingDetailDialogProps) {
+export function TrainingDetailDialog({ training, teamLabel, onClose, onSaved, onDeleted }: TrainingDetailDialogProps) {
   const [date, setDate] = useState(training.date);
   const [startTime, setStartTime] = useState(training.start_time ?? '');
   const [duration, setDuration] = useState(training.duration_minutes);
   const [notes, setNotes] = useState(training.notes ?? '');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function handleExportPdf() {
+    setExportingPdf(true);
+    setError(null);
+    try {
+      const exercises = await fetchTrainingExercises(training.id);
+      await exportTrainingPdf({ ...training, date, start_time: startTime || null, duration_minutes: duration, notes: notes || null }, teamLabel, exercises);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF konnte nicht erstellt werden.');
+    } finally {
+      setExportingPdf(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -66,6 +83,9 @@ export function TrainingDetailDialog({ training, onClose, onSaved, onDeleted }: 
         <>
           <Button type="button" variant="danger" disabled={deleting} onClick={() => void handleDelete()}>
             Löschen
+          </Button>
+          <Button type="button" variant="secondary" disabled={exportingPdf} onClick={() => void handleExportPdf()}>
+            {exportingPdf ? 'Erstelle PDF…' : 'Als PDF'}
           </Button>
           <Button type="button" variant="secondary" onClick={onClose}>
             Schliessen
@@ -115,6 +135,11 @@ export function TrainingDetailDialog({ training, onClose, onSaved, onDeleted }: 
         <div className="border-t border-border pt-4">
           <Label>Übungen &amp; Zeitbalken</Label>
           <TrainingExercisesEditor trainingId={training.id} totalMinutes={duration} />
+        </div>
+
+        <div className="border-t border-border pt-4">
+          <Label>Abgemeldet</Label>
+          <TrainingAbsencesEditor trainingId={training.id} teamId={training.team_id} />
         </div>
 
         <div className="border-t border-border pt-4">

@@ -19,10 +19,14 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 export interface ExerciseOption {
   id: string;
   title: string;
+  age_category_ids: string[];
 }
 
 export async function fetchExerciseOptions(): Promise<ExerciseOption[]> {
-  const { data, error } = await supabase.from('exercises').select('id, title').order('title', { ascending: true });
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('id, title, age_category_ids')
+    .order('title', { ascending: true });
   if (error) throw error;
   return data ?? [];
 }
@@ -70,6 +74,23 @@ export async function fetchExercises(): Promise<ExerciseRow[]> {
   const allPaths = exercises.flatMap((exercise) => exercise.media.map((m) => m.path));
   const urlByPath = await signMediaPaths(allPaths);
   return toRows(exercises, urlByPath);
+}
+
+export async function fetchExerciseMediaByIds(ids: string[]): Promise<Map<string, ExerciseMediaView[]>> {
+  if (ids.length === 0) return new Map();
+  const { data, error } = await supabase.from('exercises').select('id, media').in('id', ids);
+  if (error) throw error;
+  const exercises = (data ?? []) as { id: string; media: ExerciseMedia[] }[];
+  const allPaths = exercises.flatMap((e) => e.media.map((m) => m.path));
+  const urlByPath = await signMediaPaths(allPaths);
+  const result = new Map<string, ExerciseMediaView[]>();
+  for (const e of exercises) {
+    result.set(
+      e.id,
+      e.media.map((m) => ({ type: m.type, path: m.path, url: urlByPath.get(m.path) ?? null })),
+    );
+  }
+  return result;
 }
 
 export async function uploadExerciseMedia(exerciseId: string, files: File[]): Promise<ExerciseMedia[]> {
