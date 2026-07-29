@@ -15,12 +15,20 @@ import type { Training, TrainingFieldType } from '../../types/database';
 interface TrainingDetailDialogProps {
   training: Training;
   teamLabel: string;
+  categoryId: string;
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
 }
 
-export function TrainingDetailDialog({ training, teamLabel, onClose, onSaved, onDeleted }: TrainingDetailDialogProps) {
+export function TrainingDetailDialog({
+  training,
+  teamLabel,
+  categoryId,
+  onClose,
+  onSaved,
+  onDeleted,
+}: TrainingDetailDialogProps) {
   const [date, setDate] = useState(training.date);
   const [startTime, setStartTime] = useState(training.start_time ?? '');
   const [duration, setDuration] = useState(training.duration_minutes);
@@ -154,7 +162,12 @@ export function TrainingDetailDialog({ training, teamLabel, onClose, onSaved, on
 
         <div className="border-t border-border pt-4">
           <Label>Übungen &amp; Zeitbalken</Label>
-          <TrainingExercisesEditor trainingId={training.id} totalMinutes={duration} fieldType={fieldType} />
+          <TrainingExercisesEditor
+            trainingId={training.id}
+            totalMinutes={duration}
+            fieldType={fieldType}
+            categoryId={categoryId}
+          />
         </div>
 
         <div className="border-t border-border pt-4">

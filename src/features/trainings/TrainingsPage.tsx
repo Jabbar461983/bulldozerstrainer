@@ -196,6 +196,7 @@ export function TrainingsPage() {
         <TrainingDetailDialog
           training={selectedTraining}
           teamLabel={teamLabel}
+          categoryId={selectedTeam?.categoryId ?? ''}
           onClose={() => setSelectedTraining(null)}
           onSaved={() => {
             setSelectedTraining(null);

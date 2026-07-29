@@ -1,35 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
-import { Label } from '../../components/Input';
-import { ChipMultiPicker } from '../../components/ChipMultiPicker';
-import { fetchCategories } from '../../lib/categories';
-import { fetchExerciseOptions, ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS } from '../exercises/api';
+import { fetchExerciseOptions, EXERCISE_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS } from '../exercises/api';
 import type { ExerciseOption } from '../exercises/api';
-import type { Category, ExerciseFocus, TrainingFieldType } from '../../types/database';
+import type { ExerciseFocus, TrainingFieldType } from '../../types/database';
 
 interface AddTrainingExerciseDialogProps {
   fieldType: TrainingFieldType;
+  categoryId: string;
   onClose: () => void;
   onAdd: (exerciseId: string) => Promise<void>;
 }
 
-export function AddTrainingExerciseDialog({ fieldType, onClose, onAdd }: AddTrainingExerciseDialogProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
+export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAdd }: AddTrainingExerciseDialogProps) {
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [focusFilter, setFocusFilter] = useState<string[]>([]);
+  const [selectedFocus, setSelectedFocus] = useState<ExerciseFocus | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchCategories(), fetchExerciseOptions()])
-      .then(([categoryRows, exerciseRows]) => {
-        setCategories(categoryRows);
-        setExercises(exerciseRows);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Daten konnten nicht geladen werden.'))
+    fetchExerciseOptions()
+      .then(setExercises)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Übungen konnten nicht geladen werden.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -44,81 +37,57 @@ export function AddTrainingExerciseDialog({ fieldType, onClose, onAdd }: AddTrai
     }
   }
 
+  const focusOptions = fieldType === 'off_field' ? OFF_FIELD_FOCUS_OPTIONS : EXERCISE_FOCUS_OPTIONS;
+
+  const categoryExercises = useMemo(
+    () => exercises.filter((e) => e.age_category_ids.includes(categoryId)),
+    [exercises, categoryId],
+  );
+
   const fieldExercises = useMemo(() => {
-    if (fieldType !== 'off_field') return exercises;
-    return exercises.filter((e) => e.focus_areas.some((f) => OFF_FIELD_FOCUS_OPTIONS.includes(f)));
-  }, [exercises, fieldType]);
+    if (fieldType !== 'off_field') return categoryExercises;
+    return categoryExercises.filter((e) => e.focus_areas.some((f) => OFF_FIELD_FOCUS_OPTIONS.includes(f)));
+  }, [categoryExercises, fieldType]);
 
   const filteredExercises = useMemo(() => {
-    if (!selectedCategoryId) return [];
-    const inCategory = fieldExercises.filter((e) => e.age_category_ids.includes(selectedCategoryId));
-    if (focusFilter.length === 0) return inCategory;
-    return inCategory.filter((e) => focusFilter.some((f) => e.focus_areas.includes(f as ExerciseFocus)));
-  }, [fieldExercises, selectedCategoryId, focusFilter]);
+    if (!selectedFocus) return [];
+    return fieldExercises.filter((e) => e.focus_areas.includes(selectedFocus));
+  }, [fieldExercises, selectedFocus]);
 
   return (
-    <Modal title={selectedCategoryId ? 'Übung auswählen' : 'Kategorie auswählen'} onClose={onClose}>
+    <Modal title={selectedFocus ? 'Übung auswählen' : 'Inhalt auswählen'} onClose={onClose}>
       <div className="flex flex-col gap-2">
         {loading && <p className="text-sm text-text-muted">Lädt…</p>}
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        {!loading && !selectedCategoryId && (
+        {!loading && !selectedFocus && (
           <>
-            {categories.length === 0 && (
-              <p className="text-sm text-text-muted">Keine Alterskategorien vorhanden.</p>
+            {fieldExercises.length === 0 && (
+              <p className="text-sm text-text-muted">
+                Für die Alterskategorie dieses Teams sind noch keine passenden Übungen hinterlegt.
+              </p>
             )}
-            {categories.map((c) => (
+            {focusOptions.map((f) => (
               <button
-                key={c.id}
+                key={f}
                 type="button"
-                onClick={() => setSelectedCategoryId(c.id)}
+                onClick={() => setSelectedFocus(f)}
                 className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt"
               >
-                {c.name}
+                {f}
                 <span className="text-xs font-normal text-text-muted">
-                  {fieldExercises.filter((e) => e.age_category_ids.includes(c.id)).length} Übungen
+                  {fieldExercises.filter((e) => e.focus_areas.includes(f)).length} Übungen
                 </span>
               </button>
             ))}
           </>
         )}
 
-        {!loading && selectedCategoryId && (
+        {!loading && selectedFocus && (
           <>
-            <Button type="button" variant="ghost" onClick={() => setSelectedCategoryId(null)} className="self-start">
-              ← Kategorie wechseln
+            <Button type="button" variant="ghost" onClick={() => setSelectedFocus(null)} className="self-start">
+              ← Inhalt wechseln
             </Button>
-
-            {fieldType === 'off_field' ? (
-              <div>
-                <Label>Off Field</Label>
-                <ChipMultiPicker
-                  options={OFF_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
-                  value={focusFilter}
-                  onChange={setFocusFilter}
-                />
-              </div>
-            ) : (
-              <>
-                <div>
-                  <Label>On Field</Label>
-                  <ChipMultiPicker
-                    options={ON_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
-                    value={focusFilter}
-                    onChange={setFocusFilter}
-                  />
-                </div>
-                <div>
-                  <Label>Off Field</Label>
-                  <ChipMultiPicker
-                    size="sm"
-                    options={OFF_FIELD_FOCUS_OPTIONS.map((f) => ({ value: f, label: f }))}
-                    value={focusFilter}
-                    onChange={setFocusFilter}
-                  />
-                </div>
-              </>
-            )}
 
             {filteredExercises.length === 0 && (
               <p className="text-sm text-text-muted">Keine Übungen für diese Auswahl vorhanden.</p>

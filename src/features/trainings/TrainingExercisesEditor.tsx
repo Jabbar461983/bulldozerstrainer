@@ -19,9 +19,15 @@ interface TrainingExercisesEditorProps {
   trainingId: string;
   totalMinutes: number;
   fieldType: TrainingFieldType;
+  categoryId: string;
 }
 
-export function TrainingExercisesEditor({ trainingId, totalMinutes, fieldType }: TrainingExercisesEditorProps) {
+export function TrainingExercisesEditor({
+  trainingId,
+  totalMinutes,
+  fieldType,
+  categoryId,
+}: TrainingExercisesEditorProps) {
   const [rows, setRows] = useState<TrainingExerciseRow[] | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -198,7 +204,12 @@ export function TrainingExercisesEditor({ trainingId, totalMinutes, fieldType }:
       {error && <p className="text-sm text-danger">{error}</p>}
 
       {showAddDialog && (
-        <AddTrainingExerciseDialog fieldType={fieldType} onClose={() => setShowAddDialog(false)} onAdd={handleAdd} />
+        <AddTrainingExerciseDialog
+          fieldType={fieldType}
+          categoryId={categoryId}
+          onClose={() => setShowAddDialog(false)}
+          onAdd={handleAdd}
+        />
       )}
     </div>
   );
