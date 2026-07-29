@@ -52,7 +52,13 @@ export function TrainingTrainersEditor({ trainingId, teamId }: TrainingTrainersE
     }
   }
 
-  if (!loaded) return <p className="text-sm text-text-muted">Lädt…</p>;
+  if (!loaded) {
+    return error ? (
+      <p className="text-sm text-danger">{error}</p>
+    ) : (
+      <p className="text-sm text-text-muted">Lädt…</p>
+    );
+  }
   if (trainers.length === 0) {
     return <p className="text-sm text-text-muted">Diesem Team sind noch keine Trainer zugewiesen.</p>;
   }
