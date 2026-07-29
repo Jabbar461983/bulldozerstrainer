@@ -128,8 +128,8 @@ export function TrainingExercisesEditor({
       <div className="flex flex-col gap-2">
         {rows?.map((row, i) => (
           <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-border p-2 text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <div className="flex shrink-0 flex-col gap-0.5">
                 <Button
                   type="button"
                   variant="ghost"
@@ -151,22 +151,23 @@ export function TrainingExercisesEditor({
                   ↓
                 </Button>
               </div>
-              <span className="flex-1 font-medium text-text">{row.exerciseTitle}</span>
+              <span className="min-w-0 flex-1 truncate font-medium text-text">{row.exerciseTitle}</span>
               <Input
                 type="number"
                 min={1}
                 value={row.duration_minutes}
                 disabled={busy}
                 onChange={(e) => void handleDurationChange(row.id, Number(e.target.value))}
-                className="w-20"
+                className="w-14 shrink-0 text-center"
               />
-              <span className="text-xs text-text-muted">Min.</span>
+              <span className="shrink-0 text-xs text-text-muted">Min.</span>
               <Button
                 type="button"
                 variant="ghost"
                 disabled={busy}
                 onClick={() => void handleRemove(row.id)}
                 aria-label="Übung entfernen"
+                className="ml-1 shrink-0 px-2.5 text-danger hover:bg-danger/10"
               >
                 ✕
               </Button>
@@ -184,10 +185,10 @@ export function TrainingExercisesEditor({
                       key={m.path}
                       src={m.url ?? ''}
                       alt=""
-                      className="size-16 rounded-lg border border-border object-cover"
+                      className="h-28 w-40 rounded-lg border border-border object-cover"
                     />
                   ) : (
-                    <video key={m.path} src={m.url ?? ''} controls className="h-16 w-24 rounded-lg border border-border" />
+                    <video key={m.path} src={m.url ?? ''} controls className="h-28 w-44 rounded-lg border border-border" />
                   ),
                 )}
               </div>
