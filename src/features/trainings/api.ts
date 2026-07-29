@@ -198,6 +198,7 @@ export async function deleteTraining(id: string) {
 
 export interface TrainingExerciseRow extends TrainingExercise {
   exerciseTitle: string;
+  exerciseDescription: string | null;
   media: ExerciseMediaView[];
 }
 
@@ -210,20 +211,26 @@ export async function fetchTrainingExercises(trainingId: string): Promise<Traini
   if (rowsError) throw rowsError;
 
   const exerciseIds = Array.from(new Set((rows ?? []).map((r: TrainingExercise) => r.exercise_id)));
-  let titleById = new Map<string, string>();
+  let infoById = new Map<string, { title: string; description: string | null }>();
   if (exerciseIds.length > 0) {
     const { data: exercises, error: exercisesError } = await supabase
       .from('exercises')
-      .select('id, title')
+      .select('id, title, description')
       .in('id', exerciseIds);
     if (exercisesError) throw exercisesError;
-    titleById = new Map((exercises ?? []).map((e: { id: string; title: string }) => [e.id, e.title]));
+    infoById = new Map(
+      (exercises ?? []).map((e: { id: string; title: string; description: string | null }) => [
+        e.id,
+        { title: e.title, description: e.description },
+      ]),
+    );
   }
   const mediaById = await fetchExerciseMediaByIds(exerciseIds);
 
   return (rows ?? []).map((r: TrainingExercise) => ({
     ...r,
-    exerciseTitle: titleById.get(r.exercise_id) ?? 'Unbekannte Übung',
+    exerciseTitle: infoById.get(r.exercise_id)?.title ?? 'Unbekannte Übung',
+    exerciseDescription: infoById.get(r.exercise_id)?.description ?? null,
     media: mediaById.get(r.exercise_id) ?? [],
   }));
 }

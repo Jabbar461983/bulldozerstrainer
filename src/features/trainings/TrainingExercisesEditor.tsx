@@ -172,6 +172,10 @@ export function TrainingExercisesEditor({
               </Button>
             </div>
 
+            {row.exerciseDescription && (
+              <p className="pl-9 text-xs text-text-muted">{row.exerciseDescription}</p>
+            )}
+
             {row.media.length > 0 && (
               <div className="flex flex-wrap gap-2 pl-9">
                 {row.media.map((m) =>
