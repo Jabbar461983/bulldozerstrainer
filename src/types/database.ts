@@ -237,6 +237,7 @@ export interface SeasonPlanningEvent {
   end_date: string;
   category: SeasonPlanningCategory;
   subcategory: string | null;
+  notes: string | null;
   sort_order: number;
   is_template: boolean;
   created_by: string | null;
