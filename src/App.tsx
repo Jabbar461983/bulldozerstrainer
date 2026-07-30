@@ -15,6 +15,7 @@ import { ExercisesPage } from './features/exercises/ExercisesPage';
 import { TrainingsPage } from './features/trainings/TrainingsPage';
 import { GamesPage } from './features/games/GamesPage';
 import { FinancePage } from './features/finance/FinancePage';
+import { SeasonPlanningWrapper } from './features/seasonplanning/SeasonPlanningWrapper';
 
 function App() {
   return (
@@ -39,6 +40,14 @@ function App() {
               element={
                 <ModuleRoute module="training">
                   <TrainingsPage />
+                </ModuleRoute>
+              }
+            />
+            <Route
+              path="saisonplanung"
+              element={
+                <ModuleRoute module="training">
+                  <SeasonPlanningWrapper />
                 </ModuleRoute>
               }
             />

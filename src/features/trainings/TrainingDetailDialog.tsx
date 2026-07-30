@@ -10,6 +10,8 @@ import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
 import { TrainingTrainersEditor } from './TrainingTrainersEditor';
 import { updateTraining, deleteTraining, fetchTrainingExercises } from './api';
 import { exportTrainingPdf } from './trainingPdf';
+import { TrainingSeasonPlanningCard } from '../seasonplanning/TrainingSeasonPlanningCard';
+import { TrainingFocusPercentageCard } from '../seasonplanning/TrainingFocusPercentageCard';
 import type { Training, TrainingFieldType } from '../../types/database';
 
 interface TrainingDetailDialogProps {
@@ -185,6 +187,18 @@ export function TrainingDetailDialog({
         <div className="border-t border-border pt-4">
           <Label>Abgemeldet</Label>
           <TrainingAbsencesEditor trainingId={training.id} teamId={training.team_id} />
+        </div>
+
+        <div className="border-t border-border pt-4">
+          <TrainingSeasonPlanningCard
+            teamId={training.team_id}
+            trainingId={training.id}
+            trainingDate={training.date}
+          />
+        </div>
+
+        <div className="border-t border-border pt-4">
+          <TrainingFocusPercentageCard trainingId={training.id} />
         </div>
 
         <div className="border-t border-border pt-4">

@@ -26,6 +26,12 @@ export const NAV_ITEMS: NavItem[] = [
     icon: <Icon d="M4 20l6-6m0 0l4-9 6 6-9 4-1 5zm6-6l4 4" />,
   },
   {
+    to: '/saisonplanung',
+    label: 'Saisonplanung',
+    module: 'training',
+    icon: <Icon d="M3 6h18M3 6v12a1 1 0 001 1h16a1 1 0 001-1V6M3 9h18M7 12h10M7 15h10" />,
+  },
+  {
     to: '/spiele',
     label: 'Spiele',
     module: 'spiele',
