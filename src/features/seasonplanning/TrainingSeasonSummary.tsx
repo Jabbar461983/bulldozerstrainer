@@ -11,13 +11,14 @@ interface TrainingSeasonSummaryProps {
 }
 
 export function TrainingSeasonSummary({ teamId, trainingId, trainingDate }: TrainingSeasonSummaryProps) {
-  const { events } = useApplicableSeasonPlanningEvents(teamId, trainingDate);
+  const { events, loading: eventsLoading } = useApplicableSeasonPlanningEvents(teamId, trainingDate);
   const [percentages, setPercentages] = useState<Record<SeasonPlanningCategory, number> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (eventsLoading) return;
     let cancelled = false;
-    computeTrainingFocusPercentages(trainingId)
+    computeTrainingFocusPercentages(trainingId, events)
       .then((result) => {
         if (!cancelled) setPercentages(result);
       })
@@ -27,7 +28,7 @@ export function TrainingSeasonSummary({ teamId, trainingId, trainingDate }: Trai
     return () => {
       cancelled = true;
     };
-  }, [trainingId]);
+  }, [trainingId, eventsLoading, events]);
 
   if (percentages === null && !error) return null;
 
