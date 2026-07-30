@@ -2,21 +2,13 @@ import { useEffect, useState } from 'react';
 import type { SeasonPlanningCategory } from '../../types/database';
 import { useApplicableSeasonPlanningEvents } from './useSeasonPlanning';
 import { computeTrainingFocusPercentages } from './api';
+import { SEASON_CATEGORY_NAMES as CATEGORY_NAMES, SEASON_CATEGORY_ORDER as CATEGORY_ORDER } from './categories';
 
 interface TrainingSeasonSummaryProps {
   teamId: string;
   trainingId: string;
   trainingDate: string;
 }
-
-const CATEGORY_NAMES: Record<SeasonPlanningCategory, string> = {
-  activities: 'Aktivitäten',
-  technique: 'Technik',
-  tactics: 'Taktik',
-  physical: 'Physis',
-};
-
-const CATEGORY_ORDER: SeasonPlanningCategory[] = ['technique', 'tactics', 'physical', 'activities'];
 
 export function TrainingSeasonSummary({ teamId, trainingId, trainingDate }: TrainingSeasonSummaryProps) {
   const { events } = useApplicableSeasonPlanningEvents(teamId, trainingDate);

@@ -8,11 +8,20 @@ import { TrainingRatingSection } from './TrainingRatingSection';
 import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
 import { TrainingTrainersEditor } from './TrainingTrainersEditor';
 import { FieldTypeToggle } from './FieldTypeToggle';
-import { updateTraining, deleteTraining, fetchTrainingExercises, fetchTrainingTrainers, replaceTrainingTrainers } from './api';
-import { fetchTeamTrainerRoster } from '../../lib/roster';
+import {
+  updateTraining,
+  deleteTraining,
+  fetchTrainingExercises,
+  fetchTrainingTrainers,
+  replaceTrainingTrainers,
+  fetchTrainingAbsences,
+} from './api';
+import { fetchTeamTrainerRoster, fetchTeamPlayerRoster } from '../../lib/roster';
 import type { RosterTrainer } from '../../lib/roster';
 import { exportTrainingPdf } from './trainingPdf';
 import { TrainingSeasonSummary } from '../seasonplanning/TrainingSeasonSummary';
+import { fetchApplicableSeasonPlanningEvents } from '../seasonplanning/api';
+import { SEASON_CATEGORY_ORDER } from '../seasonplanning/categories';
 import type { Training, TrainingFieldType } from '../../types/database';
 
 interface TrainingDetailDialogProps {
@@ -75,8 +84,37 @@ export function TrainingDetailDialog({
     setExportingPdf(true);
     setError(null);
     try {
-      const exercises = await fetchTrainingExercises(training.id);
-      await exportTrainingPdf({ ...training, date, start_time: startTime || null, duration_minutes: duration, notes: notes || null }, teamLabel, exercises);
+      const [exercises, absences, players, seasonEvents] = await Promise.all([
+        fetchTrainingExercises(training.id),
+        fetchTrainingAbsences(training.id),
+        fetchTeamPlayerRoster(training.team_id),
+        fetchApplicableSeasonPlanningEvents(training.team_id, date),
+      ]);
+      const nameByPlayerId = new Map(players.map((p) => [p.playerId, `${p.firstName} ${p.lastName}`]));
+      const absentPlayerNames = absences
+        .filter((a) => a.person_type === 'player' && a.player_id)
+        .map((a) => nameByPlayerId.get(a.player_id as string) ?? 'Unbekannt');
+      const seasonFocuses = SEASON_CATEGORY_ORDER.flatMap((category) => {
+        const titles = seasonEvents
+          .filter((e) => e.category === category)
+          .map((e) => e.title || e.subcategory)
+          .filter((t): t is string => !!t);
+        return titles.length > 0 ? [{ category, content: titles.join(', ') }] : [];
+      });
+
+      await exportTrainingPdf(
+        {
+          ...training,
+          date,
+          start_time: startTime || null,
+          duration_minutes: duration,
+          notes: notes || null,
+          information: information || null,
+        },
+        teamLabel,
+        exercises,
+        { absentPlayerNames, seasonFocuses },
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF konnte nicht erstellt werden.');
     } finally {

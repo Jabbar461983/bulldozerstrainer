@@ -1,6 +1,23 @@
 import type jsPDF from 'jspdf';
-import type { Training } from '../../types/database';
+import type { Training, SeasonPlanningCategory } from '../../types/database';
 import type { TrainingExerciseRow } from './api';
+import { addMinutesToTime } from '../../lib/dates';
+import { SEASON_CATEGORY_NAMES } from '../seasonplanning/categories';
+
+export interface TrainingPdfSeasonFocus {
+  category: SeasonPlanningCategory;
+  content: string;
+}
+
+export interface TrainingPdfExtras {
+  absentPlayerNames: string[];
+  seasonFocuses: TrainingPdfSeasonFocus[];
+}
+
+const EXERCISE_COLORS: [number, number, number][] = [
+  [186, 153, 14], // Club-Gold
+  [0, 112, 87], // Club-Grün
+];
 
 function drawRink(doc: jsPDF, x: number, y: number, boxWidth: number, boxHeight: number) {
   const aspect = 2.4;
@@ -73,87 +90,216 @@ function drawRink(doc: jsPDF, x: number, y: number, boxWidth: number, boxHeight:
   doc.setDrawColor(0, 0, 0);
 }
 
-function fitLines(doc: jsPDF, text: string, maxWidth: number, maxLines: number): string[] {
-  const lines: string[] = doc.splitTextToSize(text, maxWidth);
-  if (lines.length <= maxLines) return lines;
-  const truncated = lines.slice(0, maxLines);
-  truncated[maxLines - 1] = truncated[maxLines - 1].replace(/\s+$/, '') + '…';
-  return truncated;
+interface LoadedImage {
+  dataUrl: string;
+  ratio: number;
 }
 
-export async function exportTrainingPdf(training: Training, teamLabel: string, exercises: TrainingExerciseRow[]) {
+function loadImageAsDataUrl(url: string): Promise<LoadedImage | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.85), ratio: img.naturalWidth / img.naturalHeight });
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+export async function exportTrainingPdf(
+  training: Training,
+  teamLabel: string,
+  exercises: TrainingExerciseRow[],
+  extras: TrainingPdfExtras,
+) {
   const { default: JsPDF } = await import('jspdf');
-  const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 10;
-  const leftWidth = pageWidth * 0.55 - margin * 1.5;
-  const rightX = margin + leftWidth + 6;
-  const rightWidth = pageWidth - rightX - margin;
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+  const colGap = 8;
+  const colWidth = (contentWidth - colGap) / 2;
+  let y = margin;
 
-  let y = margin + 4;
+  function ensureSpace(needed: number) {
+    if (y + needed > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  }
+
+  function drawTwoColumnSection(leftLabel: string, leftText: string, rightLabel: string, rightText: string) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const leftLines: string[] = leftText ? doc.splitTextToSize(leftText, colWidth) : [];
+    const rightLines: string[] = rightText ? doc.splitTextToSize(rightText, colWidth) : [];
+    const maxLines = Math.max(leftLines.length, rightLines.length);
+    ensureSpace(5 + maxLines * 4 + 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(leftLabel, margin, y);
+    doc.text(rightLabel, margin + colWidth + colGap, y);
+
+    const textY = y + 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    if (leftLines.length) doc.text(leftLines, margin, textY);
+    if (rightLines.length) doc.text(rightLines, margin + colWidth + colGap, textY);
+
+    y = textY + maxLines * 4 + 6;
+  }
+
+  const [exerciseImages, logo] = await Promise.all([
+    Promise.all(
+      exercises.map((ex) => {
+        const image = ex.media.find((m) => m.type === 'image' && m.url);
+        return image?.url ? loadImageAsDataUrl(image.url) : Promise.resolve(null);
+      }),
+    ),
+    loadImageAsDataUrl('/logo-bulldozers_farbig.png'),
+  ]);
+
+  // Kopfbereich
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text('Trainingsplan', margin, y);
-  y += 7;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.text(teamLabel, margin, y);
-  y += 5;
+  doc.setFontSize(17);
   const dateLabel = new Date(`${training.date}T00:00:00`).toLocaleDateString('de-CH', {
-    weekday: 'short',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   });
-  doc.text(
-    `${dateLabel}${training.start_time ? ' · ' + training.start_time.slice(0, 5) + ' Uhr' : ''} · ${training.duration_minutes} Min.`,
-    margin,
-    y,
-  );
-  y += 6;
+  doc.text(`Trainingsdatum: ${dateLabel}`, margin, y + 6);
+  doc.setFontSize(12);
+  const timeLine = training.start_time
+    ? `${training.start_time.slice(0, 5)} – ${training.duration_minutes} Minuten`
+    : `${training.duration_minutes} Minuten`;
+  doc.text(timeLine, margin, y + 13);
 
-  if (training.notes) {
+  if (logo) {
+    const logoWidth = 20;
+    const logoHeight = logoWidth / logo.ratio;
+    doc.addImage(logo.dataUrl, 'JPEG', pageWidth - margin - logoWidth, y - 2, logoWidth, logoHeight);
+  }
+  y += 18;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(teamLabel, margin, y);
+  y += 8;
+
+  // Notizen / Informationen
+  drawTwoColumnSection('Notizen', training.notes ?? '', 'Informationen', training.information ?? '');
+
+  // Abmeldungen / Saisonplanung Schwerpunkte
+  const absencesText =
+    extras.absentPlayerNames.length > 0 ? extras.absentPlayerNames.join(', ') : 'Niemand abgemeldet.';
+  const seasonFocusText =
+    extras.seasonFocuses.length > 0
+      ? extras.seasonFocuses.map((f) => `${SEASON_CATEGORY_NAMES[f.category]}: ${f.content}`).join('\n')
+      : 'Keine Schwerpunkte hinterlegt.';
+  drawTwoColumnSection('Abmeldungen', absencesText, 'Saisonplanung Schwerpunkte', seasonFocusText);
+
+  // Übungen
+  const imageColWidth = 60;
+  const textAreaWidth = contentWidth - imageColWidth - colGap;
+  const subGap = 6;
+  const subColWidth = (textAreaWidth - subGap) / 2;
+  const descX = margin;
+  const notesX = margin + subColWidth + subGap;
+  const imageX = margin + textAreaWidth + colGap;
+  const lineH = 3.8;
+  const minImageHeight = 38;
+
+  let cursorClock = training.start_time;
+
+  exercises.forEach((ex, i) => {
+    const startClock = cursorClock;
+    const endClock = cursorClock ? addMinutesToTime(cursorClock, ex.duration_minutes) : null;
+    if (cursorClock) cursorClock = endClock;
+
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    const lines = fitLines(doc, training.notes, leftWidth, 3);
-    doc.text(lines, margin, y);
-    y += lines.length * 3.6 + 3;
-  }
+    const descLines: string[] = ex.exerciseDescription ? doc.splitTextToSize(ex.exerciseDescription, subColWidth) : [];
+    const notesLines: string[] = ex.notes ? doc.splitTextToSize(ex.notes, subColWidth) : [];
+    const textBlockHeight = 5 + Math.max(descLines.length, notesLines.length) * lineH;
+    const image = exerciseImages[i];
+    const bodyHeight = Math.max(textBlockHeight, image ? minImageHeight : 0);
+    const titleHeight = 7;
+    const blockHeight = titleHeight + bodyHeight + 8;
 
-  const availableHeight = pageHeight - margin - y;
-  const exerciseFontSize = Math.max(6.5, Math.min(9, availableHeight / Math.max(exercises.length, 1) / 1.9));
-  const lineHeight = exerciseFontSize * 0.42;
+    ensureSpace(blockHeight);
 
-  doc.setFontSize(exerciseFontSize);
-  let renderedCount = 0;
-  for (const ex of exercises) {
-    if (y > pageHeight - margin - lineHeight * 2) break;
+    const color = EXERCISE_COLORS[i % EXERCISE_COLORS.length];
+    const timeText =
+      startClock && endClock
+        ? `${startClock.slice(0, 5)} – ${endClock.slice(0, 5)} Uhr – ${ex.duration_minutes} Minuten`
+        : `${ex.duration_minutes} Minuten`;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    const timeTextWidth = doc.getTextWidth(timeText);
+
     doc.setFont('helvetica', 'bold');
-    doc.text(`${ex.duration_minutes}' – ${ex.exerciseTitle}`, margin, y);
-    y += lineHeight;
-    if (ex.notes) {
-      doc.setFont('helvetica', 'normal');
-      const noteLines = fitLines(doc, ex.notes, leftWidth - 3, 2);
-      doc.text(noteLines, margin + 3, y);
-      y += noteLines.length * lineHeight;
-    }
-    y += lineHeight * 0.4;
-    renderedCount++;
-  }
-  if (renderedCount < exercises.length) {
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(7);
-    doc.setTextColor(180, 60, 60);
-    doc.text(`+ ${exercises.length - renderedCount} weitere Übung(en) – siehe App`, margin, y);
-    doc.setTextColor(0, 0, 0);
-    y += lineHeight;
-  }
+    doc.setFontSize(11);
+    doc.setTextColor(color[0], color[1], color[2]);
+    const maxTitleWidth = contentWidth - timeTextWidth - 6;
+    const titleText = `Übung ${i + 1}: ${ex.exerciseTitle}`;
+    const titleLines: string[] = doc.splitTextToSize(titleText, maxTitleWidth);
+    doc.text(titleLines[0] + (titleLines.length > 1 ? '…' : ''), margin, y);
 
-  const rinkGap = 8;
-  const rinkHeight = (pageHeight - margin * 2 - rinkGap) / 2;
-  drawRink(doc, rightX, margin, rightWidth, rinkHeight);
-  drawRink(doc, rightX, margin + rinkHeight + rinkGap, rightWidth, rinkHeight);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(timeText, margin + contentWidth, y, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    y += titleHeight;
+
+    const bodyTop = y;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('Beschreibung:', descX, y);
+    doc.text('Notizen:', notesX, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const textY = y + 5;
+    if (descLines.length) doc.text(descLines, descX, textY);
+    if (notesLines.length) doc.text(notesLines, notesX, textY);
+
+    if (image) {
+      const boxW = imageColWidth;
+      const boxH = bodyHeight;
+      let drawW = boxW;
+      let drawH = drawW / image.ratio;
+      if (drawH > boxH) {
+        drawH = boxH;
+        drawW = drawH * image.ratio;
+      }
+      doc.addImage(image.dataUrl, 'JPEG', imageX + (boxW - drawW) / 2, bodyTop, drawW, drawH);
+    }
+
+    y = bodyTop + bodyHeight + 8;
+  });
+
+  // Eisfeld-Skizzen am Ende
+  ensureSpace(50);
+  const rinkGap = 10;
+  const rinkWidth = (contentWidth - rinkGap) / 2;
+  const rinkHeight = 42;
+  drawRink(doc, margin, y, rinkWidth, rinkHeight);
+  drawRink(doc, margin + rinkWidth + rinkGap, y, rinkWidth, rinkHeight);
 
   const safeName = `training-${training.date}`.replace(/[\s/\\]+/g, '_');
   doc.save(`${safeName}.pdf`);
