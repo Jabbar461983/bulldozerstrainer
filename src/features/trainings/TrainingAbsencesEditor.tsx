@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Select } from '../../components/Select';
-import { fetchTeamPlayerRoster, fetchTeamTrainerRoster } from '../../lib/roster';
+import { fetchTeamPlayerRoster } from '../../lib/roster';
 import { fetchTrainingAbsences, addTrainingAbsence, removeTrainingAbsence } from './api';
 import type { TrainingAbsence } from '../../types/database';
 
@@ -10,53 +10,37 @@ interface TrainingAbsencesEditorProps {
   teamId: string;
 }
 
-interface AbsenceOption {
-  key: string;
-  personType: 'player' | 'trainer';
-  personId: string;
+interface PlayerOption {
+  playerId: string;
   lastName: string;
   label: string;
 }
 
 export function TrainingAbsencesEditor({ trainingId, teamId }: TrainingAbsencesEditorProps) {
-  const [options, setOptions] = useState<AbsenceOption[]>([]);
+  const [options, setOptions] = useState<PlayerOption[]>([]);
   const [absences, setAbsences] = useState<TrainingAbsence[] | null>(null);
-  const [selectedKey, setSelectedKey] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
     setError(null);
     try {
-      const [players, trainers, absenceRows] = await Promise.all([
+      const [players, absenceRows] = await Promise.all([
         fetchTeamPlayerRoster(teamId),
-        fetchTeamTrainerRoster(teamId),
         fetchTrainingAbsences(trainingId),
       ]);
-      const combined: AbsenceOption[] = [
-        ...players.map((p) => ({
-          key: `player:${p.playerId}`,
-          personType: 'player' as const,
-          personId: p.playerId,
-          lastName: p.lastName,
-          label: `${p.lastName} ${p.firstName} (Spieler)`,
-        })),
-        ...trainers.map((t) => ({
-          key: `trainer:${t.trainerId}`,
-          personType: 'trainer' as const,
-          personId: t.trainerId,
-          lastName: t.lastName,
-          label: `${t.lastName} ${t.firstName} (Trainer)`,
-        })),
-      ].sort((a, b) => a.lastName.localeCompare(b.lastName, 'de-CH'));
+      const combined: PlayerOption[] = players
+        .map((p) => ({ playerId: p.playerId, lastName: p.lastName, label: `${p.lastName} ${p.firstName}` }))
+        .sort((a, b) => a.lastName.localeCompare(b.lastName, 'de-CH'));
       setOptions(combined);
       setAbsences(absenceRows);
-      const absentKeysNow = new Set(
-        absenceRows.map((a) => `${a.person_type}:${a.person_type === 'player' ? a.player_id : a.trainer_id}`),
+      const absentPlayerIdsNow = new Set(
+        absenceRows.filter((a) => a.person_type === 'player').map((a) => a.player_id),
       );
-      const stillAvailable = combined.filter((o) => !absentKeysNow.has(o.key));
-      setSelectedKey((prev) =>
-        stillAvailable.some((o) => o.key === prev) ? prev : (stillAvailable[0]?.key ?? ''),
+      const stillAvailable = combined.filter((o) => !absentPlayerIdsNow.has(o.playerId));
+      setSelectedPlayerId((prev) =>
+        stillAvailable.some((o) => o.playerId === prev) ? prev : (stillAvailable[0]?.playerId ?? ''),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Abwesenheiten konnten nicht geladen werden.');
@@ -68,19 +52,16 @@ export function TrainingAbsencesEditor({ trainingId, teamId }: TrainingAbsencesE
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainingId, teamId]);
 
-  const absentKeys = useMemo(
-    () => new Set((absences ?? []).map((a) => `${a.person_type}:${a.person_type === 'player' ? a.player_id : a.trainer_id}`)),
-    [absences],
-  );
-  const availableOptions = options.filter((o) => !absentKeys.has(o.key));
+  const playerAbsences = useMemo(() => (absences ?? []).filter((a) => a.person_type === 'player'), [absences]);
+  const absentPlayerIds = useMemo(() => new Set(playerAbsences.map((a) => a.player_id)), [playerAbsences]);
+  const availableOptions = options.filter((o) => !absentPlayerIds.has(o.playerId));
 
   async function handleAdd() {
-    const option = options.find((o) => o.key === selectedKey);
-    if (!option) return;
+    if (!selectedPlayerId) return;
     setBusy(true);
     setError(null);
     try {
-      await addTrainingAbsence(trainingId, option.personType, option.personId);
+      await addTrainingAbsence(trainingId, 'player', selectedPlayerId);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Abwesenheit konnte nicht gespeichert werden.');
@@ -103,17 +84,15 @@ export function TrainingAbsencesEditor({ trainingId, teamId }: TrainingAbsencesE
   }
 
   if (options.length === 0) {
-    return <p className="text-sm text-text-muted">Diesem Team sind noch keine Spieler oder Trainer zugewiesen.</p>;
+    return <p className="text-sm text-text-muted">Diesem Team sind noch keine Spieler zugewiesen.</p>;
   }
 
   return (
     <div className="flex flex-col gap-2">
-      {absences?.length === 0 && <p className="text-sm text-text-muted">Niemand abgemeldet.</p>}
+      {playerAbsences.length === 0 && <p className="text-sm text-text-muted">Niemand abgemeldet.</p>}
       <div className="flex flex-wrap gap-1.5">
-        {absences?.map((a) => {
-          const option = options.find(
-            (o) => o.personType === a.person_type && o.personId === (a.person_type === 'player' ? a.player_id : a.trainer_id),
-          );
+        {playerAbsences.map((a) => {
+          const option = options.find((o) => o.playerId === a.player_id);
           return (
             <span
               key={a.id}
@@ -137,12 +116,12 @@ export function TrainingAbsencesEditor({ trainingId, teamId }: TrainingAbsencesE
       {availableOptions.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <Select
-            value={selectedKey}
-            onChange={(e) => setSelectedKey(e.target.value)}
+            value={selectedPlayerId}
+            onChange={(e) => setSelectedPlayerId(e.target.value)}
             className="min-w-0 flex-1"
           >
             {availableOptions.map((o) => (
-              <option key={o.key} value={o.key}>
+              <option key={o.playerId} value={o.playerId}>
                 {o.label}
               </option>
             ))}

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
-import { TrainingTimeline } from './TrainingTimeline';
 import { AddTrainingExerciseDialog } from './AddTrainingExerciseDialog';
 import {
   fetchTrainingExercises,
@@ -17,17 +16,11 @@ const DEFAULT_EXERCISE_DURATION = 10;
 
 interface TrainingExercisesEditorProps {
   trainingId: string;
-  totalMinutes: number;
   fieldType: TrainingFieldType;
   categoryId: string;
 }
 
-export function TrainingExercisesEditor({
-  trainingId,
-  totalMinutes,
-  fieldType,
-  categoryId,
-}: TrainingExercisesEditorProps) {
+export function TrainingExercisesEditor({ trainingId, fieldType, categoryId }: TrainingExercisesEditorProps) {
   const [rows, setRows] = useState<TrainingExerciseRow[] | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -118,95 +111,104 @@ export function TrainingExercisesEditor({
         + Übung hinzufügen
       </Button>
 
-      <TrainingTimeline
-        totalMinutes={totalMinutes}
-        items={(rows ?? []).map((r) => ({ id: r.id, title: r.exerciseTitle, durationMinutes: r.duration_minutes }))}
-      />
-
       {rows === null && <p className="text-sm text-text-muted">Lädt…</p>}
+      {rows?.length === 0 && <p className="text-sm text-text-muted">Noch keine Übungen eingeplant.</p>}
 
-      <div className="flex flex-col gap-2">
-        {rows?.map((row, i) => (
-          <div key={row.id} className="flex flex-col gap-2 rounded-xl border border-border p-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="flex shrink-0 flex-col gap-0.5">
+      {rows && rows.length > 0 && (
+        <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
+          {rows.map((row, i) => (
+            <div
+              key={row.id}
+              className="w-full shrink-0 snap-center rounded-xl border border-border p-3 text-sm"
+            >
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+                Übung {i + 1} / {rows.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex shrink-0 flex-col gap-0.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={busy || i === 0}
+                    onClick={() => void handleMove(i, -1)}
+                    aria-label="Nach vorne verschieben"
+                    className="min-h-0 px-1.5 py-0.5"
+                  >
+                    ‹
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={busy || i === rows.length - 1}
+                    onClick={() => void handleMove(i, 1)}
+                    aria-label="Nach hinten verschieben"
+                    className="min-h-0 px-1.5 py-0.5"
+                  >
+                    ›
+                  </Button>
+                </div>
+                <span className="min-w-0 flex-1 truncate font-medium text-text">{row.exerciseTitle}</span>
+                <div className="w-16 shrink-0">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={row.duration_minutes}
+                    disabled={busy}
+                    onChange={(e) => void handleDurationChange(row.id, Number(e.target.value))}
+                    className="text-center"
+                  />
+                </div>
+                <span className="shrink-0 text-xs text-text-muted">Min.</span>
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={busy || i === 0}
-                  onClick={() => void handleMove(i, -1)}
-                  aria-label="Nach oben verschieben"
-                  className="min-h-0 px-1.5 py-0.5"
-                >
-                  ↑
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={busy || i === rows.length - 1}
-                  onClick={() => void handleMove(i, 1)}
-                  aria-label="Nach unten verschieben"
-                  className="min-h-0 px-1.5 py-0.5"
-                >
-                  ↓
-                </Button>
-              </div>
-              <span className="min-w-0 flex-1 truncate font-medium text-text">{row.exerciseTitle}</span>
-              <div className="w-16 shrink-0">
-                <Input
-                  type="number"
-                  min={1}
-                  value={row.duration_minutes}
                   disabled={busy}
-                  onChange={(e) => void handleDurationChange(row.id, Number(e.target.value))}
-                  className="text-center"
-                />
+                  onClick={() => void handleRemove(row.id)}
+                  aria-label="Übung entfernen"
+                  className="ml-1 shrink-0 px-2.5 text-danger hover:bg-danger/10"
+                >
+                  ✕
+                </Button>
               </div>
-              <span className="shrink-0 text-xs text-text-muted">Min.</span>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={() => void handleRemove(row.id)}
-                aria-label="Übung entfernen"
-                className="ml-1 shrink-0 px-2.5 text-danger hover:bg-danger/10"
-              >
-                ✕
-              </Button>
+
+              {row.exerciseDescription && (
+                <p className="mt-2 pl-9 text-xs text-text-muted">{row.exerciseDescription}</p>
+              )}
+
+              {row.media.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2 pl-9">
+                  {row.media.map((m) =>
+                    m.type === 'image' ? (
+                      <img
+                        key={m.path}
+                        src={m.url ?? ''}
+                        alt=""
+                        className="h-28 w-40 rounded-lg border border-border object-cover"
+                      />
+                    ) : (
+                      <video
+                        key={m.path}
+                        src={m.url ?? ''}
+                        controls
+                        className="h-28 w-44 rounded-lg border border-border"
+                      />
+                    ),
+                  )}
+                </div>
+              )}
+
+              <textarea
+                rows={2}
+                placeholder="Notizen zu dieser Übung…"
+                value={notesDraft[row.id] ?? ''}
+                onChange={(e) => setNotesDraft((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                onBlur={() => void handleNotesBlur(row.id)}
+                className="mt-2 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              />
             </div>
-
-            {row.exerciseDescription && (
-              <p className="pl-9 text-xs text-text-muted">{row.exerciseDescription}</p>
-            )}
-
-            {row.media.length > 0 && (
-              <div className="flex flex-wrap gap-2 pl-9">
-                {row.media.map((m) =>
-                  m.type === 'image' ? (
-                    <img
-                      key={m.path}
-                      src={m.url ?? ''}
-                      alt=""
-                      className="h-28 w-40 rounded-lg border border-border object-cover"
-                    />
-                  ) : (
-                    <video key={m.path} src={m.url ?? ''} controls className="h-28 w-44 rounded-lg border border-border" />
-                  ),
-                )}
-              </div>
-            )}
-
-            <textarea
-              rows={2}
-              placeholder="Notizen zu dieser Übung…"
-              value={notesDraft[row.id] ?? ''}
-              onChange={(e) => setNotesDraft((prev) => ({ ...prev, [row.id]: e.target.value }))}
-              onBlur={() => void handleNotesBlur(row.id)}
-              className="ml-9 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
