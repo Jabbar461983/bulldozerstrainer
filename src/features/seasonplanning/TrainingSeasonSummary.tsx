@@ -40,7 +40,10 @@ export function TrainingSeasonSummary({ teamId, trainingId, trainingDate }: Trai
   if (percentages === null && !error) return null;
 
   const focusLine = CATEGORY_ORDER.map((cat) => {
-    const titles = events.filter((e) => e.category === cat).map((e) => e.title);
+    const titles = events
+      .filter((e) => e.category === cat)
+      .map((e) => e.title || e.subcategory)
+      .filter((t): t is string => !!t);
     return titles.length > 0 ? `${CATEGORY_NAMES[cat]}: ${titles.join(', ')}` : null;
   })
     .filter((s): s is string => !!s)

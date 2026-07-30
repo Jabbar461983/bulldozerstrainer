@@ -211,17 +211,17 @@ export function TrainingDetailDialog({
         </div>
 
         <div className="border-t border-border pt-4">
+          <Label>Abgemeldet</Label>
+          <TrainingAbsencesEditor trainingId={training.id} teamId={training.team_id} />
+        </div>
+
+        <div className="border-t border-border pt-4">
           <Label>Übungen</Label>
           <TrainingExercisesEditor
             trainingId={training.id}
             fieldType={fieldType}
             categoryId={categoryId}
           />
-        </div>
-
-        <div className="border-t border-border pt-4">
-          <Label>Abgemeldet</Label>
-          <TrainingAbsencesEditor trainingId={training.id} teamId={training.team_id} />
         </div>
 
         <div className="border-t border-border pt-4">
