@@ -67,6 +67,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
   const [subcategory, setSubcategory] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -78,13 +79,14 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
       setSubcategory(editingEvent.subcategory ?? '');
       setStartDate(editingEvent.start_date);
       setEndDate(editingEvent.end_date);
+      setNotes(editingEvent.notes ?? '');
     }
   }, [editingEvent]);
 
   const subcategories = getSubcategoriesForCategory(category);
 
   const handleSave = async () => {
-    if (!title || !startDate || !endDate) {
+    if (!startDate || !endDate || (category === 'activities' && !title)) {
       setError('Bitte füllen Sie alle erforderlichen Felder aus');
       return;
     }
@@ -100,20 +102,22 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
     try {
       if (editingEvent) {
         await updateSeasonPlanningEvent(editingEvent.id, {
-          title,
+          title: category === 'activities' ? title : '',
           category,
           subcategory: subcategory || null,
           start_date: startDate,
           end_date: endDate,
+          notes: notes || null,
         });
       } else {
         await createSeasonPlanningEvent({
           team_id: teamId,
-          title,
+          title: category === 'activities' ? title : '',
           category,
           subcategory: subcategory || null,
           start_date: startDate,
           end_date: endDate,
+          notes: notes || null,
           sort_order: 0,
           is_template: false,
           created_by: null,
@@ -154,16 +158,18 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
         {error && <div className="rounded bg-red-50 p-3 text-sm text-red-900">{error}</div>}
 
         <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-text-muted">Titel</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text placeholder-text-muted"
-              placeholder="z.B. Meisterschaft"
-            />
-          </div>
+          {category === 'activities' && (
+            <div>
+              <label className="block text-sm font-medium text-text-muted">Titel *</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text placeholder-text-muted"
+                placeholder="z.B. Meisterschaft"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-text-muted">Kategorie</label>
@@ -203,7 +209,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-text-muted">Startdatum</label>
+              <label className="block text-sm font-medium text-text-muted">Startdatum *</label>
               <input
                 type="date"
                 value={startDate}
@@ -212,7 +218,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text-muted">Enddatum</label>
+              <label className="block text-sm font-medium text-text-muted">Enddatum *</label>
               <input
                 type="date"
                 value={endDate}
@@ -220,6 +226,17 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
                 className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-muted">Notizen</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text placeholder-text-muted"
+              placeholder="Zusätzliche Notizen..."
+              rows={3}
+            />
           </div>
         </div>
 
