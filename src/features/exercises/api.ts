@@ -6,8 +6,11 @@ export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
   'Verteidigung',
   'Schuss',
   'Passspiel',
-  'Powerplay',
-  'Boxplay',
+  'Ballabdecken',
+  'Lösen vom Gegner',
+  'Bullys',
+  'Zweikampfverhalten',
+  'Specialteams',
   'Torhüter',
   'Spiel',
 ];

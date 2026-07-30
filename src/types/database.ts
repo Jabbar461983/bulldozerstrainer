@@ -80,8 +80,11 @@ export type ExerciseFocus =
   | 'Verteidigung'
   | 'Schuss'
   | 'Passspiel'
-  | 'Powerplay'
-  | 'Boxplay'
+  | 'Ballabdecken'
+  | 'Lösen vom Gegner'
+  | 'Bullys'
+  | 'Zweikampfverhalten'
+  | 'Specialteams'
   | 'Torhüter'
   | 'Spiel'
   // Off Field
@@ -224,6 +227,40 @@ export interface PlayerGameComment {
   created_at: string;
 }
 
+export type SeasonPlanningCategory = 'activities' | 'technique' | 'tactics' | 'physical';
+
+export interface SeasonPlanningEvent {
+  id: string;
+  team_id: string;
+  title: string;
+  start_date: string;
+  end_date: string;
+  category: SeasonPlanningCategory;
+  subcategory: string | null;
+  notes: string | null;
+  sort_order: number;
+  is_template: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingSeasonFocus {
+  id: string;
+  training_id: string;
+  season_planning_event_id: string;
+  created_at: string;
+}
+
+export interface TrainingFocusPercentage {
+  id: string;
+  training_id: string;
+  category: SeasonPlanningCategory;
+  percentage: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Budget {
   id: string;
   team_id: string;
@@ -329,6 +366,21 @@ export interface Database {
       };
       budgets: { Row: Budget; Insert: Partial<Budget>; Update: Partial<Budget> };
       receipts: { Row: Receipt; Insert: Partial<Receipt>; Update: Partial<Receipt> };
+      season_planning_events: {
+        Row: SeasonPlanningEvent;
+        Insert: Partial<SeasonPlanningEvent>;
+        Update: Partial<SeasonPlanningEvent>;
+      };
+      training_season_focuses: {
+        Row: TrainingSeasonFocus;
+        Insert: Partial<TrainingSeasonFocus>;
+        Update: Partial<TrainingSeasonFocus>;
+      };
+      training_focus_percentages: {
+        Row: TrainingFocusPercentage;
+        Insert: Partial<TrainingFocusPercentage>;
+        Update: Partial<TrainingFocusPercentage>;
+      };
     };
   };
 }
