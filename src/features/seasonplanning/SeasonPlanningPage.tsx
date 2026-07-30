@@ -26,7 +26,7 @@ const CATEGORY_COLORS: Record<SeasonPlanningCategory, string> = {
 };
 
 export function SeasonPlanningPage({ teamId, season }: SeasonPlanningPageProps) {
-  const { events, loading, error } = useSeasonPlanningEventsByDateRange(teamId, season);
+  const { events, loading, error, refresh } = useSeasonPlanningEventsByDateRange(teamId, season);
   const [showDialog, setShowDialog] = useState(false);
   const [editingEvent, setEditingEvent] = useState<SeasonPlanningEvent | null>(null);
 
@@ -35,9 +35,11 @@ export function SeasonPlanningPage({ teamId, season }: SeasonPlanningPageProps) 
     setShowDialog(true);
   };
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = async () => {
     setShowDialog(false);
     setEditingEvent(null);
+    // Reload events after creating/editing
+    await refresh();
   };
 
   if (loading) {

@@ -156,18 +156,26 @@ export function useSeasonPlanningEventsByDateRange(teamId: string | null, season
   const [loading, setLoading] = useState(false);
   const { dateRange } = useSeasonDateRange(season);
 
-  useEffect(() => {
+  const refresh = async () => {
     if (!teamId || !dateRange) {
       setEvents([]);
       return;
     }
 
     setLoading(true);
-    fetchSeasonPlanningEventsByDateRange(teamId, dateRange.startDate, dateRange.endDate)
-      .then(setEvents)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to fetch events'))
-      .finally(() => setLoading(false));
+    try {
+      const data = await fetchSeasonPlanningEventsByDateRange(teamId, dateRange.startDate, dateRange.endDate);
+      setEvents(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch events');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refresh();
   }, [teamId, dateRange]);
 
-  return { events, error, loading };
+  return { events, error, loading, refresh };
 }
