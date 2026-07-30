@@ -30,6 +30,47 @@ const FOCUS_CATEGORY_MAP: Partial<Record<ExerciseFocus, SeasonPlanningCategory>>
   'Off Field Spiel': 'physical',
 };
 
+// Ordnet die konkreten Saisonplanungs-Unterkategorien (aus SeasonPlanningDialog) den
+// passenden Übungs-Inhalten zu. Nur Übungen mit einem dieser Inhalte zählen als
+// Abdeckung des jeweiligen Schwerpunkts - eine Passspiel-Übung deckt z.B. den
+// Schwerpunkt "Schießen" nicht ab, auch wenn beides "Technik" ist.
+// Unterkategorien ohne Eintrag (z.B. "Wechsel", "Sommer-Training") haben keine
+// Entsprechung bei den Übungs-Inhalten und ergeben daher bewusst immer 0%.
+const SUBCATEGORY_FOCUS_MAP: Partial<Record<string, ExerciseFocus[]>> = {
+  Passspiel: ['Passspiel'],
+  Schießen: ['Schuss'],
+  Ballabdecken: ['Ballabdecken'],
+  'Lösen vom Gegner': ['Lösen vom Gegner'],
+  Bullys: ['Bullys'],
+  Zweikampfverhalten: ['Zweikampfverhalten'],
+  Offensivtaktiken: ['Angriff'],
+  Specialteams: ['Specialteams'],
+  'Body-pump': ['Kraft'],
+};
+
+type CategoryFocusTarget = 'any' | Set<ExerciseFocus>;
+
+// Bestimmt pro Kategorie, welche Übungs-Inhalte als "passend" zum aktuell für dieses
+// Trainingsdatum geltenden Saisonplan gelten:
+// - keine zutreffenden Events in der Kategorie -> leeres Set (nie 0% übersteigend)
+// - mind. ein Event ohne konkrete Unterkategorie -> 'any' (ganze Kategorie zählt, wie
+//   bisher), da der Coach keinen spezifischen Schwerpunkt vorgegeben hat
+// - sonst -> Set der Inhalte aller angegebenen Unterkategorien dieser Kategorie
+function getCategoryFocusTarget(
+  applicableEvents: SeasonPlanningEvent[],
+  category: SeasonPlanningCategory,
+): CategoryFocusTarget {
+  const categoryEvents = applicableEvents.filter((e) => e.category === category);
+  if (categoryEvents.length === 0) return new Set();
+  if (categoryEvents.some((e) => !e.subcategory)) return 'any';
+  const targets = new Set<ExerciseFocus>();
+  for (const event of categoryEvents) {
+    const mapped = SUBCATEGORY_FOCUS_MAP[event.subcategory as string];
+    mapped?.forEach((f) => targets.add(f));
+  }
+  return targets;
+}
+
 export async function fetchSeasonPlanningEvents(teamId: string): Promise<SeasonPlanningEvent[]> {
   const { data, error } = await (supabase as any)
     .from('season_planning_events')
@@ -134,8 +175,14 @@ export async function setTrainingFocusPercentage(trainingId: string, category: S
 
 // Berechnet den Zeitanteil pro Saisonplanungs-Kategorie automatisch aus den
 // tatsächlich geplanten Übungen (Dauer je Übung, gleichmässig aufgeteilt, falls eine
-// Übung mehrere Inhalte aus verschiedenen Kategorien hat).
-export async function computeTrainingFocusPercentages(trainingId: string): Promise<Record<SeasonPlanningCategory, number>> {
+// Übung mehrere Inhalte aus verschiedenen Kategorien hat). Zählt nur Übungen, deren
+// Inhalt zum konkret für dieses Datum geltenden Saisonplan-Schwerpunkt passt (z.B.
+// deckt eine Passspiel-Übung den Schwerpunkt "Schießen" nicht ab, auch wenn beides
+// unter "Technik" fällt).
+export async function computeTrainingFocusPercentages(
+  trainingId: string,
+  applicableEvents: SeasonPlanningEvent[],
+): Promise<Record<SeasonPlanningCategory, number>> {
   const result: Record<SeasonPlanningCategory, number> = {
     activities: 0,
     technique: 0,
@@ -161,6 +208,13 @@ export async function computeTrainingFocusPercentages(trainingId: string): Promi
     (exercises ?? []).map((e: { id: string; focus_areas: ExerciseFocus[] }) => [e.id, e.focus_areas]),
   );
 
+  const categoryTargets: Record<SeasonPlanningCategory, CategoryFocusTarget> = {
+    activities: getCategoryFocusTarget(applicableEvents, 'activities'),
+    technique: getCategoryFocusTarget(applicableEvents, 'technique'),
+    tactics: getCategoryFocusTarget(applicableEvents, 'tactics'),
+    physical: getCategoryFocusTarget(applicableEvents, 'physical'),
+  };
+
   const categoryMinutes: Record<SeasonPlanningCategory, number> = {
     activities: 0,
     technique: 0,
@@ -171,12 +225,16 @@ export async function computeTrainingFocusPercentages(trainingId: string): Promi
   for (const row of rows) {
     totalMinutes += row.duration_minutes;
     const focusAreas = focusById.get(row.exercise_id) ?? [];
-    const categories = Array.from(
-      new Set(focusAreas.map((f) => FOCUS_CATEGORY_MAP[f]).filter((c): c is SeasonPlanningCategory => !!c)),
-    );
-    if (categories.length === 0) continue;
-    const share = row.duration_minutes / categories.length;
-    for (const cat of categories) categoryMinutes[cat] += share;
+    const matchedCategories = new Set<SeasonPlanningCategory>();
+    for (const focus of focusAreas) {
+      const category = FOCUS_CATEGORY_MAP[focus];
+      if (!category) continue;
+      const target = categoryTargets[category];
+      if (target === 'any' || target.has(focus)) matchedCategories.add(category);
+    }
+    if (matchedCategories.size === 0) continue;
+    const share = row.duration_minutes / matchedCategories.size;
+    for (const cat of matchedCategories) categoryMinutes[cat] += share;
   }
 
   if (totalMinutes === 0) return result;
