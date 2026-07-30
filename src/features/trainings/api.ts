@@ -320,22 +320,6 @@ export async function saveRegularRating(
   }
 }
 
-export async function addAdminFeedback(
-  trainingId: string,
-  stars: number,
-  notes: string | null,
-  createdBy: string | null,
-) {
-  const { error } = await (supabase.from('training_ratings') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-    .insert({ training_id: trainingId, stars, notes, created_by: createdBy, is_admin_feedback: true });
-  if (error) throw error;
-}
-
-export async function deleteRating(id: string) {
-  const { error } = await supabase.from('training_ratings').delete().eq('id', id);
-  if (error) throw error;
-}
-
 export async function fetchTrainingAbsences(trainingId: string): Promise<TrainingAbsence[]> {
   const { data, error } = await supabase.from('training_absences').select('*').eq('training_id', trainingId);
   if (error) throw error;

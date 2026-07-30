@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
-import { Select } from '../../components/Select';
+import { FieldTypeToggle } from './FieldTypeToggle';
 import { createTraining } from './api';
 import { useAuth } from '../../auth/AuthContext';
 import type { TrainingFieldType } from '../../types/database';
@@ -53,7 +53,13 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
 
   return (
     <Modal
-      title="Neues Training anlegen"
+      title={
+        <>
+          <span className="min-w-0 flex-1 truncate">Neues Training anlegen</span>
+          <FieldTypeToggle value={fieldType} onChange={setFieldType} />
+        </>
+      }
+      ariaLabel="Neues Training anlegen"
       onClose={onClose}
       footer={
         <>
@@ -67,40 +73,29 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
       }
     >
       <form id="create-training-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label htmlFor="date">Datum</Label>
+            <Label htmlFor="date">Datum*</Label>
             <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="startTime">Startzeit (optional)</Label>
+            <Label htmlFor="startTime">Startzeit</Label>
             <Input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="duration">Dauer*</Label>
+            <Input
+              id="duration"
+              type="number"
+              min={1}
+              required
+              value={duration}
+              onChange={(e) => setDuration(Number(e.target.value))}
+            />
           </div>
         </div>
         <div>
-          <Label htmlFor="duration">Trainingsdauer (Minuten)</Label>
-          <Input
-            id="duration"
-            type="number"
-            min={1}
-            required
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-          />
-        </div>
-        <div>
-          <Label htmlFor="fieldType">Trainingsart</Label>
-          <Select
-            id="fieldType"
-            value={fieldType}
-            onChange={(e) => setFieldType(e.target.value as TrainingFieldType)}
-          >
-            <option value="on_field">On Field</option>
-            <option value="off_field">Off Field</option>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="notes">Notizen (optional)</Label>
+          <Label htmlFor="notes">Notizen</Label>
           <textarea
             id="notes"
             rows={3}
@@ -110,7 +105,7 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
           />
         </div>
         <div>
-          <Label htmlFor="information">Informationen (optional)</Label>
+          <Label htmlFor="information">Informationen</Label>
           <textarea
             id="information"
             rows={3}

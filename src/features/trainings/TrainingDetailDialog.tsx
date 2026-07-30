@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
-import { Select } from '../../components/Select';
 import { TrainingExercisesEditor } from './TrainingExercisesEditor';
 import { TrainingRatingSection } from './TrainingRatingSection';
 import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
 import { TrainingTrainersEditor } from './TrainingTrainersEditor';
-import { updateTraining, deleteTraining, fetchTrainingExercises } from './api';
+import { FieldTypeToggle } from './FieldTypeToggle';
+import { updateTraining, deleteTraining, fetchTrainingExercises, fetchTrainingTrainers, replaceTrainingTrainers } from './api';
+import { fetchTeamTrainerRoster } from '../../lib/roster';
+import type { RosterTrainer } from '../../lib/roster';
 import { exportTrainingPdf } from './trainingPdf';
 import type { Training, TrainingFieldType } from '../../types/database';
 
@@ -40,6 +42,34 @@ export function TrainingDetailDialog({
   const [exportingPdf, setExportingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [trainerRoster, setTrainerRoster] = useState<RosterTrainer[]>([]);
+  const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
+  const [trainersLoading, setTrainersLoading] = useState(true);
+  const [trainersError, setTrainersError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadTrainers() {
+      setTrainersError(null);
+      try {
+        const [roster, links] = await Promise.all([
+          fetchTeamTrainerRoster(training.team_id),
+          fetchTrainingTrainers(training.id),
+        ]);
+        setTrainerRoster(roster);
+        setSelectedTrainerIds(links.map((l) => l.trainer_id));
+      } catch (err) {
+        setTrainersError(err instanceof Error ? err.message : 'Trainer konnten nicht geladen werden.');
+      } finally {
+        setTrainersLoading(false);
+      }
+    }
+    void loadTrainers();
+  }, [training.id, training.team_id]);
+
+  function toggleTrainer(trainerId: string) {
+    setSelectedTrainerIds((prev) => (prev.includes(trainerId) ? prev.filter((id) => id !== trainerId) : [...prev, trainerId]));
+  }
+
   async function handleExportPdf() {
     setExportingPdf(true);
     setError(null);
@@ -66,6 +96,9 @@ export function TrainingDetailDialog({
         notes: notes || null,
         information: information || null,
       });
+      if (!trainersLoading) {
+        await replaceTrainingTrainers(training.id, selectedTrainerIds);
+      }
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Änderungen konnten nicht gespeichert werden.');
@@ -91,7 +124,15 @@ export function TrainingDetailDialog({
 
   return (
     <Modal
-      title={`Training am ${new Date(`${training.date}T00:00:00`).toLocaleDateString('de-CH')}`}
+      title={
+        <>
+          <span className="min-w-0 flex-1 truncate">
+            Training am {new Date(`${training.date}T00:00:00`).toLocaleDateString('de-CH')}
+          </span>
+          <FieldTypeToggle value={fieldType} onChange={setFieldType} />
+        </>
+      }
+      ariaLabel={`Training am ${new Date(`${training.date}T00:00:00`).toLocaleDateString('de-CH')}`}
       onClose={onClose}
       footer={
         <>
@@ -112,40 +153,29 @@ export function TrainingDetailDialog({
     >
       <div className="flex flex-col gap-5">
         <form id="edit-training-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <Label htmlFor="date">Datum</Label>
+              <Label htmlFor="date">Datum*</Label>
               <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="startTime">Startzeit (optional)</Label>
+              <Label htmlFor="startTime">Startzeit</Label>
               <Input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="duration">Dauer*</Label>
+              <Input
+                id="duration"
+                type="number"
+                min={1}
+                required
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+              />
             </div>
           </div>
           <div>
-            <Label htmlFor="duration">Trainingsdauer (Minuten)</Label>
-            <Input
-              id="duration"
-              type="number"
-              min={1}
-              required
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="fieldType">Trainingsart</Label>
-            <Select
-              id="fieldType"
-              value={fieldType}
-              onChange={(e) => setFieldType(e.target.value as TrainingFieldType)}
-            >
-              <option value="on_field">On Field</option>
-              <option value="off_field">Off Field</option>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="notes">Notizen (optional)</Label>
+            <Label htmlFor="notes">Notizen</Label>
             <textarea
               id="notes"
               rows={3}
@@ -155,7 +185,7 @@ export function TrainingDetailDialog({
             />
           </div>
           <div>
-            <Label htmlFor="information">Informationen (optional)</Label>
+            <Label htmlFor="information">Informationen</Label>
             <textarea
               id="information"
               rows={3}
@@ -169,14 +199,19 @@ export function TrainingDetailDialog({
 
         <div className="border-t border-border pt-4">
           <Label>Trainer</Label>
-          <TrainingTrainersEditor trainingId={training.id} teamId={training.team_id} />
+          <TrainingTrainersEditor
+            trainers={trainerRoster}
+            selectedIds={selectedTrainerIds}
+            onToggle={toggleTrainer}
+            loading={trainersLoading}
+            error={trainersError}
+          />
         </div>
 
         <div className="border-t border-border pt-4">
-          <Label>Übungen &amp; Zeitbalken</Label>
+          <Label>Übungen</Label>
           <TrainingExercisesEditor
             trainingId={training.id}
-            totalMinutes={duration}
             fieldType={fieldType}
             categoryId={categoryId}
           />
