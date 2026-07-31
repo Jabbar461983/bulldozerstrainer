@@ -33,12 +33,12 @@ const FOCUS_CATEGORY_MAP: Partial<Record<ExerciseFocus, SeasonPlanningCategory>>
 // Ordnet die konkreten Saisonplanungs-Unterkategorien (aus SeasonPlanningDialog) den
 // passenden Übungs-Inhalten zu. Nur Übungen mit einem dieser Inhalte zählen als
 // Abdeckung des jeweiligen Schwerpunkts - eine Passspiel-Übung deckt z.B. den
-// Schwerpunkt "Schießen" nicht ab, auch wenn beides "Technik" ist.
+// Schwerpunkt "Schiessen" nicht ab, auch wenn beides "Technik" ist.
 // Unterkategorien ohne Eintrag (z.B. "Wechsel", "Sommer-Training") haben keine
 // Entsprechung bei den Übungs-Inhalten und ergeben daher bewusst immer 0%.
 const SUBCATEGORY_FOCUS_MAP: Partial<Record<string, ExerciseFocus[]>> = {
   Passspiel: ['Passspiel'],
-  Schießen: ['Schuss'],
+  Schiessen: ['Schuss'],
   Ballabdecken: ['Ballabdecken'],
   'Lösen vom Gegner': ['Lösen vom Gegner'],
   Bullys: ['Bullys'],
@@ -199,7 +199,7 @@ function exerciseMatchesAnyTarget(
 // dieses Datum geltenden Saisonplan-Schwerpunkten passt (ein einzelner Gesamtwert,
 // nicht mehr pro Kategorie). Eine Übung zählt nur, wenn ihr Inhalt zur konkreten
 // Unterkategorie des jeweiligen Saisonplan-Eintrags passt (z.B. deckt eine
-// Passspiel-Übung den Schwerpunkt "Schießen" nicht ab, auch wenn beides unter
+// Passspiel-Übung den Schwerpunkt "Schiessen" nicht ab, auch wenn beides unter
 // "Technik" fällt).
 export async function computeTrainingSeasonCoverage(
   trainingId: string,

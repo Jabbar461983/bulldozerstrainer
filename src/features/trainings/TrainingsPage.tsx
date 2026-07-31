@@ -111,11 +111,13 @@ export function TrainingsPage() {
                 </span>
               </div>
             </div>
-            {info?.ratingByName && <p className="mt-1 text-xs text-text-muted">Bewertet von {info.ratingByName}</p>}
-            {info && info.plannedMinutes > 0 && (
-              <p className="mt-1 text-xs text-text-muted">
-                {seasonCoverage[training.id] ?? 0}% der Trainingseinheit gemäss Saisonplanung
-              </p>
+            {(info?.ratingByName || (info && info.plannedMinutes > 0)) && (
+              <div className="mt-1 flex items-center justify-between gap-2 text-xs text-text-muted">
+                <span>{info?.ratingByName && `Bewertet von ${info.ratingByName}`}</span>
+                {info && info.plannedMinutes > 0 && (
+                  <span className="shrink-0">{seasonCoverage[training.id] ?? 0}% gemäss Saisonplanung</span>
+                )}
+              </div>
             )}
             {info && info.trainerNames.length > 0 && (
               <p className="mt-1 text-xs text-text-muted">Trainer: {info.trainerNames.join(', ')}</p>

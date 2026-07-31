@@ -80,7 +80,7 @@ Service-Role-Key nötig ist, der niemals im Client landen darf.
 Original-Vereinslogo liegt unter `public/logo-bulldozers_farbig.png` und wird
 in Login-Seite und App-Header verwendet. Favicon (`public/favicon-32.png`,
 `favicon-48.png`) und PWA-Icons (`public/icons/icon-192.png`,
-`icon-512.png`) sind daraus exportiert (weißer Hintergrund, damit sie auch
+`icon-512.png`) sind daraus exportiert (weisser Hintergrund, damit sie auch
 als maskierbares Android-Icon funktionieren). Die Vereinsfarben Dunkelgrün
 `#007057` und Gold `#ba990e` wurden direkt aus dem Logo gesampelt und sind
 als CSS-Variablen mit Präfix `--club-` in `src/index.css` zentralisiert.

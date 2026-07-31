@@ -23,7 +23,7 @@ export function Modal({ title, ariaLabel, onClose, children, footer }: ModalProp
           <button
             type="button"
             onClick={onClose}
-            aria-label="Schließen"
+            aria-label="Schliessen"
             className="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-alt"
           >
             ✕
