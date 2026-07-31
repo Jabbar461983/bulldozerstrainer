@@ -201,3 +201,8 @@ export async function deletePlayerGoal(goalId: string): Promise<void> {
   const { error } = await supabase.from('player_goals').delete().eq('id', goalId);
   if (error) throw error;
 }
+
+export async function deletePlayerNote(noteId: string): Promise<void> {
+  const { error } = await supabase.from('player_notes').delete().eq('id', noteId);
+  if (error) throw error;
+}

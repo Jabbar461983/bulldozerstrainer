@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { Input } from '../../components/Input';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchPlayers, deletePlayer, fetchPlayerGoalSeasons, fetchPlayerGoals, fetchPlayerNotes } from './api';
 import type { PlayerRow } from './api';
@@ -30,6 +31,7 @@ export function PlayersPage() {
   const [showImport, setShowImport] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<PlayerWithExtras | null>(null);
   const [viewingPlayer, setViewingPlayer] = useState<PlayerWithExtras | null>(null);
+  const [filterName, setFilterName] = useState('');
 
   async function load() {
     setError(null);
@@ -122,8 +124,19 @@ export function PlayersPage() {
         </Card>
       )}
 
+      <div className="mb-3 flex gap-2">
+        <Input
+          placeholder="Nach Nachname filtern…"
+          value={filterName}
+          onChange={(e) => setFilterName(e.target.value)}
+          className="max-w-xs"
+        />
+      </div>
+
       <div className="flex flex-col gap-3">
-        {players?.map((player) => (
+        {players
+          ?.filter((p) => p.last_name.toLowerCase().includes(filterName.toLowerCase()))
+          .map((player) => (
           <Card key={player.id} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="flex-1">

@@ -91,7 +91,12 @@ export function EditPlayerDialog({ player, teamOptions, onClose, onSaved }: Edit
 
         <div>
           <Label>Ziele</Label>
-          <PlayerGoals playerId={player.id} currentUserId={profile?.id ?? null} defaultSeason={defaultSeason} />
+          <PlayerGoals
+            playerId={player.id}
+            currentUserId={profile?.id ?? null}
+            defaultSeason={defaultSeason}
+            isAdmin={profile?.is_admin ?? false}
+          />
         </div>
 
         <div>
