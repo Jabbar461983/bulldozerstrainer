@@ -115,9 +115,12 @@ export function SeasonPlanningCalendar({
     if (!calendarRef.current) return;
 
     try {
-      const canvas = await html2canvas(calendarRef.current, {
+      const element = calendarRef.current;
+      const canvas = await html2canvas(element, {
         backgroundColor: '#ffffff',
         scale: 2,
+        useCORS: true,
+        allowTaint: true,
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -127,13 +130,15 @@ export function SeasonPlanningCalendar({
         format: 'a4',
       });
 
-      const imgWidth = 297;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const imgWidth = pageWidth - 10;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
       pdf.save(`Saisonplanung-${season}.pdf`);
     } catch (error) {
       console.error('PDF Export failed:', error);
+      alert('PDF Export fehlgeschlagen');
     }
   };
 
@@ -154,10 +159,6 @@ export function SeasonPlanningCalendar({
               <span className="text-sm text-text">{categoryNames[category]}</span>
             </div>
           ))}
-          <div className="flex items-center gap-2 ml-4 pl-4 border-l border-border">
-            <div className="h-3 w-3 rounded-full bg-red-500" />
-            <span className="text-sm text-text">Ein Tag oder weniger</span>
-          </div>
         </div>
 
         {/* Calendar Grid */}
@@ -234,7 +235,6 @@ export function SeasonPlanningCalendar({
                         {hoveredEventId === event.id && (
                           <div className="absolute left-1/2 -translate-x-1/2 -top-12 bg-text text-surface px-3 py-2 rounded text-xs whitespace-nowrap z-20 pointer-events-none">
                             {event.title || event.subcategory || 'Event'}
-                            {event.notes && <div className="text-xs mt-1 font-normal">{event.notes}</div>}
                           </div>
                         )}
                       </div>
