@@ -126,6 +126,7 @@ export interface Training {
   field_type: TrainingFieldType;
   notes: string | null;
   information: string | null;
+  show_exercise_descriptions: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;

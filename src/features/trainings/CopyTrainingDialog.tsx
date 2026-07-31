@@ -60,6 +60,7 @@ export function CopyTrainingDialog({ teamId, trainings, onClose, onCreated }: Co
         field_type: source.field_type,
         notes: source.notes,
         information: source.information,
+        show_exercise_descriptions: source.show_exercise_descriptions,
         created_by: profile?.id ?? null,
       });
       if (ids.length > 0) {

@@ -12,6 +12,7 @@ export interface TrainingPdfSeasonFocus {
 export interface TrainingPdfExtras {
   absentPlayerNames: string[];
   seasonFocuses: TrainingPdfSeasonFocus[];
+  showExerciseDescriptions: boolean;
 }
 
 const EXERCISE_COLORS: [number, number, number][] = [
@@ -215,12 +216,14 @@ export async function exportTrainingPdf(
   drawTwoColumnSection('Abmeldungen', absencesText, 'Saisonplanung Schwerpunkte', seasonFocusText);
 
   // Übungen
+  const showDescriptions = extras.showExerciseDescriptions;
   const imageColWidth = 60;
   const textAreaWidth = contentWidth - imageColWidth - colGap;
   const subGap = 6;
   const subColWidth = (textAreaWidth - subGap) / 2;
   const descX = margin;
-  const notesX = margin + subColWidth + subGap;
+  const notesX = showDescriptions ? margin + subColWidth + subGap : margin;
+  const notesWidth = showDescriptions ? subColWidth : textAreaWidth;
   const imageX = margin + textAreaWidth + colGap;
   const lineH = 3.8;
   const minImageHeight = 38;
@@ -234,8 +237,9 @@ export async function exportTrainingPdf(
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    const descLines: string[] = ex.exerciseDescription ? doc.splitTextToSize(ex.exerciseDescription, subColWidth) : [];
-    const notesLines: string[] = ex.notes ? doc.splitTextToSize(ex.notes, subColWidth) : [];
+    const descLines: string[] =
+      showDescriptions && ex.exerciseDescription ? doc.splitTextToSize(ex.exerciseDescription, subColWidth) : [];
+    const notesLines: string[] = ex.notes ? doc.splitTextToSize(ex.notes, notesWidth) : [];
     const textBlockHeight = 5 + Math.max(descLines.length, notesLines.length) * lineH;
     const image = exerciseImages[i];
     const bodyHeight = Math.max(textBlockHeight, image ? minImageHeight : 0);
@@ -270,7 +274,7 @@ export async function exportTrainingPdf(
     const bodyTop = y;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('Beschreibung:', descX, y);
+    if (showDescriptions) doc.text('Beschreibung:', descX, y);
     doc.text('Notizen:', notesX, y);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);

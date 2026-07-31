@@ -47,6 +47,7 @@ export function TrainingDetailDialog({
   const [fieldType, setFieldType] = useState<TrainingFieldType>(training.field_type);
   const [notes, setNotes] = useState(training.notes ?? '');
   const [information, setInformation] = useState(training.information ?? '');
+  const [showExerciseDescriptions, setShowExerciseDescriptions] = useState(training.show_exercise_descriptions);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -113,7 +114,7 @@ export function TrainingDetailDialog({
         },
         teamLabel,
         exercises,
-        { absentPlayerNames, seasonFocuses },
+        { absentPlayerNames, seasonFocuses, showExerciseDescriptions },
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF konnte nicht erstellt werden.');
@@ -134,6 +135,7 @@ export function TrainingDetailDialog({
         field_type: fieldType,
         notes: notes || null,
         information: information || null,
+        show_exercise_descriptions: showExerciseDescriptions,
       });
       if (!trainersLoading) {
         await replaceTrainingTrainers(training.id, selectedTrainerIds);
@@ -234,6 +236,15 @@ export function TrainingDetailDialog({
               className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
           </div>
+          <label className="flex items-center gap-2 text-sm text-text">
+            <input
+              type="checkbox"
+              className="size-5"
+              checked={showExerciseDescriptions}
+              onChange={(e) => setShowExerciseDescriptions(e.target.checked)}
+            />
+            Übungsbeschreibung im PDF anzeigen
+          </label>
           {error && <p className="text-sm text-danger">{error}</p>}
         </form>
 

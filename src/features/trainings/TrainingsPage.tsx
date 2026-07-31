@@ -15,12 +15,14 @@ import { CreateTrainingDialog } from './CreateTrainingDialog';
 import { CopyTrainingDialog } from './CopyTrainingDialog';
 import { TrainingDetailDialog } from './TrainingDetailDialog';
 import { TrainingPresentation } from './TrainingPresentation';
+import { computeSeasonCoverageForTrainings } from '../seasonplanning/api';
 
 export function TrainingsPage() {
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
   const [teamId, setTeamId] = useState('');
   const [trainings, setTrainings] = useState<Training[] | null>(null);
   const [overview, setOverview] = useState<Record<string, TrainingOverviewInfo>>({});
+  const [seasonCoverage, setSeasonCoverage] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -47,6 +49,13 @@ export function TrainingsPage() {
       const ids = result.data.map((t) => t.id);
       const overviewResult = await withCache(`training-overview:${currentTeamId}`, () => fetchTrainingsOverview(ids));
       setOverview(overviewResult.data);
+      const coverageResult = await withCache(`training-season-coverage:${currentTeamId}`, () =>
+        computeSeasonCoverageForTrainings(
+          currentTeamId,
+          result.data.map((t) => ({ id: t.id, date: t.date })),
+        ),
+      );
+      setSeasonCoverage(coverageResult.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Trainings konnten nicht geladen werden.');
     }
@@ -103,6 +112,11 @@ export function TrainingsPage() {
               </div>
             </div>
             {info?.ratingByName && <p className="mt-1 text-xs text-text-muted">Bewertet von {info.ratingByName}</p>}
+            {info && info.plannedMinutes > 0 && (
+              <p className="mt-1 text-xs text-text-muted">
+                {seasonCoverage[training.id] ?? 0}% der Trainingseinheit gemäss Saisonplanung
+              </p>
+            )}
             {info && info.trainerNames.length > 0 && (
               <p className="mt-1 text-xs text-text-muted">Trainer: {info.trainerNames.join(', ')}</p>
             )}

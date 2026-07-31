@@ -22,6 +22,7 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
   const [fieldType, setFieldType] = useState<TrainingFieldType>('on_field');
   const [notes, setNotes] = useState('');
   const [information, setInformation] = useState('');
+  const [showExerciseDescriptions, setShowExerciseDescriptions] = useState(true);
   const [asSeries, setAsSeries] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(9);
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
         field_type: fieldType,
         notes: notes || null,
         information: information || null,
+        show_exercise_descriptions: showExerciseDescriptions,
         created_by: profile?.id ?? null,
         repeatWeeks: asSeries ? repeatWeeks : 0,
       });
@@ -114,6 +116,16 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
             className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-text">
+          <input
+            type="checkbox"
+            className="size-5"
+            checked={showExerciseDescriptions}
+            onChange={(e) => setShowExerciseDescriptions(e.target.checked)}
+          />
+          Übungsbeschreibung im PDF anzeigen
+        </label>
 
         <label className="flex items-center gap-2 text-sm text-text">
           <input
