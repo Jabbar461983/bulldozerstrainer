@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '../../components/Button';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { SeasonPlanningEvent, SeasonPlanningCategory } from '../../types/database';
 
 interface SeasonPlanningCalendarProps {
@@ -111,70 +112,56 @@ export function SeasonPlanningCalendar({
   };
 
   const exportToPDF = async () => {
+    if (!calendarRef.current) {
+      alert('Kalender nicht verfügbar');
+      return;
+    }
+
     try {
+      // Create canvas from the calendar element
+      const canvas = await html2canvas(calendarRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        windowHeight: calendarRef.current.scrollHeight,
+        windowWidth: calendarRef.current.scrollWidth,
+      });
+
+      // Create PDF in landscape orientation
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4',
       });
 
-      let yPosition = 15;
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const leftMargin = 10;
-      const columnWidth = (pageWidth - 40) / MONTHS.length;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth - 10;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      // Title
-      pdf.setFontSize(16);
-      pdf.text(`Saisonplanung ${season}`, leftMargin, yPosition);
-      yPosition += 10;
+      // Add canvas image to PDF
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
 
-      // Month headers
-      pdf.setFontSize(9);
-      let xPosition = leftMargin + 30;
-      MONTHS.forEach((month) => {
-        pdf.text(month, xPosition, yPosition);
-        xPosition += columnWidth;
-      });
-      yPosition += 8;
-
-      // Events for each category
-      CATEGORIES.forEach((category) => {
-        pdf.setFontSize(10);
-        pdf.text(categoryNames[category], leftMargin, yPosition);
-        yPosition += 6;
-
-        const categoryEventsList = events.filter((e) => e.category === category);
-
-        if (categoryEventsList.length === 0) {
-          pdf.setFontSize(8);
-          pdf.text('Keine Einträge', leftMargin + 5, yPosition);
-          yPosition += 5;
-        } else {
-          pdf.setFontSize(8);
-          categoryEventsList.forEach((event) => {
-            const eventText = `${event.title || event.subcategory || 'Event'} (${event.start_date} bis ${event.end_date})`;
-            if (event.notes) {
-              pdf.text(`${eventText} - ${event.notes}`, leftMargin + 5, yPosition);
-            } else {
-              pdf.text(eventText, leftMargin + 5, yPosition);
-            }
-            yPosition += 4;
-
-            if (yPosition > pageHeight - 15) {
-              pdf.addPage();
-              yPosition = 15;
-            }
-          });
+      // Add additional pages if content is too long
+      let yPos = imgHeight + 10;
+      if (yPos > pdfHeight) {
+        let remainingHeight = imgHeight;
+        let pageNum = 0;
+        while (remainingHeight > pdfHeight - 10) {
+          pageNum++;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 5, 5 - (pageNum * (pdfHeight - 10)), imgWidth, imgHeight);
+          remainingHeight -= pdfHeight - 10;
         }
-
-        yPosition += 3;
-      });
+      }
 
       pdf.save(`Saisonplanung-${season}.pdf`);
     } catch (error) {
       console.error('PDF Export error:', error);
-      alert(`PDF Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
+      alert(`PDF Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Screenshot-Export nicht möglich'}`);
     }
   };
 
@@ -306,9 +293,9 @@ export function SeasonPlanningCalendar({
                           {event.title || event.subcategory || 'Event'}
                         </span>
 
-                        {/* Tooltip for notes */}
-                        {event.notes && hoveredEventId === event.id && (
-                          <div className="absolute left-1/2 -translate-x-1/2 -top-12 bg-text text-surface px-3 py-2 rounded text-xs whitespace-nowrap z-20 pointer-events-none shadow-lg">
+                        {/* Tooltip for notes - only show if notes exist */}
+                        {hoveredEventId === event.id && event.notes && (
+                          <div className="absolute left-1/2 -translate-x-1/2 -top-14 bg-text text-surface px-3 py-2 rounded text-xs z-20 pointer-events-none shadow-lg max-w-xs break-words">
                             {event.notes}
                           </div>
                         )}
