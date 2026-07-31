@@ -118,28 +118,18 @@ export function SeasonPlanningCalendar({
     }
 
     try {
-      // Clone element and convert CSS to RGB to avoid oklch parsing issues
+      // Use the original element directly
       const element = calendarRef.current;
-      const clonedElement = element.cloneNode(true) as HTMLElement;
-      clonedElement.style.position = 'absolute';
-      clonedElement.style.left = '-9999px';
-      clonedElement.style.top = '-9999px';
-      document.body.appendChild(clonedElement);
 
-      // Create canvas from the cloned element
-      const canvas = await html2canvas(clonedElement, {
+      // Create canvas from the element
+      const canvas = await html2canvas(element, {
         backgroundColor: '#ffffff',
-        scale: 1,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        windowHeight: clonedElement.scrollHeight || 800,
-        windowWidth: clonedElement.scrollWidth || 1600,
-        foreignObjectRendering: true,
+        removeContainer: false,
       });
-
-      // Clean up cloned element
-      document.body.removeChild(clonedElement);
 
       // Create PDF in landscape orientation
       const pdf = new jsPDF({
@@ -149,25 +139,12 @@ export function SeasonPlanningCalendar({
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = pdfWidth - 10;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       // Add canvas image to PDF
       const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
-
-      // Add additional pages if content is too long
-      if (imgHeight > pdfHeight - 10) {
-        let remainingHeight = imgHeight - (pdfHeight - 10);
-        let pageNum = 1;
-        while (remainingHeight > 0) {
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 5, 5 - (pageNum * (pdfHeight - 10)), imgWidth, imgHeight);
-          pageNum++;
-          remainingHeight -= pdfHeight - 10;
-        }
-      }
 
       pdf.save(`Saisonplanung-${season}.pdf`);
     } catch (error) {
@@ -298,14 +275,12 @@ export function SeasonPlanningCalendar({
                           display: 'flex',
                           alignItems: 'center',
                         }}
-                        title={event.title || event.subcategory || ''}
+                        title={event.subcategory || event.title || ''}
                       >
-                        {/* Only show text if no notes - when hovering with notes, tooltip replaces this */}
-                        {!event.notes && (
-                          <span className="truncate text-xs">
-                            {event.title || event.subcategory || 'Event'}
-                          </span>
-                        )}
+                        {/* Always show subcategory in the bar */}
+                        <span className="truncate text-xs">
+                          {event.subcategory || event.title || 'Event'}
+                        </span>
 
                         {/* Tooltip for notes - only show if notes exist */}
                         {hoveredEventId === event.id && event.notes && (
