@@ -2,21 +2,15 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { fetchPlayerNotes, addPlayerNote } from './api';
-import type { PlayerNote } from '../../types/database';
+import type { PlayerNoteWithUser } from './api';
 
 interface PlayerNotesProps {
   playerId: string;
   currentUserId: string | null;
 }
 
-const SOURCE_LABELS: Record<PlayerNote['source'], string> = {
-  training: 'Training',
-  game: 'Spiel',
-  misc: 'Notiz',
-};
-
 export function PlayerNotes({ playerId, currentUserId }: PlayerNotesProps) {
-  const [notes, setNotes] = useState<PlayerNote[] | null>(null);
+  const [notes, setNotes] = useState<PlayerNoteWithUser[] | null>(null);
   const [newNote, setNewNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +64,7 @@ export function PlayerNotes({ playerId, currentUserId }: PlayerNotesProps) {
           <div key={note.id} className="rounded-xl border border-border p-2 text-sm">
             <p className="text-text">{note.note}</p>
             <p className="mt-1 text-xs text-text-muted">
-              {SOURCE_LABELS[note.source]} · {new Date(note.created_at).toLocaleDateString('de-CH')}
+              {new Date(note.created_at).toLocaleDateString('de-CH')} · {note.createdByName || 'System'}
             </p>
           </div>
         ))}

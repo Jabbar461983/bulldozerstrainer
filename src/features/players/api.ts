@@ -83,14 +83,39 @@ export async function replacePlayerTeams(playerId: string, teamIds: string[]) {
   if (insertError) throw insertError;
 }
 
-export async function fetchPlayerNotes(playerId: string): Promise<PlayerNote[]> {
+export interface PlayerNoteWithUser extends PlayerNote {
+  createdByName?: string;
+}
+
+export async function fetchPlayerNotes(playerId: string): Promise<PlayerNoteWithUser[]> {
   const { data, error } = await supabase
     .from('player_notes')
     .select('*')
     .eq('player_id', playerId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+
+  // Fetch user names for created_by IDs
+  const notes = (data ?? []) as Array<PlayerNote & { created_by?: string | null }>;
+  const userIds = [...new Set(notes.map((n) => n.created_by).filter(Boolean))] as string[];
+
+  let userNames: Record<string, string> = {};
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name');
+
+    if (profiles) {
+      userNames = Object.fromEntries(
+        profiles.map((p: any) => [p.id, `${p.first_name} ${p.last_name}`]) // eslint-disable-line @typescript-eslint/no-explicit-any
+      );
+    }
+  }
+
+  return notes.map((note) => ({
+    ...note,
+    createdByName: note.created_by ? userNames[note.created_by] : undefined,
+  }));
 }
 
 export async function addPlayerNote(playerId: string, note: string, createdBy: string | null) {

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { fetchPlayerGoalSeasons, fetchPlayerGoals, fetchPlayerNotes } from './api';
-import type { PlayerRow } from './api';
-import type { PlayerGoalSeason, PlayerGoal, PlayerNote } from '../../types/database';
+import type { PlayerRow, PlayerNoteWithUser } from './api';
+import type { PlayerGoalSeason, PlayerGoal } from '../../types/database';
 
 interface PlayerDetailDialogProps {
   player: PlayerRow;
@@ -16,7 +16,7 @@ export function PlayerDetailDialog({ player, onClose, onEdit }: PlayerDetailDial
   const [seasons, setSeasons] = useState<PlayerGoalSeason[] | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<PlayerGoalSeason | null>(null);
   const [goals, setGoals] = useState<PlayerGoal[] | null>(null);
-  const [notes, setNotes] = useState<PlayerNote[] | null>(null);
+  const [notes, setNotes] = useState<PlayerNoteWithUser[] | null>(null);
 
   async function loadSeasons() {
     try {
@@ -138,7 +138,7 @@ export function PlayerDetailDialog({ player, onClose, onEdit }: PlayerDetailDial
               <div key={note.id} className="border-l-2 border-border pl-2 text-xs">
                 <p className="text-text">{note.note}</p>
                 <p className="mt-0.5 text-text-muted">
-                  {new Date(note.created_at).toLocaleDateString('de-CH')} · {note.created_by ? 'Trainer' : 'System'}
+                  {new Date(note.created_at).toLocaleDateString('de-CH')} · {note.createdByName || 'System'}
                 </p>
               </div>
             ))}
