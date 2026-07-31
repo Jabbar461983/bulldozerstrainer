@@ -118,16 +118,28 @@ export function SeasonPlanningCalendar({
     }
 
     try {
-      // Create canvas from the calendar element
-      const canvas = await html2canvas(calendarRef.current, {
+      // Clone element and convert CSS to RGB to avoid oklch parsing issues
+      const element = calendarRef.current;
+      const clonedElement = element.cloneNode(true) as HTMLElement;
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-9999px';
+      clonedElement.style.top = '-9999px';
+      document.body.appendChild(clonedElement);
+
+      // Create canvas from the cloned element
+      const canvas = await html2canvas(clonedElement, {
         backgroundColor: '#ffffff',
-        scale: 2,
+        scale: 1,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        windowHeight: calendarRef.current.scrollHeight,
-        windowWidth: calendarRef.current.scrollWidth,
+        windowHeight: clonedElement.scrollHeight || 800,
+        windowWidth: clonedElement.scrollWidth || 1600,
+        foreignObjectRendering: true,
       });
+
+      // Clean up cloned element
+      document.body.removeChild(clonedElement);
 
       // Create PDF in landscape orientation
       const pdf = new jsPDF({
@@ -146,14 +158,13 @@ export function SeasonPlanningCalendar({
       pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
 
       // Add additional pages if content is too long
-      let yPos = imgHeight + 10;
-      if (yPos > pdfHeight) {
-        let remainingHeight = imgHeight;
-        let pageNum = 0;
-        while (remainingHeight > pdfHeight - 10) {
-          pageNum++;
+      if (imgHeight > pdfHeight - 10) {
+        let remainingHeight = imgHeight - (pdfHeight - 10);
+        let pageNum = 1;
+        while (remainingHeight > 0) {
           pdf.addPage();
           pdf.addImage(imgData, 'PNG', 5, 5 - (pageNum * (pdfHeight - 10)), imgWidth, imgHeight);
+          pageNum++;
           remainingHeight -= pdfHeight - 10;
         }
       }
@@ -289,9 +300,12 @@ export function SeasonPlanningCalendar({
                         }}
                         title={event.title || event.subcategory || ''}
                       >
-                        <span className="truncate text-xs">
-                          {event.title || event.subcategory || 'Event'}
-                        </span>
+                        {/* Only show text if no notes - when hovering with notes, tooltip replaces this */}
+                        {!event.notes && (
+                          <span className="truncate text-xs">
+                            {event.title || event.subcategory || 'Event'}
+                          </span>
+                        )}
 
                         {/* Tooltip for notes - only show if notes exist */}
                         {hoveredEventId === event.id && event.notes && (
