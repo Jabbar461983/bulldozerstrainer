@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { fetchPlayerGoalSeasons, fetchPlayerGoals, fetchPlayerNotes } from './api';
-import type { PlayerRow, PlayerNoteWithUser } from './api';
-import type { PlayerGoalSeason, PlayerGoal } from '../../types/database';
+import type { PlayerRow, PlayerNoteWithUser, PlayerGoalWithCreator } from './api';
+import type { PlayerGoalSeason } from '../../types/database';
 
 interface PlayerDetailDialogProps {
   player: PlayerRow;
@@ -15,7 +15,7 @@ interface PlayerDetailDialogProps {
 export function PlayerDetailDialog({ player, onClose, onEdit }: PlayerDetailDialogProps) {
   const [seasons, setSeasons] = useState<PlayerGoalSeason[] | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<PlayerGoalSeason | null>(null);
-  const [goals, setGoals] = useState<PlayerGoal[] | null>(null);
+  const [goals, setGoals] = useState<PlayerGoalWithCreator[] | null>(null);
   const [notes, setNotes] = useState<PlayerNoteWithUser[] | null>(null);
 
   async function loadSeasons() {
@@ -117,11 +117,19 @@ export function PlayerDetailDialog({ player, onClose, onEdit }: PlayerDetailDial
             </div>
             {goals === null && <p className="text-xs text-text-muted">Lädt…</p>}
             {goals?.length === 0 && <p className="text-xs text-text-muted">Keine Ziele</p>}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               {goals?.map((goal) => (
-                <div key={goal.id} className="rounded border border-border bg-surface-alt p-1.5 text-xs">
-                  <p className="text-text">{goal.title}</p>
-                  <p className="text-text-muted">{'⭐'.repeat(goal.rating_stars ?? 0)}</p>
+                <div key={goal.id} className="rounded border border-border bg-surface-alt p-2 text-xs">
+                  <p className="font-medium text-text">{goal.title}</p>
+                  {goal.rating_stars !== null && <p className="mt-0.5 text-text-muted">{'⭐'.repeat(goal.rating_stars)}</p>}
+                  {goal.notes && (
+                    <div className="mt-1.5 border-t border-border pt-1.5">
+                      <p className="text-text">{goal.notes}</p>
+                      <p className="mt-0.5 text-text-muted">
+                        {new Date(goal.created_at).toLocaleDateString('de-CH')} · {goal.createdByName || 'System'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

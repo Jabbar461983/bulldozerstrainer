@@ -146,14 +146,38 @@ export async function fetchPlayerGoalSeasons(playerId: string): Promise<PlayerGo
   return data ?? [];
 }
 
-export async function fetchPlayerGoals(seasonId: string): Promise<PlayerGoal[]> {
+export interface PlayerGoalWithCreator extends PlayerGoal {
+  createdByName?: string;
+}
+
+export async function fetchPlayerGoals(seasonId: string): Promise<PlayerGoalWithCreator[]> {
   const { data, error } = await supabase
     .from('player_goals')
     .select('*')
     .eq('player_goal_season_id', seasonId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+
+  const goals = (data ?? []) as Array<PlayerGoal & { created_by?: string | null }>;
+  const userIds = [...new Set(goals.map((g) => g.created_by).filter(Boolean))] as string[];
+
+  let userNames: Record<string, string> = {};
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name');
+
+    if (profiles) {
+      userNames = Object.fromEntries(
+        profiles.map((p: any) => [p.id, `${p.first_name} ${p.last_name}`]) // eslint-disable-line @typescript-eslint/no-explicit-any
+      );
+    }
+  }
+
+  return goals.map((goal) => ({
+    ...goal,
+    createdByName: goal.created_by ? userNames[goal.created_by] : undefined,
+  }));
 }
 
 export async function createPlayerGoalSeason(playerId: string, season: string): Promise<string> {
