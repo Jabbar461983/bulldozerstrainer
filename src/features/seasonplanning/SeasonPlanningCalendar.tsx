@@ -32,18 +32,76 @@ export function SeasonPlanningCalendar({
   const [startYear] = season.split('/').map(Number);
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
 
-  const formatDateRange = (startStr: string, endStr: string): string => {
-    const start = new Date(`${startStr}T00:00:00`);
-    const end = new Date(`${endStr}T00:00:00`);
-    const startDay = start.getDate();
-    const startMonth = start.toLocaleDateString('de-DE', { month: 'short' });
-    const endDay = end.getDate();
-    const endMonth = end.toLocaleDateString('de-DE', { month: 'short' });
+  const getCategoryColor = (category: SeasonPlanningCategory): string => {
+    const colors: Record<SeasonPlanningCategory, string> = {
+      activities: '#10b981',
+      technique: '#3b82f6',
+      tactics: '#f59e0b',
+      physical: '#ef4444',
+    };
+    return colors[category];
+  };
 
-    if (startMonth === endMonth) {
-      return `${startDay}. - ${endDay}. ${startMonth}`;
-    }
-    return `${startDay}. ${startMonth} - ${endDay}. ${endMonth}`;
+  const generateCalendarSVG = (): string => {
+    const svgWidth = 1200;
+    const svgHeight = 800;
+    const margin = 40;
+    const categoryHeight = 120;
+    const totalDays = getTotalSeasonDays();
+
+    let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg" style="background: white;">`;
+
+    // Title
+    svg += `<text x="${svgWidth / 2}" y="30" font-size="24" font-weight="bold" text-anchor="middle">Saisonplanung ${season}</text>`;
+
+    let yOffset = margin + 20;
+
+    // For each category
+    CATEGORIES.forEach((category) => {
+      const stackedEvents = categoryEvents(category);
+
+      // Category label
+      svg += `<text x="${margin}" y="${yOffset + 20}" font-size="14" font-weight="bold">${categoryNames[category]}</text>`;
+
+      // Timeline background
+      svg += `<rect x="${margin + 100}" y="${yOffset}" width="${svgWidth - margin * 2 - 100}" height="${categoryHeight}" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>`;
+
+      // Month separators and labels
+      MONTHS.forEach((month, idx) => {
+        const monthStartDay = getMonthStartDay(idx + 1);
+        const xPos = margin + 100 + (monthStartDay / totalDays) * (svgWidth - margin * 2 - 100);
+        svg += `<line x1="${xPos}" y1="${yOffset}" x2="${xPos}" y2="${yOffset + categoryHeight}" stroke="#e5e7eb" stroke-width="1"/>`;
+        svg += `<text x="${xPos + 5}" y="${yOffset - 5}" font-size="10" fill="#666">${month}</text>`;
+      });
+
+      // Events
+      stackedEvents.forEach((event) => {
+        const startDay = getDayOfSeason(event.start_date);
+        const endDay = getDayOfSeason(event.end_date);
+        const duration = Math.max(1, endDay - startDay + 1);
+
+        const xStart = margin + 100 + (startDay / totalDays) * (svgWidth - margin * 2 - 100);
+        const width = (duration / totalDays) * (svgWidth - margin * 2 - 100);
+        const yPos = yOffset + 10 + event.row * 20;
+
+        const color = getCategoryColor(event.category);
+        const isSingle = duration === 1;
+
+        if (isSingle) {
+          // Single day event - red dot
+          svg += `<circle cx="${xStart + width / 2}" cy="${yPos + 5}" r="4" fill="#ef4444" stroke="#dc2626" stroke-width="1"/>`;
+        } else {
+          // Multi-day event - bar
+          svg += `<rect x="${xStart}" y="${yPos}" width="${width}" height="16" fill="${color}" stroke="#333" stroke-width="1" rx="2"/>`;
+          svg += `<text x="${xStart + 4}" y="${yPos + 12}" font-size="10" fill="white" overflow="hidden">${event.subcategory || event.title || ''}</text>`;
+        }
+      });
+
+      yOffset += categoryHeight + 30;
+    });
+
+    svg += `</svg>`;
+    return svg;
   };
 
   const getDayOfSeason = (dateStr: string): number => {
@@ -123,88 +181,48 @@ export function SeasonPlanningCalendar({
     return getStackedEvents(category);
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     try {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
+      // Generate SVG and convert to canvas image
+      const svgString = generateCalendarSVG();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const contentWidth = pageWidth - 2 * margin;
-      let yPosition = margin + 10;
-      const lineHeight = 5;
-      const pageBreakThreshold = pageHeight - margin - 10;
+      canvas.width = 1200;
+      canvas.height = 800;
 
-      // Title
-      pdf.setFontSize(16);
-      pdf.text(`Saisonplanung ${season}`, margin, yPosition);
-      yPosition += 10;
+      const svg = new Image();
+      svg.onload = () => {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(svg, 0, 0);
 
-      // For each category
-      CATEGORIES.forEach((category) => {
-        const categoryEventsList = categoryEvents(category);
+        const imgData = canvas.toDataURL('image/png');
 
-        if (categoryEventsList.length === 0) return;
-
-        // Category heading
-        if (yPosition > pageBreakThreshold) {
-          pdf.addPage();
-          yPosition = margin + 5;
-        }
-
-        pdf.setFontSize(12);
-        pdf.setTextColor(80, 80, 80);
-        pdf.text(categoryNames[category], margin, yPosition);
-        yPosition += lineHeight + 2;
-
-        // Events in category
-        pdf.setFontSize(10);
-        categoryEventsList.forEach((event) => {
-          if (yPosition > pageBreakThreshold) {
-            pdf.addPage();
-            yPosition = margin + 5;
-          }
-
-          const dateRange = formatDateRange(event.start_date, event.end_date);
-
-          // Event title/subcategory
-          const eventName = event.subcategory || event.title || 'Event';
-          pdf.setTextColor(0, 0, 0);
-          pdf.text(`• ${eventName}`, margin + 3, yPosition);
-          yPosition += lineHeight;
-
-          // Date range
-          pdf.setFontSize(9);
-          pdf.setTextColor(120, 120, 120);
-          pdf.text(dateRange, margin + 5, yPosition);
-          yPosition += lineHeight;
-
-          // Notes if present
-          if (event.notes) {
-            pdf.setFontSize(9);
-            pdf.setTextColor(100, 100, 100);
-            const notesLines = pdf.splitTextToSize(`Notizen: ${event.notes}`, contentWidth - 8);
-            notesLines.forEach((line: string) => {
-              if (yPosition > pageBreakThreshold) {
-                pdf.addPage();
-                yPosition = margin + 5;
-              }
-              pdf.text(line, margin + 5, yPosition);
-              yPosition += lineHeight;
-            });
-          }
-
-          yPosition += 2;
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4',
         });
 
-        yPosition += 3;
-      });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const margin = 10;
 
-      pdf.save(`Saisonplanung-${season}.pdf`);
+        // Add image to PDF
+        const imgWidth = pdfWidth - 2 * margin;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+
+        pdf.save(`Saisonplanung-${season}.pdf`);
+      };
+
+      svg.onerror = () => {
+        throw new Error('SVG rendering failed');
+      };
+
+      svg.src = 'data:image/svg+xml;base64,' + btoa(svgString);
     } catch (error) {
       console.error('PDF Export error:', error);
       alert(`PDF Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Fehler beim Generieren'}`);
