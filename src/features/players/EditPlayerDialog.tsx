@@ -24,8 +24,15 @@ export function EditPlayerDialog({ player, teamOptions, onClose, onSaved }: Edit
   const [lastName, setLastName] = useState(player.last_name);
   const [birthdate, setBirthdate] = useState(player.birthdate ?? '');
   const [teamIds, setTeamIds] = useState<string[]>(player.teams.map((t) => t.teamId));
+  const [defaultSeason, setDefaultSeason] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get default season from first team
+  if (!defaultSeason && player.teams.length > 0) {
+    // This will be set on first render
+    setDefaultSeason(player.teams[0].season);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -83,8 +90,8 @@ export function EditPlayerDialog({ player, teamOptions, onClose, onSaved }: Edit
         </div>
 
         <div>
-          <Label>Ziele und Saison</Label>
-          <PlayerGoals playerId={player.id} currentUserId={profile?.id ?? null} />
+          <Label>Ziele</Label>
+          <PlayerGoals playerId={player.id} currentUserId={profile?.id ?? null} defaultSeason={defaultSeason} />
         </div>
 
         <div>
