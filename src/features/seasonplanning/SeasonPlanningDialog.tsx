@@ -18,7 +18,7 @@ const CATEGORY_OPTIONS: { value: SeasonPlanningCategory; label: string }[] = [
 
 const TECHNIQUE_SUBCATEGORIES = [
   'Passspiel',
-  'Schießen',
+  'Schiessen',
   'Ballabdecken',
   'Lösen vom Gegner',
   'Railabdecken',
