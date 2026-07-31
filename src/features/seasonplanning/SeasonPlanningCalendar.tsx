@@ -1,7 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '../../components/Button';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import type { SeasonPlanningEvent, SeasonPlanningCategory } from '../../types/database';
 
 interface SeasonPlanningCalendarProps {
@@ -32,7 +31,20 @@ export function SeasonPlanningCalendar({
 }: SeasonPlanningCalendarProps) {
   const [startYear] = season.split('/').map(Number);
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
-  const calendarRef = useRef<HTMLDivElement>(null);
+
+  const formatDateRange = (startStr: string, endStr: string): string => {
+    const start = new Date(`${startStr}T00:00:00`);
+    const end = new Date(`${endStr}T00:00:00`);
+    const startDay = start.getDate();
+    const startMonth = start.toLocaleDateString('de-DE', { month: 'short' });
+    const endDay = end.getDate();
+    const endMonth = end.toLocaleDateString('de-DE', { month: 'short' });
+
+    if (startMonth === endMonth) {
+      return `${startDay}. - ${endDay}. ${startMonth}`;
+    }
+    return `${startDay}. ${startMonth} - ${endDay}. ${endMonth}`;
+  };
 
   const getDayOfSeason = (dateStr: string): number => {
     const date = new Date(`${dateStr}T00:00:00`);
@@ -111,45 +123,91 @@ export function SeasonPlanningCalendar({
     return getStackedEvents(category);
   };
 
-  const exportToPDF = async () => {
-    if (!calendarRef.current) {
-      alert('Kalender nicht verfügbar');
-      return;
-    }
-
+  const exportToPDF = () => {
     try {
-      // Use the original element directly
-      const element = calendarRef.current;
-
-      // Create canvas from the element
-      const canvas = await html2canvas(element, {
-        backgroundColor: '#ffffff',
-        scale: 1.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        removeContainer: false,
-      });
-
-      // Create PDF in landscape orientation
       const pdf = new jsPDF({
-        orientation: 'landscape',
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const imgWidth = pdfWidth - 10;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const contentWidth = pageWidth - 2 * margin;
+      let yPosition = margin + 10;
+      const lineHeight = 5;
+      const pageBreakThreshold = pageHeight - margin - 10;
 
-      // Add canvas image to PDF
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
+      // Title
+      pdf.setFontSize(16);
+      pdf.text(`Saisonplanung ${season}`, margin, yPosition);
+      yPosition += 10;
+
+      // For each category
+      CATEGORIES.forEach((category) => {
+        const categoryEventsList = categoryEvents(category);
+
+        if (categoryEventsList.length === 0) return;
+
+        // Category heading
+        if (yPosition > pageBreakThreshold) {
+          pdf.addPage();
+          yPosition = margin + 5;
+        }
+
+        pdf.setFontSize(12);
+        pdf.setTextColor(80, 80, 80);
+        pdf.text(categoryNames[category], margin, yPosition);
+        yPosition += lineHeight + 2;
+
+        // Events in category
+        pdf.setFontSize(10);
+        categoryEventsList.forEach((event) => {
+          if (yPosition > pageBreakThreshold) {
+            pdf.addPage();
+            yPosition = margin + 5;
+          }
+
+          const dateRange = formatDateRange(event.start_date, event.end_date);
+
+          // Event title/subcategory
+          const eventName = event.subcategory || event.title || 'Event';
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(`• ${eventName}`, margin + 3, yPosition);
+          yPosition += lineHeight;
+
+          // Date range
+          pdf.setFontSize(9);
+          pdf.setTextColor(120, 120, 120);
+          pdf.text(dateRange, margin + 5, yPosition);
+          yPosition += lineHeight;
+
+          // Notes if present
+          if (event.notes) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(100, 100, 100);
+            const notesLines = pdf.splitTextToSize(`Notizen: ${event.notes}`, contentWidth - 8);
+            notesLines.forEach((line: string) => {
+              if (yPosition > pageBreakThreshold) {
+                pdf.addPage();
+                yPosition = margin + 5;
+              }
+              pdf.text(line, margin + 5, yPosition);
+              yPosition += lineHeight;
+            });
+          }
+
+          yPosition += 2;
+        });
+
+        yPosition += 3;
+      });
 
       pdf.save(`Saisonplanung-${season}.pdf`);
     } catch (error) {
       console.error('PDF Export error:', error);
-      alert(`PDF Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Screenshot-Export nicht möglich'}`);
+      alert(`PDF Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Fehler beim Generieren'}`);
     }
   };
 
@@ -158,20 +216,12 @@ export function SeasonPlanningCalendar({
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button
-          onClick={() => {
-            if (!calendarRef.current) {
-              alert('Kalender nicht verfügbar');
-              return;
-            }
-            exportToPDF();
-          }}
-        >
+        <Button onClick={exportToPDF}>
           PDF exportieren
         </Button>
       </div>
 
-      <div id="season-planning-calendar" className="overflow-x-auto rounded-lg border border-border bg-surface p-4" ref={calendarRef}>
+      <div id="season-planning-calendar" className="overflow-x-auto rounded-lg border border-border bg-surface p-4">
         {/* Legend */}
         <div className="flex flex-wrap gap-4 mb-4">
           {CATEGORIES.map((category) => (
@@ -264,8 +314,6 @@ export function SeasonPlanningCalendar({
                       <button
                         key={event.id}
                         onClick={() => onEditEvent(event)}
-                        onMouseEnter={() => setHoveredEventId(event.id)}
-                        onMouseLeave={() => setHoveredEventId(null)}
                         className={`absolute rounded border px-2 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 overflow-hidden ${
                           categoryColors[event.category]
                         }`}
@@ -281,13 +329,6 @@ export function SeasonPlanningCalendar({
                         <span className="truncate text-xs">
                           {event.subcategory || event.title || 'Event'}
                         </span>
-
-                        {/* Tooltip for notes - only show if notes exist */}
-                        {hoveredEventId === event.id && event.notes && (
-                          <div className="absolute left-1/2 -translate-x-1/2 -top-14 bg-text text-surface px-3 py-2 rounded text-xs z-20 pointer-events-none shadow-lg max-w-xs break-words">
-                            {event.notes}
-                          </div>
-                        )}
                       </button>
                     );
                   })}
