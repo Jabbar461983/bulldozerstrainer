@@ -6,6 +6,7 @@ import {
   fetchPlayerGoalSeasons,
   fetchPlayerGoals,
   createPlayerGoal,
+  createPlayerGoalSeason,
   updatePlayerGoal,
   deletePlayerGoal,
 } from './api';
@@ -34,8 +35,22 @@ export function PlayerGoals({ playerId, currentUserId, defaultSeason, isAdmin = 
   async function loadSeasons() {
     try {
       const data = await fetchPlayerGoalSeasons(playerId);
-      // Auto-select season based on default or first available
-      const seasonToSelect = data.find((s) => s.season === defaultSeason) || data[0];
+
+      // If no seasons exist and we have a defaultSeason, create it
+      let seasonToSelect = data.find((s) => s.season === defaultSeason) || data[0];
+
+      if (!seasonToSelect && defaultSeason) {
+        // Auto-create the default season
+        try {
+          await createPlayerGoalSeason(playerId, defaultSeason);
+          // Reload seasons after creating
+          const newData = await fetchPlayerGoalSeasons(playerId);
+          seasonToSelect = newData.find((s) => s.season === defaultSeason) || newData[0];
+        } catch (err) {
+          console.error('Failed to create default season:', err);
+        }
+      }
+
       if (seasonToSelect) {
         setSelectedSeason(seasonToSelect);
         await loadGoals(seasonToSelect);
