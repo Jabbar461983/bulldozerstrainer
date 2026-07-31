@@ -173,29 +173,86 @@ export async function setTrainingFocusPercentage(trainingId: string, category: S
   return data;
 }
 
-// Berechnet den Zeitanteil pro Saisonplanungs-Kategorie automatisch aus den
-// tatsächlich geplanten Übungen (Dauer je Übung, gleichmässig aufgeteilt, falls eine
-// Übung mehrere Inhalte aus verschiedenen Kategorien hat). Zählt nur Übungen, deren
-// Inhalt zum konkret für dieses Datum geltenden Saisonplan-Schwerpunkt passt (z.B.
-// deckt eine Passspiel-Übung den Schwerpunkt "Schießen" nicht ab, auch wenn beides
-// unter "Technik" fällt).
-export async function computeTrainingFocusPercentages(
+function buildCategoryTargets(applicableEvents: SeasonPlanningEvent[]): Record<SeasonPlanningCategory, CategoryFocusTarget> {
+  return {
+    activities: getCategoryFocusTarget(applicableEvents, 'activities'),
+    technique: getCategoryFocusTarget(applicableEvents, 'technique'),
+    tactics: getCategoryFocusTarget(applicableEvents, 'tactics'),
+    physical: getCategoryFocusTarget(applicableEvents, 'physical'),
+  };
+}
+
+function exerciseMatchesAnyTarget(
+  focusAreas: ExerciseFocus[],
+  categoryTargets: Record<SeasonPlanningCategory, CategoryFocusTarget>,
+): boolean {
+  for (const focus of focusAreas) {
+    const category = FOCUS_CATEGORY_MAP[focus];
+    if (!category) continue;
+    const target = categoryTargets[category];
+    if (target === 'any' || target.has(focus)) return true;
+  }
+  return false;
+}
+
+// Berechnet, wie viel Prozent der geplanten Übungsdauer eines Trainings zu den für
+// dieses Datum geltenden Saisonplan-Schwerpunkten passt (ein einzelner Gesamtwert,
+// nicht mehr pro Kategorie). Eine Übung zählt nur, wenn ihr Inhalt zur konkreten
+// Unterkategorie des jeweiligen Saisonplan-Eintrags passt (z.B. deckt eine
+// Passspiel-Übung den Schwerpunkt "Schießen" nicht ab, auch wenn beides unter
+// "Technik" fällt).
+export async function computeTrainingSeasonCoverage(
   trainingId: string,
   applicableEvents: SeasonPlanningEvent[],
-): Promise<Record<SeasonPlanningCategory, number>> {
-  const result: Record<SeasonPlanningCategory, number> = {
-    activities: 0,
-    technique: 0,
-    tactics: 0,
-    physical: 0,
-  };
-
+): Promise<number> {
   const { data: exerciseRows, error: exerciseRowsError } = await supabase
     .from('training_exercises')
     .select('exercise_id, duration_minutes')
     .eq('training_id', trainingId);
   if (exerciseRowsError) throw exerciseRowsError;
   const rows = (exerciseRows ?? []) as { exercise_id: string; duration_minutes: number }[];
+  if (rows.length === 0) return 0;
+
+  const exerciseIds = Array.from(new Set(rows.map((r) => r.exercise_id)));
+  const { data: exercises, error: exercisesError } = await supabase
+    .from('exercises')
+    .select('id, focus_areas')
+    .in('id', exerciseIds);
+  if (exercisesError) throw exercisesError;
+  const focusById = new Map(
+    (exercises ?? []).map((e: { id: string; focus_areas: ExerciseFocus[] }) => [e.id, e.focus_areas]),
+  );
+
+  const categoryTargets = buildCategoryTargets(applicableEvents);
+  let totalMinutes = 0;
+  let matchedMinutes = 0;
+  for (const row of rows) {
+    totalMinutes += row.duration_minutes;
+    const focusAreas = focusById.get(row.exercise_id) ?? [];
+    if (exerciseMatchesAnyTarget(focusAreas, categoryTargets)) matchedMinutes += row.duration_minutes;
+  }
+
+  return totalMinutes > 0 ? Math.round((matchedMinutes / totalMinutes) * 100) : 0;
+}
+
+// Batch-Variante für die Trainings-Übersicht: berechnet die Saisonplanungs-Abdeckung
+// für mehrere Trainings eines Teams in nur 3 Abfragen (statt einer Abfrage je
+// Training).
+export async function computeSeasonCoverageForTrainings(
+  teamId: string,
+  trainings: { id: string; date: string }[],
+): Promise<Record<string, number>> {
+  const result: Record<string, number> = {};
+  for (const t of trainings) result[t.id] = 0;
+  if (trainings.length === 0) return result;
+
+  const trainingIds = trainings.map((t) => t.id);
+  const { data: exerciseRows, error: exerciseRowsError } = await supabase
+    .from('training_exercises')
+    .select('training_id, exercise_id, duration_minutes')
+    .in('training_id', trainingIds);
+  if (exerciseRowsError) throw exerciseRowsError;
+  const rows = (exerciseRows ?? []) as { training_id: string; exercise_id: string; duration_minutes: number }[];
   if (rows.length === 0) return result;
 
   const exerciseIds = Array.from(new Set(rows.map((r) => r.exercise_id)));
@@ -208,39 +265,35 @@ export async function computeTrainingFocusPercentages(
     (exercises ?? []).map((e: { id: string; focus_areas: ExerciseFocus[] }) => [e.id, e.focus_areas]),
   );
 
-  const categoryTargets: Record<SeasonPlanningCategory, CategoryFocusTarget> = {
-    activities: getCategoryFocusTarget(applicableEvents, 'activities'),
-    technique: getCategoryFocusTarget(applicableEvents, 'technique'),
-    tactics: getCategoryFocusTarget(applicableEvents, 'tactics'),
-    physical: getCategoryFocusTarget(applicableEvents, 'physical'),
-  };
+  const { data: events, error: eventsError } = await (supabase as any)
+    .from('season_planning_events')
+    .select('*')
+    .eq('team_id', teamId);
+  if (eventsError) throw eventsError;
+  const allEvents = (events ?? []) as SeasonPlanningEvent[];
 
-  const categoryMinutes: Record<SeasonPlanningCategory, number> = {
-    activities: 0,
-    technique: 0,
-    tactics: 0,
-    physical: 0,
-  };
-  let totalMinutes = 0;
+  const rowsByTraining = new Map<string, { exercise_id: string; duration_minutes: number }[]>();
   for (const row of rows) {
-    totalMinutes += row.duration_minutes;
-    const focusAreas = focusById.get(row.exercise_id) ?? [];
-    const matchedCategories = new Set<SeasonPlanningCategory>();
-    for (const focus of focusAreas) {
-      const category = FOCUS_CATEGORY_MAP[focus];
-      if (!category) continue;
-      const target = categoryTargets[category];
-      if (target === 'any' || target.has(focus)) matchedCategories.add(category);
-    }
-    if (matchedCategories.size === 0) continue;
-    const share = row.duration_minutes / matchedCategories.size;
-    for (const cat of matchedCategories) categoryMinutes[cat] += share;
+    const list = rowsByTraining.get(row.training_id) ?? [];
+    list.push(row);
+    rowsByTraining.set(row.training_id, list);
   }
 
-  if (totalMinutes === 0) return result;
-  for (const cat of Object.keys(categoryMinutes) as SeasonPlanningCategory[]) {
-    result[cat] = Math.round((categoryMinutes[cat] / totalMinutes) * 100);
+  for (const t of trainings) {
+    const trainingRows = rowsByTraining.get(t.id) ?? [];
+    if (trainingRows.length === 0) continue;
+    const applicableEvents = allEvents.filter((e) => e.start_date <= t.date && e.end_date >= t.date);
+    const categoryTargets = buildCategoryTargets(applicableEvents);
+    let totalMinutes = 0;
+    let matchedMinutes = 0;
+    for (const row of trainingRows) {
+      totalMinutes += row.duration_minutes;
+      const focusAreas = focusById.get(row.exercise_id) ?? [];
+      if (exerciseMatchesAnyTarget(focusAreas, categoryTargets)) matchedMinutes += row.duration_minutes;
+    }
+    result[t.id] = totalMinutes > 0 ? Math.round((matchedMinutes / totalMinutes) * 100) : 0;
   }
+
   return result;
 }
 

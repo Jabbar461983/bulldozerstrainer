@@ -135,6 +135,7 @@ export interface CreateTrainingPayload {
   field_type: TrainingFieldType;
   notes: string | null;
   information: string | null;
+  show_exercise_descriptions?: boolean;
   created_by: string | null;
   repeatWeeks?: number;
 }
@@ -185,7 +186,12 @@ export async function duplicateTrainingContent(sourceTrainingId: string, targetT
 
 export async function updateTraining(
   id: string,
-  updates: Partial<Pick<Training, 'date' | 'start_time' | 'duration_minutes' | 'field_type' | 'notes' | 'information'>>,
+  updates: Partial<
+    Pick<
+      Training,
+      'date' | 'start_time' | 'duration_minutes' | 'field_type' | 'notes' | 'information' | 'show_exercise_descriptions'
+    >
+  >,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('trainings') as any).update(updates).eq('id', id);
