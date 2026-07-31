@@ -85,6 +85,8 @@ export async function replacePlayerTeams(playerId: string, teamIds: string[]) {
 
 export interface PlayerNoteWithUser extends PlayerNote {
   createdByName?: string;
+  gameDate?: string;
+  gameOpponent?: string;
 }
 
 export async function fetchPlayerNotes(playerId: string): Promise<PlayerNoteWithUser[]> {
@@ -112,9 +114,33 @@ export async function fetchPlayerNotes(playerId: string): Promise<PlayerNoteWith
     }
   }
 
+  // Fetch game information for game-related notes
+  const gameNotes = notes.filter((n) => n.source === 'game' && n.source_id);
+  const gameIds = [...new Set(gameNotes.map((n) => n.source_id))] as string[];
+
+  let gameInfo: Record<string, { date: string; opponent: string }> = {};
+  if (gameIds.length > 0) {
+    const { data: games } = await supabase
+      .from('games')
+      .select('id, date, home_team, away_team, our_team_id')
+      .in('id', gameIds);
+
+    if (games) {
+      gameInfo = Object.fromEntries(
+        games.map((g: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          // Determine opponent: if home_team is "ours", opponent is away_team, otherwise home_team
+          const opponent = g.home_team === g.our_team_id ? g.away_team : g.home_team;
+          return [g.id, { date: g.date, opponent }];
+        })
+      );
+    }
+  }
+
   return notes.map((note) => ({
     ...note,
     createdByName: note.created_by ? userNames[note.created_by] : undefined,
+    gameDate: note.source === 'game' && note.source_id ? gameInfo[note.source_id]?.date : undefined,
+    gameOpponent: note.source === 'game' && note.source_id ? gameInfo[note.source_id]?.opponent : undefined,
   }));
 }
 

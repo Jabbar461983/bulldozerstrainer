@@ -145,6 +145,11 @@ export function PlayerDetailDialog({ player, onClose, onEdit }: PlayerDetailDial
             {notes?.map((note) => (
               <div key={note.id} className="border-l-2 border-border pl-2 text-xs">
                 <p className="text-text">{note.note}</p>
+                {note.gameDate && note.gameOpponent && (
+                  <p className="mt-0.5 text-text-muted">
+                    Spiel: {new Date(note.gameDate).toLocaleDateString('de-CH')} vs. {note.gameOpponent}
+                  </p>
+                )}
                 <p className="mt-0.5 text-text-muted">
                   {new Date(note.created_at).toLocaleDateString('de-CH')} · {note.createdByName || 'System'}
                 </p>

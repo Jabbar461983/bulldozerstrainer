@@ -63,6 +63,11 @@ export function PlayerNotes({ playerId, currentUserId }: PlayerNotesProps) {
         {notes?.map((note) => (
           <div key={note.id} className="rounded-xl border border-border p-2 text-sm">
             <p className="text-text">{note.note}</p>
+            {note.gameDate && note.gameOpponent && (
+              <p className="mt-0.5 text-xs text-text-muted">
+                Spiel: {new Date(note.gameDate).toLocaleDateString('de-CH')} vs. {note.gameOpponent}
+              </p>
+            )}
             <p className="mt-1 text-xs text-text-muted">
               {new Date(note.created_at).toLocaleDateString('de-CH')} · {note.createdByName || 'System'}
             </p>
