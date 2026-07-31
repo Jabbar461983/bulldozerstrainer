@@ -42,36 +42,68 @@ export function SeasonPlanningCalendar({
     return colors[category];
   };
 
-  const generateCalendarSVG = (): string => {
-    const svgWidth = 1200;
-    const svgHeight = 800;
-    const margin = 40;
-    const categoryHeight = 120;
+  const generateCalendarCanvas = (): HTMLCanvasElement => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context not available');
+
+    const canvasWidth = 1400;
+    const canvasHeight = 900;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width *= dpr;
+    canvas.height *= dpr;
+    ctx.scale(dpr, dpr);
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    const margin = 50;
+    const categoryHeight = 140;
     const totalDays = getTotalSeasonDays();
 
-    let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg" style="background: white;">`;
-
     // Title
-    svg += `<text x="${svgWidth / 2}" y="30" font-size="24" font-weight="bold" text-anchor="middle">Saisonplanung ${season}</text>`;
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Saisonplanung ${season}`, canvasWidth / 2, 40);
 
-    let yOffset = margin + 20;
+    let yOffset = margin + 30;
 
     // For each category
     CATEGORIES.forEach((category) => {
       const stackedEvents = categoryEvents(category);
 
       // Category label
-      svg += `<text x="${margin}" y="${yOffset + 20}" font-size="14" font-weight="bold">${categoryNames[category]}</text>`;
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillStyle = '#1f2937';
+      ctx.textAlign = 'left';
+      ctx.fillText(categoryNames[category], margin, yOffset + 25);
 
       // Timeline background
-      svg += `<rect x="${margin + 100}" y="${yOffset}" width="${svgWidth - margin * 2 - 100}" height="${categoryHeight}" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>`;
+      ctx.fillStyle = '#f9fafb';
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 1;
+      ctx.fillRect(margin + 120, yOffset, canvasWidth - margin * 2 - 120, categoryHeight);
+      ctx.strokeRect(margin + 120, yOffset, canvasWidth - margin * 2 - 120, categoryHeight);
 
       // Month separators and labels
       MONTHS.forEach((month, idx) => {
         const monthStartDay = getMonthStartDay(idx + 1);
-        const xPos = margin + 100 + (monthStartDay / totalDays) * (svgWidth - margin * 2 - 100);
-        svg += `<line x1="${xPos}" y1="${yOffset}" x2="${xPos}" y2="${yOffset + categoryHeight}" stroke="#e5e7eb" stroke-width="1"/>`;
-        svg += `<text x="${xPos + 5}" y="${yOffset - 5}" font-size="10" fill="#666">${month}</text>`;
+        const xPos = margin + 120 + (monthStartDay / totalDays) * (canvasWidth - margin * 2 - 120);
+
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.beginPath();
+        ctx.moveTo(xPos, yOffset);
+        ctx.lineTo(xPos, yOffset + categoryHeight);
+        ctx.stroke();
+
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#666666';
+        ctx.textAlign = 'left';
+        ctx.fillText(month, xPos + 3, yOffset - 8);
       });
 
       // Events
@@ -80,28 +112,47 @@ export function SeasonPlanningCalendar({
         const endDay = getDayOfSeason(event.end_date);
         const duration = Math.max(1, endDay - startDay + 1);
 
-        const xStart = margin + 100 + (startDay / totalDays) * (svgWidth - margin * 2 - 100);
-        const width = (duration / totalDays) * (svgWidth - margin * 2 - 100);
-        const yPos = yOffset + 10 + event.row * 20;
+        const timelineWidth = canvasWidth - margin * 2 - 120;
+        const xStart = margin + 120 + (startDay / totalDays) * timelineWidth;
+        const width = Math.max(8, (duration / totalDays) * timelineWidth);
+        const yPos = yOffset + 15 + event.row * 25;
 
         const color = getCategoryColor(event.category);
         const isSingle = duration === 1;
 
         if (isSingle) {
           // Single day event - red dot
-          svg += `<circle cx="${xStart + width / 2}" cy="${yPos + 5}" r="4" fill="#ef4444" stroke="#dc2626" stroke-width="1"/>`;
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(xStart, yPos + 8, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
         } else {
           // Multi-day event - bar
-          svg += `<rect x="${xStart}" y="${yPos}" width="${width}" height="16" fill="${color}" stroke="#333" stroke-width="1" rx="2"/>`;
-          svg += `<text x="${xStart + 4}" y="${yPos + 12}" font-size="10" fill="white" overflow="hidden">${event.subcategory || event.title || ''}</text>`;
+          ctx.fillStyle = color;
+          ctx.strokeStyle = '#333333';
+          ctx.lineWidth = 1;
+          ctx.fillRect(xStart, yPos, width, 18);
+          ctx.strokeRect(xStart, yPos, width, 18);
+
+          // Event text
+          const text = event.subcategory || event.title || 'Event';
+          ctx.font = '11px sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'left';
+          const textWidth = ctx.measureText(text).width;
+          if (width > textWidth + 8) {
+            ctx.fillText(text, xStart + 4, yPos + 13);
+          }
         }
       });
 
-      yOffset += categoryHeight + 30;
+      yOffset += categoryHeight + 40;
     });
 
-    svg += `</svg>`;
-    return svg;
+    return canvas;
   };
 
   const getDayOfSeason = (dateStr: string): number => {
@@ -181,48 +232,37 @@ export function SeasonPlanningCalendar({
     return getStackedEvents(category);
   };
 
-  const exportToPDF = async () => {
+  const exportToPDF = () => {
     try {
-      // Generate SVG and convert to canvas image
-      const svgString = generateCalendarSVG();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context not available');
+      // Generate calendar as canvas image
+      const canvas = generateCalendarCanvas();
+      const imgData = canvas.toDataURL('image/png');
 
-      canvas.width = 1200;
-      canvas.height = 800;
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
 
-      const svg = new Image();
-      svg.onload = () => {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(svg, 0, 0);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
 
-        const imgData = canvas.toDataURL('image/png');
+      // Calculate dimensions to fit PDF
+      const imgWidth = pdfWidth - 2 * margin;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        const pdf = new jsPDF({
-          orientation: 'landscape',
-          unit: 'mm',
-          format: 'a4',
-        });
-
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const margin = 10;
-
-        // Add image to PDF
-        const imgWidth = pdfWidth - 2 * margin;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
+      // Add image to PDF
+      if (imgHeight > pdfHeight - 2 * margin) {
+        // If image is too tall, scale it down
+        const scaledHeight = pdfHeight - 2 * margin;
+        const scaledWidth = (scaledHeight * canvas.width) / canvas.height;
+        pdf.addImage(imgData, 'PNG', (pdfWidth - scaledWidth) / 2, margin, scaledWidth, scaledHeight);
+      } else {
         pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+      }
 
-        pdf.save(`Saisonplanung-${season}.pdf`);
-      };
-
-      svg.onerror = () => {
-        throw new Error('SVG rendering failed');
-      };
-
-      svg.src = 'data:image/svg+xml;base64,' + btoa(svgString);
+      pdf.save(`Saisonplanung-${season}.pdf`);
     } catch (error) {
       console.error('PDF Export error:', error);
       alert(`PDF Export fehlgeschlagen: ${error instanceof Error ? error.message : 'Fehler beim Generieren'}`);
