@@ -74,6 +74,24 @@ export interface PlayerNote {
   created_at: string;
 }
 
+export interface PlayerGoalSeason {
+  id: string;
+  player_id: string;
+  season: string;
+  created_at: string;
+}
+
+export interface PlayerGoal {
+  id: string;
+  player_goal_season_id: string;
+  title: string;
+  rating_stars: number | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ExerciseFocus =
   // On Field
   | 'Angriff'
@@ -321,6 +339,16 @@ export interface Database {
         Row: PlayerNote;
         Insert: Partial<PlayerNote>;
         Update: Partial<PlayerNote>;
+      };
+      player_goal_seasons: {
+        Row: PlayerGoalSeason;
+        Insert: Partial<PlayerGoalSeason>;
+        Update: Partial<PlayerGoalSeason>;
+      };
+      player_goals: {
+        Row: PlayerGoal;
+        Insert: Partial<PlayerGoal>;
+        Update: Partial<PlayerGoal>;
       };
       exercises: { Row: Exercise; Insert: Partial<Exercise>; Update: Partial<Exercise> };
       trainings: { Row: Training; Insert: Partial<Training>; Update: Partial<Training> };

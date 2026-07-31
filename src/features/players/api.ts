@@ -1,17 +1,21 @@
 import { supabase } from '../../lib/supabase';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
-import type { Player, PlayerNote } from '../../types/database';
+import type { Player, PlayerNote, PlayerGoalSeason, PlayerGoal } from '../../types/database';
 import type { RosterImportRow } from '../../lib/csv';
 
 export interface PlayerRow extends Player {
   teams: TeamOption[];
+  currentSeasonGoals?: PlayerGoal[];
+  recentNotes?: PlayerNote[];
 }
 
-export async function fetchPlayers(): Promise<PlayerRow[]> {
+export async function fetchPlayers(filterByTeamId?: string): Promise<PlayerRow[]> {
+  let query = supabase.from('players').select('*').order('last_name', { ascending: true });
+
   const [{ data: players, error: playersError }, { data: playerTeams, error: playerTeamsError }, teamOptions] =
     await Promise.all([
-      supabase.from('players').select('*').order('last_name', { ascending: true }),
+      query,
       supabase.from('player_teams').select('player_id, team_id'),
       fetchTeamOptions(),
     ]);
@@ -20,13 +24,24 @@ export async function fetchPlayers(): Promise<PlayerRow[]> {
 
   const teamById = new Map(teamOptions.map((t) => [t.teamId, t]));
 
-  return (players ?? []).map((player: Player) => ({
-    ...player,
-    teams: (playerTeams ?? [])
+  let playerList = (players ?? []).map((player: Player) => {
+    const playerTeamIds = (playerTeams ?? [])
       .filter((pt: { player_id: string }) => pt.player_id === player.id)
-      .map((pt: { team_id: string }) => teamById.get(pt.team_id))
-      .filter((t): t is TeamOption => Boolean(t)),
-  }));
+      .map((pt: { team_id: string }) => pt.team_id);
+
+    return {
+      ...player,
+      teams: playerTeamIds
+        .map((teamId) => teamById.get(teamId))
+        .filter((t): t is TeamOption => Boolean(t)),
+    };
+  });
+
+  if (filterByTeamId) {
+    playerList = playerList.filter((p) => p.teams.some((t) => t.teamId === filterByTeamId));
+  }
+
+  return playerList;
 }
 
 export async function createPlayer(payload: {
@@ -94,4 +109,70 @@ export async function importPlayers(rows: { row: RosterImportRow; teamId: string
       team_ids: [teamId],
     });
   }
+}
+
+export async function fetchPlayerGoalSeasons(playerId: string): Promise<PlayerGoalSeason[]> {
+  const { data, error } = await supabase
+    .from('player_goal_seasons')
+    .select('*')
+    .eq('player_id', playerId)
+    .order('season', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function fetchPlayerGoals(seasonId: string): Promise<PlayerGoal[]> {
+  const { data, error } = await supabase
+    .from('player_goals')
+    .select('*')
+    .eq('player_goal_season_id', seasonId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createPlayerGoalSeason(playerId: string, season: string): Promise<string> {
+  const { data, error } = await (supabase.from('player_goal_seasons') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .insert({ player_id: playerId, season })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function createPlayerGoal(
+  seasonId: string,
+  title: string,
+  ratingStars: number | null,
+  notes: string | null,
+  createdBy: string | null,
+): Promise<void> {
+  const { error } = await (supabase.from('player_goals') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .insert({
+      player_goal_season_id: seasonId,
+      title,
+      rating_stars: ratingStars,
+      notes,
+      created_by: createdBy,
+    });
+  if (error) throw error;
+}
+
+export async function updatePlayerGoal(
+  goalId: string,
+  updates: {
+    title?: string;
+    rating_stars?: number | null;
+    notes?: string | null;
+  },
+): Promise<void> {
+  const { error } = await (supabase.from('player_goals') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', goalId);
+  if (error) throw error;
+}
+
+export async function deletePlayerGoal(goalId: string): Promise<void> {
+  const { error } = await supabase.from('player_goals').delete().eq('id', goalId);
+  if (error) throw error;
 }

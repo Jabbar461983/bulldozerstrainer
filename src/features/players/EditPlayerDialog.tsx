@@ -5,6 +5,7 @@ import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { TeamMultiPicker } from '../../components/TeamMultiPicker';
 import { PlayerNotes } from './PlayerNotes';
+import { PlayerGoals } from './PlayerGoals';
 import { updatePlayer, replacePlayerTeams } from './api';
 import type { PlayerRow } from './api';
 import type { TeamOption } from '../../lib/teams';
@@ -79,6 +80,11 @@ export function EditPlayerDialog({ player, teamOptions, onClose, onSaved }: Edit
         <div>
           <Label>Team-Zuweisung</Label>
           <TeamMultiPicker teamOptions={teamOptions} value={teamIds} onChange={setTeamIds} />
+        </div>
+
+        <div>
+          <Label>Ziele und Saison</Label>
+          <PlayerGoals playerId={player.id} currentUserId={profile?.id ?? null} />
         </div>
 
         <div>
