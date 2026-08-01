@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Label } from '../../components/Input';
-import { parseExerciseCsv, CsvFormatError, toCsv } from '../../lib/csv';
+import { parseExerciseCsv, readCsvFile, CsvFormatError, toCsv } from '../../lib/csv';
 import type { ExerciseImportRow } from '../../lib/csv';
 import { downloadTextFile } from '../../lib/downloadFile';
 import { importExercises, EXERCISE_FOCUS_OPTIONS } from './api';
@@ -84,7 +84,7 @@ export function ImportExercisesDialog({ categories, onClose, onImported }: Impor
     setParseError(null);
     setRows([]);
     try {
-      const text = await file.text();
+      const text = await readCsvFile(file);
       setRows(parseExerciseCsv(text));
     } catch (err) {
       setParseError(err instanceof CsvFormatError ? err.message : 'Datei konnte nicht gelesen werden.');

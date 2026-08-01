@@ -1,3 +1,16 @@
+// Excel speichert "CSV" auf deutschen Windows-Systemen standardmässig in
+// Windows-1252 (ANSI), nicht UTF-8 - dabei werden ü/ä/ö/Ü/Ä/Ö sonst zu
+// Sonderzeichen. UTF-8 zuerst strikt versuchen, bei ungültigen Bytes auf
+// Windows-1252 zurückfallen.
+export async function readCsvFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+  } catch {
+    return new TextDecoder('windows-1252').decode(buffer);
+  }
+}
+
 function detectDelimiter(firstLine: string): ',' | ';' {
   const commaCount = (firstLine.match(/,/g) ?? []).length;
   const semicolonCount = (firstLine.match(/;/g) ?? []).length;
