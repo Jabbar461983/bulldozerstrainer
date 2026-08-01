@@ -129,6 +129,69 @@ export function parseRosterCsv(text: string): RosterImportRow[] {
   });
 }
 
+export interface ExerciseImportRow {
+  title: string;
+  learningContent: string;
+  description: string;
+  variants: string;
+  rawFocusAreas: string;
+  rawCategories: string;
+  valid: boolean;
+  error?: string;
+}
+
+const EXERCISE_TITLE_HEADERS = ['titel', 'title'];
+const LEARNING_CONTENT_HEADERS = ['lerninhalte', 'lerninhalt', 'learning content'];
+const EXERCISE_DESCRIPTION_HEADERS = ['beschreibung', 'description'];
+const VARIANTS_HEADERS = ['varianten', 'variants'];
+const FOCUS_AREA_HEADERS = ['fokus-bereiche', 'fokusbereiche', 'fokus', 'inhalte', 'inhalt', 'focus areas', 'focus'];
+const EXERCISE_CATEGORY_HEADERS = [
+  'alterskategorien',
+  'alterskategorie',
+  'kategorien',
+  'kategorie',
+  'categories',
+  'category',
+];
+
+export function parseExerciseCsv(text: string): ExerciseImportRow[] {
+  const rows = parseCsv(text);
+  if (rows.length === 0) {
+    throw new CsvFormatError('Die Datei enthält keine Daten.');
+  }
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const titleIdx = header.findIndex((h) => EXERCISE_TITLE_HEADERS.includes(h));
+  const learningContentIdx = header.findIndex((h) => LEARNING_CONTENT_HEADERS.includes(h));
+  const descriptionIdx = header.findIndex((h) => EXERCISE_DESCRIPTION_HEADERS.includes(h));
+  const variantsIdx = header.findIndex((h) => VARIANTS_HEADERS.includes(h));
+  const focusIdx = header.findIndex((h) => FOCUS_AREA_HEADERS.includes(h));
+  const categoryIdx = header.findIndex((h) => EXERCISE_CATEGORY_HEADERS.includes(h));
+
+  if (titleIdx === -1) {
+    throw new CsvFormatError('Die Datei benötigt mindestens die Spalte "Titel" (erste Zeile = Überschriften).');
+  }
+
+  return rows.slice(1).map((cols) => {
+    const title = (cols[titleIdx] ?? '').trim();
+    const learningContent = learningContentIdx === -1 ? '' : (cols[learningContentIdx] ?? '').trim();
+    const description = descriptionIdx === -1 ? '' : (cols[descriptionIdx] ?? '').trim();
+    const variants = variantsIdx === -1 ? '' : (cols[variantsIdx] ?? '').trim();
+    const rawFocusAreas = focusIdx === -1 ? '' : (cols[focusIdx] ?? '').trim();
+    const rawCategories = categoryIdx === -1 ? '' : (cols[categoryIdx] ?? '').trim();
+    const valid = title.length > 0;
+    return {
+      title,
+      learningContent,
+      description,
+      variants,
+      rawFocusAreas,
+      rawCategories,
+      valid,
+      error: valid ? undefined : 'Titel fehlt',
+    };
+  });
+}
+
 function parseTimeCell(value: string): string | null {
   const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return null;

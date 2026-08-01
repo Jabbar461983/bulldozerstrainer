@@ -153,6 +153,21 @@ export async function createExercise(payload: {
   }
 }
 
+export interface ExerciseImportPayload {
+  title: string;
+  learning_content: string | null;
+  description: string | null;
+  variants: string | null;
+  focus_areas: ExerciseFocus[];
+  age_category_ids: string[];
+}
+
+export async function importExercises(payloads: ExerciseImportPayload[], authorId: string | null) {
+  for (const payload of payloads) {
+    await createExercise({ ...payload, files: [], author_id: authorId });
+  }
+}
+
 export async function updateExercise(
   id: string,
   updates: Partial<
