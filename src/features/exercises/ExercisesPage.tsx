@@ -11,6 +11,7 @@ import type { Category, ExerciseFocus } from '../../types/database';
 import { withCache } from '../../lib/withCache';
 import { CreateExerciseDialog } from './CreateExerciseDialog';
 import { EditExerciseDialog } from './EditExerciseDialog';
+import { ImportExercisesDialog } from './ImportExercisesDialog';
 
 export function ExercisesPage() {
   const { profile, isAdmin } = useAuth();
@@ -22,6 +23,7 @@ export function ExercisesPage() {
   const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ExerciseRow | null>(null);
 
   async function load() {
@@ -78,7 +80,12 @@ export function ExercisesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold text-text">Übungsdatenbank</h1>
-        <Button onClick={() => setShowCreate(true)}>+ Neue Übung</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowImport(true)}>
+            CSV-Import
+          </Button>
+          <Button onClick={() => setShowCreate(true)}>+ Neue Übung</Button>
+        </div>
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
@@ -209,6 +216,17 @@ export function ExercisesPage() {
           onClose={() => setEditingExercise(null)}
           onSaved={() => {
             setEditingExercise(null);
+            void load();
+          }}
+        />
+      )}
+
+      {showImport && (
+        <ImportExercisesDialog
+          categories={categories}
+          onClose={() => setShowImport(false)}
+          onImported={() => {
+            setShowImport(false);
             void load();
           }}
         />
