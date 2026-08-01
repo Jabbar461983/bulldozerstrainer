@@ -15,7 +15,7 @@ const FOCUS_CATEGORY_MAP: Partial<Record<ExerciseFocus, SeasonPlanningCategory>>
   Offensivverhalten: 'tactics',
   Schuss: 'technique',
   Passen: 'technique',
-  Aufbau: 'tactics',
+  Aufbau: 'technique',
   Ballabdecken: 'technique',
   'Lösen vom Gegner': 'technique',
   Bullys: 'technique',
@@ -45,7 +45,9 @@ const SUBCATEGORY_FOCUS_MAP: Partial<Record<string, ExerciseFocus[]>> = {
   'Lösen vom Gegner': ['Lösen vom Gegner'],
   Bullys: ['Bullys'],
   Zweikampf: ['Zweikampf'],
+  Aufbau: ['Aufbau'],
   Offensivtaktiken: ['Offensivverhalten'],
+  Überzahlsituation: ['Überzahlsituation'],
   Specialteams: ['Specialteams'],
   'Body-pump': ['Kraft'],
 };

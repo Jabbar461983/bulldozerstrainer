@@ -24,6 +24,7 @@ const TECHNIQUE_SUBCATEGORIES = [
   'Railabdecken',
   'Bullys',
   'Zweikampf',
+  'Aufbau',
 ];
 
 const TACTICS_SUBCATEGORIES = [
@@ -32,6 +33,7 @@ const TACTICS_SUBCATEGORIES = [
   'Offensivtaktiken',
   'Wechsel',
   'Specialteams',
+  'Überzahlsituation',
 ];
 
 const ACTIVITIES_SUBCATEGORIES = [
