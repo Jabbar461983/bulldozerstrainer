@@ -25,7 +25,7 @@ function buildExampleCsv(categories: Category[]): string {
     'Viel Bewegung, Ball führen und kontrollieren',
     'Es werden vier Teams gebildet. Jedes Team hat einen Ring mit Bällen drin.',
     'Anstelle des Zurückführens muss ein Pass in die Homebase gespielt werden',
-    'Passspiel,Schuss',
+    'Passen,Schuss',
     `${sample1},${sample2}`,
   ];
   const row2 = [
@@ -147,7 +147,7 @@ export function ImportExercisesDialog({ categories, onClose, onImported }: Impor
           CSV-Datei mit der Spalte <strong>Titel</strong> (Pflicht) sowie optional <strong>Lerninhalte</strong>,{' '}
           <strong>Beschreibung</strong>, <strong>Varianten</strong>, <strong>Fokus-Bereiche</strong> und{' '}
           <strong>Alterskategorien</strong> in der ersten Zeile. Mehrere Fokus-Bereiche bzw. Alterskategorien pro
-          Übung mit Komma trennen (z.B. „Passspiel,Schuss"). Bilder/Videos sind nicht Teil des Imports und müssen pro
+          Übung mit Komma trennen (z.B. „Passen,Schuss"). Bilder/Videos sind nicht Teil des Imports und müssen pro
           Übung separat ergänzt werden. Aus Excel exportierbar über „Datei &gt; Speichern unter &gt; CSV".
         </p>
 

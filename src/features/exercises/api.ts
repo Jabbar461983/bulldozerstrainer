@@ -2,16 +2,18 @@ import { supabase } from '../../lib/supabase';
 import type { Exercise, ExerciseFocus, ExerciseMedia } from '../../types/database';
 
 export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
-  'Angriff',
-  'Verteidigung',
+  'Offensivverhalten',
   'Schuss',
-  'Passspiel',
+  'Passen',
+  'Aufbau',
   'Ballabdecken',
   'Lösen vom Gegner',
+  'Zweikampf',
   'Bullys',
-  'Zweikampfverhalten',
+  'Überzahlsituation',
   'Specialteams',
   'Torhüter',
+  'Minigames',
   'Spiel',
 ];
 

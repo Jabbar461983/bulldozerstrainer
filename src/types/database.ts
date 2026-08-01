@@ -94,16 +94,18 @@ export interface PlayerGoal {
 
 export type ExerciseFocus =
   // On Field
-  | 'Angriff'
-  | 'Verteidigung'
+  | 'Offensivverhalten'
   | 'Schuss'
-  | 'Passspiel'
+  | 'Passen'
+  | 'Aufbau'
   | 'Ballabdecken'
   | 'Lösen vom Gegner'
+  | 'Zweikampf'
   | 'Bullys'
-  | 'Zweikampfverhalten'
+  | 'Überzahlsituation'
   | 'Specialteams'
   | 'Torhüter'
+  | 'Minigames'
   | 'Spiel'
   // Off Field
   | 'Kraft'
