@@ -70,9 +70,9 @@ function App() {
             <Route
               path="trainer"
               element={
-                <ModuleRoute module="trainer">
+                <AdminRoute>
                   <CoachesPage />
-                </ModuleRoute>
+                </AdminRoute>
               }
             />
             <Route
