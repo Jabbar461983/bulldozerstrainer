@@ -11,7 +11,3 @@ create index idx_checklist_items_parent on checklist_items (checklist_id, parent
 alter table checklist_instances
   add column notes text,
   add column completed_by uuid references profiles (id);
-
--- completed_at wird nullable (nicht automatisch gesetzt mehr)
-alter table checklist_instances
-  alter column completed_at drop not null;

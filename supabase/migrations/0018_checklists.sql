@@ -34,7 +34,8 @@ create table checklist_instances (
   event_date date,
   event_context text,
   created_by uuid references profiles (id),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
 );
 
 create table checklist_item_completions (
