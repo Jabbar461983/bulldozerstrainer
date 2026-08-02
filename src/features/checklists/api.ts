@@ -97,7 +97,11 @@ export async function updateChecklistTeamAssignments(id: string, teamIds: string
   if (insertError) throw insertError;
 }
 
-export async function createChecklistItem(payload: { checklist_id: string; title: string }) {
+export async function createChecklistItem(payload: {
+  checklist_id: string;
+  title: string;
+  parent_id?: string | null;
+}) {
   const { error } = await (supabase.from('checklist_items') as any).insert(payload);
   if (error) throw error;
 }
@@ -191,7 +195,6 @@ export async function deleteChecklistInstance(id: string) {
 export async function toggleChecklistItem(payload: {
   instance_id: string;
   item_id: string;
-  notes: string;
 }) {
   const { data: existing, error: fetchError } = await supabase
     .from('checklist_item_completions')
@@ -215,7 +218,7 @@ export async function toggleChecklistItem(payload: {
       checklist_instance_id: payload.instance_id,
       checklist_item_id: payload.item_id,
       user_id: (await supabase.auth.getUser()).data.user?.id,
-      notes: payload.notes || null,
+      notes: null,
     });
     if (insertError) throw insertError;
   }
@@ -244,4 +247,48 @@ export async function getChecklistProgress(
   const completed = (completions ?? []).length;
 
   return { total, completed, pending: total - completed };
+}
+
+export async function saveChecklistCompletion(payload: {
+  instance_id: string;
+  notes: string;
+}) {
+  const { data: instance, error: instanceError } = await supabase
+    .from('checklist_instances')
+    .select('checklist_id')
+    .eq('id', payload.instance_id)
+    .single();
+
+  if (instanceError) throw instanceError;
+
+  const [
+    { data: items, error: itemsError },
+    { data: completions, error: completionsError },
+  ] = await Promise.all([
+    supabase
+      .from('checklist_items')
+      .select('id')
+      .eq('checklist_id', (instance as any)?.checklist_id),
+    supabase.from('checklist_item_completions').select('id').eq('checklist_instance_id', payload.instance_id),
+  ]);
+
+  if (itemsError) throw itemsError;
+  if (completionsError) throw completionsError;
+
+  const total = (items ?? []).length;
+  const completed = (completions ?? []).length;
+
+  if (completed < total) {
+    throw new Error(`Noch ${total - completed} von ${total} Punkte offen`);
+  }
+
+  const { error: updateError } = await (supabase.from('checklist_instances') as any)
+    .update({
+      notes: payload.notes || null,
+      completed_at: new Date().toISOString(),
+      completed_by: (await supabase.auth.getUser()).data.user?.id,
+    })
+    .eq('id', payload.instance_id);
+
+  if (updateError) throw updateError;
 }

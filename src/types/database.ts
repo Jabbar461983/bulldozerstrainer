@@ -327,6 +327,7 @@ export interface ChecklistItem {
   checklist_id: string;
   title: string;
   sort_order: number;
+  parent_id: string | null;
   created_at: string;
 }
 
@@ -336,8 +337,11 @@ export interface ChecklistInstance {
   team_id: string | null;
   event_date: string | null;
   event_context: string | null;
+  notes: string | null;
   created_by: string | null;
+  completed_by: string | null;
   created_at: string;
+  completed_at: string | null;
 }
 
 export interface ChecklistItemCompletion {

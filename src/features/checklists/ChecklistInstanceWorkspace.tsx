@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { fetchChecklistInstances, toggleChecklistItem } from './api';
+import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion } from './api';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
 
 interface ChecklistInstanceWorkspaceProps {
@@ -16,7 +16,7 @@ export function ChecklistInstanceWorkspace({
   onClose,
 }: ChecklistInstanceWorkspaceProps) {
   const [selectedInstance, setSelectedInstance] = useState<ChecklistInstanceRow | null>(null);
-  const [itemNotes, setItemNotes] = useState<Record<string, string>>({});
+  const [globalNote, setGlobalNote] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -28,11 +28,7 @@ export function ChecklistInstanceWorkspace({
         const filtered = data.filter((i) => !i.team_id || i.team_id === teamId);
         if (filtered.length > 0) {
           setSelectedInstance(filtered[0]);
-          const notes: Record<string, string> = {};
-          Object.entries(filtered[0].completions).forEach(([itemId, completion]) => {
-            if (completion?.notes) notes[itemId] = completion.notes;
-          });
-          setItemNotes(notes);
+          setGlobalNote(filtered[0].notes || '');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Fehler beim Laden');
@@ -48,7 +44,6 @@ export function ChecklistInstanceWorkspace({
       await toggleChecklistItem({
         instance_id: selectedInstance.id,
         item_id: itemId,
-        notes: itemNotes[itemId] || '',
       });
 
       const completion = selectedInstance.completions[itemId];
@@ -63,7 +58,7 @@ export function ChecklistInstanceWorkspace({
                 checklist_instance_id: selectedInstance.id,
                 checklist_item_id: itemId,
                 user_id: 'current',
-                notes: itemNotes[itemId] || null,
+                notes: null,
                 completed_at: new Date().toISOString(),
               },
         },
@@ -86,12 +81,30 @@ export function ChecklistInstanceWorkspace({
 
     const isPending = selectedInstance.progress.completed < selectedInstance.progress.total;
     if (isPending) {
-      setMessage(`Noch ${selectedInstance.progress.total - selectedInstance.progress.completed} von ${selectedInstance.progress.total} Punkte offen`);
-    } else {
-      setMessage('Checkliste vollständig erledigt ✓');
+      setError(`Noch ${selectedInstance.progress.total - selectedInstance.progress.completed} von ${selectedInstance.progress.total} Punkte offen`);
+      setTimeout(() => setError(null), 3000);
+      return;
     }
 
-    setTimeout(() => setMessage(null), 3000);
+    setLoading(true);
+    try {
+      await saveChecklistCompletion({
+        instance_id: selectedInstance.id,
+        notes: globalNote,
+      });
+      setMessage('Checkliste vollständig erledigt ✓');
+      setTimeout(() => setMessage(null), 3000);
+      setSelectedInstance({
+        ...selectedInstance,
+        notes: globalNote,
+        completed_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!selectedInstance) {
@@ -161,11 +174,12 @@ export function ChecklistInstanceWorkspace({
         </div>
       </Card>
 
-      <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-y-auto">
+      <div className="space-y-2 max-h-[calc(100vh-500px)] overflow-y-auto">
         {selectedInstance.items.map((item) => {
           const isCompleted = !!selectedInstance.completions[item.id];
+          const indent = item.parent_id ? 'ml-6' : 'ml-0';
           return (
-            <Card key={item.id} className="space-y-2">
+            <Card key={item.id} className={`space-y-2 ${indent}`}>
               <label className="flex items-center gap-3 cursor-pointer p-0 hover:bg-surface-alt rounded transition">
                 <input
                   type="checkbox"
@@ -178,19 +192,24 @@ export function ChecklistInstanceWorkspace({
                   {item.title}
                 </span>
               </label>
-
-              <textarea
-                value={itemNotes[item.id] || ''}
-                onChange={(e) => setItemNotes({ ...itemNotes, [item.id]: e.target.value })}
-                placeholder="Notiz hinzufügen..."
-                className="w-full rounded-lg border border-border bg-surface px-2 py-1 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none resize-none"
-                rows={2}
-                disabled={loading}
-              />
             </Card>
           );
         })}
       </div>
+
+      {selectedInstance.progress.completed === selectedInstance.progress.total && (
+        <Card className="bg-surface-alt space-y-2">
+          <label className="block text-sm font-semibold text-text">Abschließende Notiz</label>
+          <textarea
+            value={globalNote}
+            onChange={(e) => setGlobalNote(e.target.value)}
+            placeholder="Notiz zum Abschluss der Checkliste..."
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none resize-none"
+            rows={3}
+            disabled={loading}
+          />
+        </Card>
+      )}
 
       <Button
         onClick={handleSave}
