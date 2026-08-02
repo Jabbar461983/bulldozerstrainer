@@ -1,6 +1,6 @@
 import type { CoachRole } from '../types/database';
 
-export type Module = 'finanzen' | 'training' | 'spiele' | 'spieler' | 'uebungen' | 'trainer';
+export type Module = 'finanzen' | 'training' | 'spiele' | 'spieler' | 'uebungen' | 'trainer' | 'checklisten';
 
 // Rechtematrix aus dem Konzept: Finanzen für Admin, Headcoach und die
 // dedizierte Finanzen-Rolle; alles andere auch für Assistenzcoach (jeweils
@@ -13,6 +13,7 @@ const MODULE_ROLES: Record<Module, CoachRole[]> = {
   spieler: ['headcoach', 'assistant_coach'],
   uebungen: ['headcoach', 'assistant_coach'],
   trainer: ['headcoach', 'assistant_coach'],
+  checklisten: ['headcoach', 'assistant_coach'],
 };
 
 export const ROLE_LABELS: Record<CoachRole, string> = {
