@@ -306,6 +306,49 @@ export interface Receipt {
   created_at: string;
 }
 
+export interface Checklist {
+  id: string;
+  title: string;
+  description: string | null;
+  has_reporting: boolean;
+  is_global: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChecklistTeam {
+  checklist_id: string;
+  team_id: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  checklist_id: string;
+  title: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ChecklistInstance {
+  id: string;
+  checklist_id: string;
+  team_id: string | null;
+  event_date: string | null;
+  event_context: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface ChecklistItemCompletion {
+  id: string;
+  checklist_instance_id: string;
+  checklist_item_id: string;
+  user_id: string;
+  notes: string | null;
+  completed_at: string;
+}
+
 // Minimal-Interface für den typisierten Supabase-Client. Da wir keine
 // generierten Typen aus einem Live-Projekt beziehen, halten wir das
 // Database-Generic bewusst locker, damit der Client trotzdem mit
@@ -411,6 +454,27 @@ export interface Database {
         Row: TrainingFocusPercentage;
         Insert: Partial<TrainingFocusPercentage>;
         Update: Partial<TrainingFocusPercentage>;
+      };
+      checklists: { Row: Checklist; Insert: Partial<Checklist>; Update: Partial<Checklist> };
+      checklist_teams: {
+        Row: ChecklistTeam;
+        Insert: Partial<ChecklistTeam>;
+        Update: Partial<ChecklistTeam>;
+      };
+      checklist_items: {
+        Row: ChecklistItem;
+        Insert: Partial<ChecklistItem>;
+        Update: Partial<ChecklistItem>;
+      };
+      checklist_instances: {
+        Row: ChecklistInstance;
+        Insert: Partial<ChecklistInstance>;
+        Update: Partial<ChecklistInstance>;
+      };
+      checklist_item_completions: {
+        Row: ChecklistItemCompletion;
+        Insert: Partial<ChecklistItemCompletion>;
+        Update: Partial<ChecklistItemCompletion>;
       };
     };
   };
