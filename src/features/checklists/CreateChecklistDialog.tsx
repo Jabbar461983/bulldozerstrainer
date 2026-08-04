@@ -3,9 +3,10 @@ import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
-import { createChecklist, updateChecklistTeamAssignments } from './api';
+import { createChecklist, updateChecklistTeamAssignments, createChecklistItem } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
+import type { ChecklistItem } from '../../types/database';
 
 interface CreateChecklistDialogProps {
   onClose: () => void;
@@ -19,6 +20,8 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
   const [isGlobal, setIsGlobal] = useState(true);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
+  const [items, setItems] = useState<ChecklistItem[]>([]);
+  const [newItemTitle, setNewItemTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +52,40 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
         await updateChecklistTeamAssignments(id, Array.from(selectedTeamIds));
       }
 
+      for (const item of items) {
+        await createChecklistItem({
+          checklist_id: id,
+          title: item.title,
+          parent_id: item.parent_id,
+        });
+      }
+
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkliste konnte nicht erstellt werden.');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleAddItem() {
+    if (!newItemTitle.trim()) return;
+    setItems([
+      ...items,
+      {
+        id: 'temp-' + Date.now(),
+        checklist_id: '',
+        title: newItemTitle.trim(),
+        sort_order: items.length,
+        parent_id: null,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    setNewItemTitle('');
+  }
+
+  async function handleDeleteItem(index: number) {
+    setItems(items.filter((_, i) => i !== index));
   }
 
   return (
@@ -165,6 +196,48 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
             </div>
           </div>
         )}
+
+        <div className="space-y-3 border-t border-border pt-4">
+          <Label>Punkte ({items.length})</Label>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {items.length === 0 ? (
+              <p className="text-xs text-text-muted">Noch keine Punkte</p>
+            ) : (
+              items.map((item, idx) => (
+                <div key={item.id} className="flex items-center gap-2 rounded-lg bg-surface-alt p-2">
+                  <span className="text-xs text-text-muted">#{idx + 1}</span>
+                  <span className="flex-1 text-sm">{item.title}</span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void handleDeleteItem(idx)}
+                    className="text-error"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={newItemTitle}
+              onChange={(e) => setNewItemTitle(e.target.value)}
+              placeholder="Neuer Punkt..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void handleAddItem();
+                }
+              }}
+            />
+            <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!newItemTitle.trim()}>
+              + Hinzufügen
+            </Button>
+          </div>
+        </div>
       </form>
     </Modal>
   );
