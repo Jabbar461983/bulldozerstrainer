@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion } from './api';
+import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, createChecklistInstance } from './api';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
 
 interface ChecklistInstanceWorkspaceProps {
@@ -107,14 +107,39 @@ export function ChecklistInstanceWorkspace({
     }
   }
 
+  async function handleCreateInstance() {
+    setLoading(true);
+    try {
+      await createChecklistInstance({
+        checklist_id: checklist.id,
+        team_id: teamId,
+        event_date: null,
+        event_context: null,
+      });
+      const data = await fetchChecklistInstances(checklist.id);
+      const filtered = data.filter((i) => !i.team_id || i.team_id === teamId);
+      if (filtered.length > 0) {
+        setSelectedInstance(filtered[0]);
+        setGlobalNote(filtered[0].notes || '');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Instanz konnte nicht erstellt werden.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (!selectedInstance) {
     return (
       <div className="space-y-4">
         <Button onClick={onClose} variant="secondary">
           ← Zurück
         </Button>
-        <Card>
-          <p className="text-center text-text-muted">Keine Instanzen verfügbar</p>
+        <Card className="text-center space-y-4">
+          <p className="text-text-muted">Noch keine Instanz dieser Checkliste erstellt</p>
+          <Button onClick={handleCreateInstance} disabled={loading}>
+            {loading ? 'Erstelle...' : '+ Neue Instanz erstellen'}
+          </Button>
         </Card>
       </div>
     );
