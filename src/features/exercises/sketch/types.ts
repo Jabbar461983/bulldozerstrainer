@@ -39,17 +39,40 @@ export interface SketchComment {
   text: string;
 }
 
-export interface SketchDrawing {
-  version: 1;
-  fieldType: SketchFieldType;
+// Ein Schritt entspricht einem Zustand ("Frame") der Übung. Mehrere Schritte
+// hintereinander ergeben die animierbare Abfolge der Übung.
+export interface SketchStepContent {
   markers: SketchMarker[];
   arrows: SketchArrow[];
   freehand: SketchFreehandStroke[];
   comments: SketchComment[];
 }
 
+export function createEmptyStepContent(): SketchStepContent {
+  return { markers: [], arrows: [], freehand: [], comments: [] };
+}
+
+export function cloneStepContent(step: SketchStepContent): SketchStepContent {
+  return {
+    markers: step.markers.map((m) => ({ ...m })),
+    arrows: step.arrows.map((a) => ({
+      ...a,
+      points: a.points.map((p) => ({ ...p })),
+      control: a.control ? { ...a.control } : undefined,
+    })),
+    freehand: step.freehand.map((f) => ({ ...f, points: f.points.map((p) => ({ ...p })) })),
+    comments: step.comments.map((c) => ({ ...c })),
+  };
+}
+
+export interface SketchDrawing {
+  version: 2;
+  fieldType: SketchFieldType;
+  steps: SketchStepContent[];
+}
+
 export function createEmptyDrawing(fieldType: SketchFieldType = 'full'): SketchDrawing {
-  return { version: 1, fieldType, markers: [], arrows: [], freehand: [], comments: [] };
+  return { version: 2, fieldType, steps: [createEmptyStepContent()] };
 }
 
 export type SketchTool =
