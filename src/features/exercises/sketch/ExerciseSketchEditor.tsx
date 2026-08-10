@@ -4,7 +4,18 @@ import { Modal } from '../../../components/Modal';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
 import { RinkField } from './RinkField';
-import { SketchDefs, MarkerShape, ArrowShape, FreehandShape, MARKER_LABELS, ARROW_LABELS } from './elements';
+import {
+  SketchDefs,
+  MarkerShape,
+  ArrowShape,
+  FreehandShape,
+  CommentShape,
+  MarkerToolIcon,
+  ArrowToolIcon,
+  UtilityToolIcon,
+  MARKER_LABELS,
+  ARROW_LABELS,
+} from './elements';
 import { svgToJpegBlob } from './svgExport';
 import type {
   SketchArrowKind,
@@ -69,6 +80,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
       markers: d.markers.filter((m) => m.id !== id),
       arrows: d.arrows.filter((a) => a.id !== id),
       freehand: d.freehand.filter((f) => f.id !== id),
+      comments: d.comments.filter((c) => c.id !== id),
     }));
     setSelectedId((cur) => (cur === id ? null : cur));
   }
@@ -98,6 +110,13 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
       return;
     }
 
+    if (tool === 'comment') {
+      const id = crypto.randomUUID();
+      commit((d) => ({ ...d, comments: [...d.comments, { id, x: pt.x, y: pt.y, text: '' }] }));
+      setSelectedId(id);
+      return;
+    }
+
     if (ARROW_TOOLS.includes(tool) || tool === 'pen') {
       draftToolRef.current = tool;
       setDraftPoints([pt]);
@@ -122,7 +141,11 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
 
     if (draggingIdRef.current && tool === 'select') {
       const id = draggingIdRef.current;
-      setDrawing((d) => ({ ...d, markers: d.markers.map((m) => (m.id === id ? { ...m, x: pt.x, y: pt.y } : m)) }));
+      setDrawing((d) => ({
+        ...d,
+        markers: d.markers.map((m) => (m.id === id ? { ...m, x: pt.x, y: pt.y } : m)),
+        comments: d.comments.map((c) => (c.id === id ? { ...c, x: pt.x, y: pt.y } : c)),
+      }));
     }
   }
 
@@ -153,6 +176,11 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
     setDrawing((d) => ({ ...d, markers: d.markers.map((m) => (m.id === selectedId ? { ...m, label } : m)) }));
   }
 
+  function updateSelectedComment(text: string) {
+    if (!selectedId) return;
+    setDrawing((d) => ({ ...d, comments: d.comments.map((c) => (c.id === selectedId ? { ...c, text } : c)) }));
+  }
+
   async function handleExport(mode: 'download' | 'save') {
     if (!svgRef.current) return;
     setError(null);
@@ -180,8 +208,19 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
 
   const selectedMarker = drawing.markers.find((m) => m.id === selectedId);
   const isPlayerSelected = selectedMarker?.kind === 'player_offense' || selectedMarker?.kind === 'player_defense';
+  const selectedComment = drawing.comments.find((c) => c.id === selectedId);
 
-  function ToolButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  function ToolButton({
+    active,
+    onClick,
+    icon,
+    children,
+  }: {
+    active: boolean;
+    onClick: () => void;
+    icon?: React.ReactNode;
+    children: React.ReactNode;
+  }) {
     return (
       <button
         type="button"
@@ -191,6 +230,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
           active ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-muted hover:bg-surface-alt',
         )}
       >
+        {icon}
         {children}
       </button>
     );
@@ -211,26 +251,29 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
 
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-1.5">
-            <ToolButton active={tool === 'select'} onClick={() => setTool('select')}>
-              ↖ Auswahl
+            <ToolButton active={tool === 'select'} onClick={() => setTool('select')} icon={<UtilityToolIcon tool="select" />}>
+              Auswahl
             </ToolButton>
             {MARKER_TOOL_ORDER.map((kind) => (
-              <ToolButton key={kind} active={tool === kind} onClick={() => setTool(kind)}>
+              <ToolButton key={kind} active={tool === kind} onClick={() => setTool(kind)} icon={<MarkerToolIcon kind={kind} />}>
                 {MARKER_LABELS[kind]}
               </ToolButton>
             ))}
+            <ToolButton active={tool === 'comment'} onClick={() => setTool('comment')} icon={<UtilityToolIcon tool="comment" />}>
+              Kommentar
+            </ToolButton>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {ARROW_TOOL_ORDER.map((kind) => (
-              <ToolButton key={kind} active={tool === kind} onClick={() => setTool(kind)}>
+              <ToolButton key={kind} active={tool === kind} onClick={() => setTool(kind)} icon={<ArrowToolIcon kind={kind} />}>
                 {ARROW_LABELS[kind]}
               </ToolButton>
             ))}
-            <ToolButton active={tool === 'pen'} onClick={() => setTool('pen')}>
-              ✎ Freihand
+            <ToolButton active={tool === 'pen'} onClick={() => setTool('pen')} icon={<UtilityToolIcon tool="pen" />}>
+              Freihand
             </ToolButton>
-            <ToolButton active={tool === 'eraser'} onClick={() => setTool('eraser')}>
-              ✕ Radieren
+            <ToolButton active={tool === 'eraser'} onClick={() => setTool('eraser')} icon={<UtilityToolIcon tool="eraser" />}>
+              Radieren
             </ToolButton>
           </div>
         </div>
@@ -243,6 +286,18 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
               onChange={(e) => updateSelectedLabel(e.target.value.slice(0, 3))}
               placeholder="z.B. A"
               className="max-w-24"
+            />
+          </div>
+        )}
+
+        {selectedComment && (
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
+            <span className="text-xs font-medium text-text-muted">Kommentar</span>
+            <Input
+              value={selectedComment.text}
+              onChange={(e) => updateSelectedComment(e.target.value)}
+              placeholder="z.B. 2x wiederholen"
+              className="flex-1"
             />
           </div>
         )}
@@ -276,6 +331,11 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
             {drawing.markers.map((m) => (
               <g key={m.id} onPointerDown={(e) => handleShapePointerDown(e, m.id)} style={{ cursor: 'pointer' }}>
                 <MarkerShape marker={m} selected={m.id === selectedId} />
+              </g>
+            ))}
+            {drawing.comments.map((c) => (
+              <g key={c.id} onPointerDown={(e) => handleShapePointerDown(e, c.id)} style={{ cursor: 'pointer' }}>
+                <CommentShape comment={c} selected={c.id === selectedId} />
               </g>
             ))}
           </RinkField>

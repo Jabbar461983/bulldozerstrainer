@@ -110,15 +110,27 @@ export async function fetchExerciseMediaByIds(ids: string[]): Promise<Map<string
   return result;
 }
 
-export async function uploadExerciseMedia(exerciseId: string, files: File[]): Promise<ExerciseMedia[]> {
+// Speichernamen sollen den Übungstitel enthalten, damit Dateien im Storage-
+// Bucket auch ohne Datenbankzugriff erkennbar sind. Zeichen, die in
+// Speicherpfaden problematisch sind, werden entfernt; Umlaute bleiben erhalten.
+function sanitizeForFilename(title: string): string {
+  const cleaned = title
+    .replace(/[/\\:*?"<>|#%«»]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  return cleaned.slice(0, 80) || 'uebung';
+}
+
+export async function uploadExerciseMedia(exerciseId: string, title: string, files: File[]): Promise<ExerciseMedia[]> {
   const uploaded: ExerciseMedia[] = [];
+  const titlePart = sanitizeForFilename(title);
   for (const file of files) {
     if (file.size > MAX_MEDIA_FILE_SIZE) {
       throw new Error(`Datei "${file.name}" ist zu gross (max. 50 MB).`);
     }
     const type: ExerciseMedia['type'] = file.type.startsWith('video/') ? 'video' : 'image';
     const extension = file.name.includes('.') ? file.name.split('.').pop() : undefined;
-    const path = `${exerciseId}/${crypto.randomUUID()}${extension ? `.${extension}` : ''}`;
+    const path = `${exerciseId}/${titlePart}-${crypto.randomUUID()}${extension ? `.${extension}` : ''}`;
     const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file);
     if (error) throw error;
     uploaded.push({ type, path, url: '' });
@@ -148,7 +160,7 @@ export async function createExercise(payload: {
   if (error) throw error;
 
   if (files.length > 0) {
-    const media = await uploadExerciseMedia(data.id, files);
+    const media = await uploadExerciseMedia(data.id, payload.title, files);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: mediaError } = await (supabase.from('exercises') as any).update({ media }).eq('id', data.id);
     if (mediaError) throw mediaError;
@@ -181,8 +193,8 @@ export async function updateExercise(
   if (error) throw error;
 }
 
-export async function addExerciseMedia(exerciseId: string, existingMedia: ExerciseMedia[], files: File[]) {
-  const newMedia = await uploadExerciseMedia(exerciseId, files);
+export async function addExerciseMedia(exerciseId: string, title: string, existingMedia: ExerciseMedia[], files: File[]) {
+  const newMedia = await uploadExerciseMedia(exerciseId, title, files);
   const media = [...existingMedia, ...newMedia];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('exercises') as any).update({ media }).eq('id', exerciseId);

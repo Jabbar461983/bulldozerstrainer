@@ -30,16 +30,24 @@ export interface SketchFreehandStroke {
   color: string;
 }
 
+export interface SketchComment {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+}
+
 export interface SketchDrawing {
   version: 1;
   fieldType: SketchFieldType;
   markers: SketchMarker[];
   arrows: SketchArrow[];
   freehand: SketchFreehandStroke[];
+  comments: SketchComment[];
 }
 
 export function createEmptyDrawing(fieldType: SketchFieldType = 'full'): SketchDrawing {
-  return { version: 1, fieldType, markers: [], arrows: [], freehand: [] };
+  return { version: 1, fieldType, markers: [], arrows: [], freehand: [], comments: [] };
 }
 
 export type SketchTool =
@@ -54,6 +62,7 @@ export type SketchTool =
   | 'pass'
   | 'shot'
   | 'pen'
+  | 'comment'
   | 'eraser';
 
 export const MARKER_TOOLS: SketchTool[] = ['ball', 'cone', 'player_offense', 'player_defense', 'goal'];

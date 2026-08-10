@@ -127,7 +127,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
 
         <div>
           <Label>Bilder/Videos</Label>
-          <ExerciseMediaGallery exerciseId={exercise.id} media={media} onChange={setMedia} />
+          <ExerciseMediaGallery exerciseId={exercise.id} title={exercise.title} media={media} onChange={setMedia} />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}

@@ -1,4 +1,11 @@
-import type { SketchArrow, SketchArrowKind, SketchFreehandStroke, SketchMarker, SketchMarkerKind } from './types';
+import type {
+  SketchArrow,
+  SketchArrowKind,
+  SketchComment,
+  SketchFreehandStroke,
+  SketchMarker,
+  SketchMarkerKind,
+} from './types';
 
 export const MARKER_RADIUS = 14;
 const BALL_R = 5;
@@ -123,7 +130,7 @@ export function MarkerShape({ marker, selected }: { marker: SketchMarker; select
   );
 }
 
-function arrowStyle(kind: SketchArrowKind): { stroke: string; dash?: string; markerId: string } {
+export function arrowStyle(kind: SketchArrowKind): { stroke: string; dash?: string; markerId: string } {
   switch (kind) {
     case 'path_with_ball':
       return { stroke: '#111111', markerId: 'sketch-arrow-black' };
@@ -174,6 +181,121 @@ export function FreehandShape({ stroke, selected }: { stroke: SketchFreehandStro
         strokeLinejoin="round"
       />
     </g>
+  );
+}
+
+const COMMENT_BG = '#fef3c7';
+const COMMENT_BORDER = '#c9971a';
+
+export function CommentShape({ comment, selected }: { comment: SketchComment; selected?: boolean }) {
+  const { x, y, text } = comment;
+  const display = text.trim().length > 0 ? text : '…';
+  const width = Math.min(220, Math.max(36, display.length * 6.2 + 20));
+  const height = 26;
+  const bubbleX = x - width / 2;
+  const bubbleY = y - height - 10;
+
+  return (
+    <g>
+      {selected && (
+        <rect
+          x={bubbleX - 4}
+          y={bubbleY - 4}
+          width={width + 8}
+          height={height + 8}
+          rx={10}
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth={2}
+          strokeDasharray="3 3"
+        />
+      )}
+      <line x1={x} y1={y} x2={x} y2={bubbleY + height} stroke={COMMENT_BORDER} strokeWidth={1.4} />
+      <rect x={bubbleX} y={bubbleY} width={width} height={height} rx={6} fill={COMMENT_BG} stroke={COMMENT_BORDER} strokeWidth={1.4} />
+      <text
+        x={x}
+        y={bubbleY + height / 2 + 4}
+        textAnchor="middle"
+        fontSize={11}
+        fill="#5a4308"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}
+      >
+        {display}
+      </text>
+      <circle cx={x} cy={y} r={2.5} fill={COMMENT_BORDER} />
+    </g>
+  );
+}
+
+function MiniFieldIcon({ children, viewBox = '-20 -20 40 40', width = 22, height = 22 }: {
+  children: React.ReactNode;
+  viewBox?: string;
+  width?: number;
+  height?: number;
+}) {
+  return (
+    <svg viewBox={viewBox} width={width} height={height} aria-hidden="true">
+      {children}
+    </svg>
+  );
+}
+
+export function MarkerToolIcon({ kind }: { kind: SketchMarkerKind }) {
+  const label = kind === 'player_offense' ? 'A' : kind === 'player_defense' ? 'B' : undefined;
+  return (
+    <MiniFieldIcon>
+      <MarkerShape marker={{ id: 'icon', kind, x: 0, y: 0, label }} />
+    </MiniFieldIcon>
+  );
+}
+
+export function ArrowToolIcon({ kind }: { kind: SketchArrowKind }) {
+  const style = arrowStyle(kind);
+  return (
+    <MiniFieldIcon viewBox="-18 -9 36 18" width={28} height={14}>
+      <line
+        x1={-14}
+        y1={0}
+        x2={9}
+        y2={0}
+        stroke={style.stroke}
+        strokeWidth={2.4}
+        strokeDasharray={style.dash}
+        strokeLinecap="round"
+      />
+      <path d="M7,-4.5 L15,0 L7,4.5 Z" fill={style.stroke} />
+    </MiniFieldIcon>
+  );
+}
+
+export function UtilityToolIcon({ tool }: { tool: 'select' | 'pen' | 'eraser' | 'comment' }) {
+  if (tool === 'select') {
+    return (
+      <MiniFieldIcon viewBox="0 0 20 20" width={18} height={18}>
+        <path d="M3,2 L3,17 L7,13.5 L9.5,18 L12,16.7 L9.5,12.2 L15,12.2 Z" fill="#374151" />
+      </MiniFieldIcon>
+    );
+  }
+  if (tool === 'pen') {
+    return (
+      <MiniFieldIcon viewBox="0 0 20 20" width={18} height={18}>
+        <path d="M3,17 L4,13 L13,4 L16,7 L7,16 Z" fill="none" stroke="#374151" strokeWidth={1.6} strokeLinejoin="round" />
+        <line x1={11.5} y1={5.5} x2={14.5} y2={8.5} stroke="#374151" strokeWidth={1.6} />
+      </MiniFieldIcon>
+    );
+  }
+  if (tool === 'eraser') {
+    return (
+      <MiniFieldIcon viewBox="0 0 20 20" width={18} height={18}>
+        <rect x={3} y={9} width={14} height={7} rx={1.5} fill="#f3d1d1" stroke="#a33333" strokeWidth={1.2} transform="rotate(-20 10 12)" />
+      </MiniFieldIcon>
+    );
+  }
+  return (
+    <MiniFieldIcon viewBox="0 0 20 20" width={18} height={18}>
+      <rect x={2} y={3} width={16} height={10} rx={3} fill={COMMENT_BG} stroke={COMMENT_BORDER} strokeWidth={1.4} />
+      <path d="M6,13 L6,17 L10,13 Z" fill={COMMENT_BG} stroke={COMMENT_BORDER} strokeWidth={1.4} />
+    </MiniFieldIcon>
   );
 }
 
