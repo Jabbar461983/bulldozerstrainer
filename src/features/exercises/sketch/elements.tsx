@@ -32,7 +32,18 @@ export function SketchDefs() {
 }
 
 function SelectionRing({ x, y, r }: { x: number; y: number; r: number }) {
-  return <circle cx={x} cy={y} r={r + 5} fill="none" stroke="#2563eb" strokeWidth={2} strokeDasharray="3 3" />;
+  return (
+    <circle
+      cx={x}
+      cy={y}
+      r={r + 5}
+      fill="none"
+      stroke="#2563eb"
+      strokeWidth={2}
+      strokeDasharray="3 3"
+      data-sketch-ui="true"
+    />
+  );
 }
 
 export function MarkerShape({ marker, selected }: { marker: SketchMarker; selected?: boolean }) {
@@ -143,16 +154,31 @@ export function arrowStyle(kind: SketchArrowKind): { stroke: string; dash?: stri
   }
 }
 
+export function getArrowControlPoint(arrow: SketchArrow): { x: number; y: number } {
+  if (arrow.control) return arrow.control;
+  const [p0, p1 = p0] = arrow.points;
+  return { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
+}
+
+function arrowPathD(arrow: SketchArrow): string {
+  const [p0, p1 = p0] = arrow.points;
+  if (!p0) return '';
+  if (arrow.control) {
+    return `M ${p0.x},${p0.y} Q ${arrow.control.x},${arrow.control.y} ${p1.x},${p1.y}`;
+  }
+  return `M ${p0.x},${p0.y} L ${p1.x},${p1.y}`;
+}
+
 export function ArrowShape({ arrow, selected }: { arrow: SketchArrow; selected?: boolean }) {
   const style = arrowStyle(arrow.kind);
-  const pointsAttr = arrow.points.map((p) => `${p.x},${p.y}`).join(' ');
+  const d = arrowPathD(arrow);
   return (
     <g>
       {selected && (
-        <polyline points={pointsAttr} fill="none" stroke="#2563eb" strokeWidth={7} strokeLinecap="round" opacity={0.35} />
+        <path d={d} fill="none" stroke="#2563eb" strokeWidth={7} strokeLinecap="round" opacity={0.35} data-sketch-ui="true" />
       )}
-      <polyline
-        points={pointsAttr}
+      <path
+        d={d}
         fill="none"
         stroke={style.stroke}
         strokeWidth={2.4}
@@ -170,7 +196,15 @@ export function FreehandShape({ stroke, selected }: { stroke: SketchFreehandStro
   return (
     <g>
       {selected && (
-        <polyline points={pointsAttr} fill="none" stroke="#2563eb" strokeWidth={8} strokeLinecap="round" opacity={0.35} />
+        <polyline
+          points={pointsAttr}
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth={8}
+          strokeLinecap="round"
+          opacity={0.35}
+          data-sketch-ui="true"
+        />
       )}
       <polyline
         points={pointsAttr}
@@ -208,6 +242,7 @@ export function CommentShape({ comment, selected }: { comment: SketchComment; se
           stroke="#2563eb"
           strokeWidth={2}
           strokeDasharray="3 3"
+          data-sketch-ui="true"
         />
       )}
       <line x1={x} y1={y} x2={x} y2={bubbleY + height} stroke={COMMENT_BORDER} strokeWidth={1.4} />

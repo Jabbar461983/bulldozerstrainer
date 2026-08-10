@@ -15,6 +15,7 @@ import {
   UtilityToolIcon,
   MARKER_LABELS,
   ARROW_LABELS,
+  getArrowControlPoint,
 } from './elements';
 import { svgToJpegBlob } from './svgExport';
 import type {
@@ -57,6 +58,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
   const historyRef = useRef<SketchDrawing[]>([]);
   const draggingIdRef = useRef<string | null>(null);
   const draftToolRef = useRef<SketchTool | null>(null);
+  const curveDragIdRef = useRef<string | null>(null);
 
   function commit(updater: (d: SketchDrawing) => SketchDrawing) {
     setDrawing((prev) => {
@@ -139,6 +141,12 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
       return;
     }
 
+    if (curveDragIdRef.current && tool === 'select') {
+      const id = curveDragIdRef.current;
+      setDrawing((d) => ({ ...d, arrows: d.arrows.map((a) => (a.id === id ? { ...a, control: pt } : a)) }));
+      return;
+    }
+
     if (draggingIdRef.current && tool === 'select') {
       const id = draggingIdRef.current;
       setDrawing((d) => ({
@@ -165,6 +173,16 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
     setDraftPoints(null);
     draftToolRef.current = null;
     draggingIdRef.current = null;
+    curveDragIdRef.current = null;
+  }
+
+  function handleCurveHandlePointerDown(e: React.PointerEvent, arrowId: string) {
+    e.stopPropagation();
+    curveDragIdRef.current = arrowId;
+  }
+
+  function resetArrowCurve(arrowId: string) {
+    commit((d) => ({ ...d, arrows: d.arrows.map((a) => (a.id === arrowId ? { ...a, control: undefined } : a)) }));
   }
 
   function setFieldType(fieldType: SketchFieldType) {
@@ -209,6 +227,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
   const selectedMarker = drawing.markers.find((m) => m.id === selectedId);
   const isPlayerSelected = selectedMarker?.kind === 'player_offense' || selectedMarker?.kind === 'player_defense';
   const selectedComment = drawing.comments.find((c) => c.id === selectedId);
+  const selectedArrow = drawing.arrows.find((a) => a.id === selectedId);
 
   function ToolButton({
     active,
@@ -302,6 +321,17 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
           </div>
         )}
 
+        {selectedArrow && (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
+            <span className="text-xs text-text-muted">Blauen Punkt auf der Linie ziehen, um sie zu einer Kurve zu biegen.</span>
+            {selectedArrow.control && (
+              <Button type="button" variant="secondary" onClick={() => resetArrowCurve(selectedArrow.id)}>
+                Gerade
+              </Button>
+            )}
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-xl border border-border">
           <RinkField
             fieldType={drawing.fieldType}
@@ -317,6 +347,19 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
                 <ArrowShape arrow={a} selected={a.id === selectedId} />
               </g>
             ))}
+            {tool === 'select' && selectedArrow && (
+              <circle
+                cx={getArrowControlPoint(selectedArrow).x}
+                cy={getArrowControlPoint(selectedArrow).y}
+                r={7}
+                fill="#2563eb"
+                stroke="#ffffff"
+                strokeWidth={2}
+                style={{ cursor: 'grab' }}
+                data-sketch-ui="true"
+                onPointerDown={(e) => handleCurveHandlePointerDown(e, selectedArrow.id)}
+              />
+            )}
             {drawing.freehand.map((f) => (
               <g key={f.id} onPointerDown={(e) => handleShapePointerDown(e, f.id)}>
                 <FreehandShape stroke={f} selected={f.id === selectedId} />

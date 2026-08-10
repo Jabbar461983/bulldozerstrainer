@@ -16,6 +16,9 @@ export async function svgToJpegBlob(svgEl: SVGSVGElement, scale = 2): Promise<Bl
   clone.setAttribute('width', String(width));
   clone.setAttribute('height', String(height));
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  // Auswahl-Markierungen und Zieh-Griffe sind nur Editor-Hilfsmittel und
+  // sollen nicht im exportierten Bild landen.
+  clone.querySelectorAll('[data-sketch-ui="true"]').forEach((el) => el.remove());
 
   const svgString = new XMLSerializer().serializeToString(clone);
   const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });

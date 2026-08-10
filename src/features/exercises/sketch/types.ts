@@ -22,6 +22,8 @@ export interface SketchArrow {
   id: string;
   kind: SketchArrowKind;
   points: SketchPoint[];
+  /** Optionaler Kontrollpunkt für eine quadratische Bezier-Kurve statt einer Geraden. */
+  control?: SketchPoint;
 }
 
 export interface SketchFreehandStroke {
