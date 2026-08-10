@@ -163,10 +163,14 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
 
     if (MARKER_TOOLS.includes(tool)) {
       const id = crypto.randomUUID();
-      updateCurrentStep((s) => ({
-        ...s,
-        markers: [...s.markers, { id, kind: tool as SketchMarkerKind, x: pt.x, y: pt.y }],
-      }));
+      const kind = tool as SketchMarkerKind;
+      updateCurrentStep((s) => {
+        const label =
+          kind === 'player_offense' || kind === 'player_defense'
+            ? String(s.markers.filter((m) => m.kind === kind).length + 1)
+            : undefined;
+        return { ...s, markers: [...s.markers, { id, kind, x: pt.x, y: pt.y, label }] };
+      });
       setSelectedId(id);
       return;
     }
@@ -394,41 +398,6 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
               </div>
             </div>
 
-            {isPlayerSelected && (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
-                <span className="text-xs font-medium text-text-muted">Label</span>
-                <Input
-                  value={selectedMarker?.label ?? ''}
-                  onChange={(e) => updateSelectedLabel(e.target.value.slice(0, 3))}
-                  placeholder="z.B. A"
-                  className="max-w-24"
-                />
-              </div>
-            )}
-
-            {selectedComment && (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
-                <span className="text-xs font-medium text-text-muted">Kommentar</span>
-                <Input
-                  value={selectedComment.text}
-                  onChange={(e) => updateSelectedComment(e.target.value)}
-                  placeholder="z.B. 2x wiederholen"
-                  className="flex-1"
-                />
-              </div>
-            )}
-
-            {selectedArrow && (
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
-                <span className="text-xs text-text-muted">Blauen Punkt auf der Linie ziehen, um sie zu einer Kurve zu biegen.</span>
-                {selectedArrow.control && (
-                  <Button type="button" variant="secondary" onClick={() => resetArrowCurve(selectedArrow.id)}>
-                    Gerade
-                  </Button>
-                )}
-              </div>
-            )}
-
             <div className="overflow-hidden rounded-xl border border-border">
               <RinkField
                 fieldType={drawing.fieldType}
@@ -480,6 +449,41 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
                 ))}
               </RinkField>
             </div>
+
+            {isPlayerSelected && (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
+                <span className="text-xs font-medium text-text-muted">Label</span>
+                <Input
+                  value={selectedMarker?.label ?? ''}
+                  onChange={(e) => updateSelectedLabel(e.target.value.slice(0, 3))}
+                  placeholder="z.B. A"
+                  className="max-w-24"
+                />
+              </div>
+            )}
+
+            {selectedComment && (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
+                <span className="text-xs font-medium text-text-muted">Kommentar</span>
+                <Input
+                  value={selectedComment.text}
+                  onChange={(e) => updateSelectedComment(e.target.value)}
+                  placeholder="z.B. 2x wiederholen"
+                  className="flex-1"
+                />
+              </div>
+            )}
+
+            {selectedArrow && (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-alt p-2.5">
+                <span className="text-xs text-text-muted">Blauen Punkt auf der Linie ziehen, um sie zu einer Kurve zu biegen.</span>
+                {selectedArrow.control && (
+                  <Button type="button" variant="secondary" onClick={() => resetArrowCurve(selectedArrow.id)}>
+                    Gerade
+                  </Button>
+                )}
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs font-medium uppercase tracking-wide text-text-muted">Ablauf</span>

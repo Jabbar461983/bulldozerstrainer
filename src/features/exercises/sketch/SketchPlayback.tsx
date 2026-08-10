@@ -53,7 +53,7 @@ export function SketchPlayback({ fieldType, steps, onExit }: SketchPlaybackProps
   const t = easeInOutCubic(clamped - stepIndex);
   const fromStep = steps[stepIndex];
   const nextStep = steps[Math.min(stepIndex + 1, steps.length - 1)];
-  const markerFrames = interpolateMarkers(fromStep.markers, nextStep.markers, t);
+  const markerFrames = interpolateMarkers(fromStep.markers, nextStep.markers, t, fromStep.arrows);
   const atEnd = clamped >= maxProgress;
 
   function togglePlay() {
