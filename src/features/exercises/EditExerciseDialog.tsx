@@ -5,9 +5,10 @@ import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { ChipMultiPicker } from '../../components/ChipMultiPicker';
 import { ExerciseMediaGallery } from './ExerciseMediaGallery';
-import { ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS, updateExercise } from './api';
+import { ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS, updateExercise, fetchExercise, addExerciseMedia } from './api';
 import type { ExerciseRow } from './api';
 import type { Category, ExerciseFocus } from '../../types/database';
+import { ExerciseSketchEditor } from './sketch/ExerciseSketchEditor';
 
 interface EditExerciseDialogProps {
   exercise: ExerciseRow;
@@ -26,6 +27,16 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
   const [media, setMedia] = useState(exercise.media);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSketchEditor, setShowSketchEditor] = useState(false);
+
+  async function handleSketchSave(jpegBlob: Blob) {
+    const file = new File([jpegBlob], `Skizze-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const existingRaw = media.map((m) => ({ type: m.type, path: m.path, url: '' }));
+    await addExerciseMedia(exercise.id, title, existingRaw, [file]);
+    const fresh = await fetchExercise(exercise.id);
+    setMedia(fresh.media);
+    setShowSketchEditor(false);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -126,12 +137,21 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
         </div>
 
         <div>
-          <Label>Bilder/Videos</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Bilder/Videos</Label>
+            <Button type="button" variant="secondary" onClick={() => setShowSketchEditor(true)}>
+              Übung zeichnen
+            </Button>
+          </div>
           <ExerciseMediaGallery exerciseId={exercise.id} title={exercise.title} media={media} onChange={setMedia} />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </form>
+
+      {showSketchEditor && (
+        <ExerciseSketchEditor onClose={() => setShowSketchEditor(false)} onSave={handleSketchSave} />
+      )}
     </Modal>
   );
 }

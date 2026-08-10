@@ -7,6 +7,7 @@ import { ChipMultiPicker } from '../../components/ChipMultiPicker';
 import { ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS, createExercise } from './api';
 import type { Category, ExerciseFocus } from '../../types/database';
 import { useAuth } from '../../auth/AuthContext';
+import { ExerciseSketchEditor } from './sketch/ExerciseSketchEditor';
 
 interface CreateExerciseDialogProps {
   categories: Category[];
@@ -23,6 +24,7 @@ export function CreateExerciseDialog({ categories, onClose, onCreated }: CreateE
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  const [showSketchEditor, setShowSketchEditor] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +36,12 @@ export function CreateExerciseDialog({ categories, onClose, onCreated }: CreateE
 
   function removeFile(index: number) {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleSketchSave(jpegBlob: Blob) {
+    const file = new File([jpegBlob], `Skizze-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    setFiles((prev) => [...prev, file]);
+    setShowSketchEditor(false);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -138,14 +146,19 @@ export function CreateExerciseDialog({ categories, onClose, onCreated }: CreateE
 
         <div>
           <Label htmlFor="media">Bilder/Videos (optional, max. 50 MB pro Datei)</Label>
-          <input
-            id="media"
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            onChange={handleFiles}
-            className="block w-full text-sm text-text file:mr-3 file:rounded-xl file:border-0 file:bg-surface-alt file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-text"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="media"
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              onChange={handleFiles}
+              className="block flex-1 text-sm text-text file:mr-3 file:rounded-xl file:border-0 file:bg-surface-alt file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-text"
+            />
+            <Button type="button" variant="secondary" onClick={() => setShowSketchEditor(true)}>
+              Übung zeichnen
+            </Button>
+          </div>
           {files.length > 0 && (
             <ul className="mt-2 flex flex-col gap-1">
               {files.map((file, i) => (
@@ -165,6 +178,10 @@ export function CreateExerciseDialog({ categories, onClose, onCreated }: CreateE
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </form>
+
+      {showSketchEditor && (
+        <ExerciseSketchEditor onClose={() => setShowSketchEditor(false)} onSave={handleSketchSave} />
+      )}
     </Modal>
   );
 }
