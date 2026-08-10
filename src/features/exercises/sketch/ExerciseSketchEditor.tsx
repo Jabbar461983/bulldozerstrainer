@@ -200,7 +200,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
       return;
     }
 
-    if (curveDragIdRef.current && tool === 'select') {
+    if (curveDragIdRef.current) {
       const id = curveDragIdRef.current;
       updateCurrentStepLive((s) => ({ ...s, arrows: s.arrows.map((a) => (a.id === id ? { ...a, control: pt } : a)) }));
       return;
@@ -227,6 +227,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
           ...s,
           arrows: [...s.arrows, { id, kind: finishedTool as SketchArrowKind, points: draftPoints }],
         }));
+        setSelectedId(id);
       }
     }
     setDraftPoints(null);
@@ -443,7 +444,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
                     <ArrowShape arrow={a} selected={a.id === selectedId} />
                   </g>
                 ))}
-                {tool === 'select' && selectedArrow && (
+                {selectedArrow && (
                   <circle
                     cx={getArrowControlPoint(selectedArrow).x}
                     cy={getArrowControlPoint(selectedArrow).y}
