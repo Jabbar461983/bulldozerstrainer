@@ -55,23 +55,39 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
   const [error, setError] = useState<string | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
-  const historyRef = useRef<SketchDrawing[]>([]);
+  const pastRef = useRef<SketchDrawing[]>([]);
+  const futureRef = useRef<SketchDrawing[]>([]);
   const draggingIdRef = useRef<string | null>(null);
   const draftToolRef = useRef<SketchTool | null>(null);
   const curveDragIdRef = useRef<string | null>(null);
 
   function commit(updater: (d: SketchDrawing) => SketchDrawing) {
     setDrawing((prev) => {
-      historyRef.current.push(prev);
-      if (historyRef.current.length > 50) historyRef.current.shift();
+      pastRef.current.push(prev);
+      if (pastRef.current.length > 50) pastRef.current.shift();
+      futureRef.current = [];
       return updater(prev);
     });
   }
 
   function handleUndo() {
-    const prev = historyRef.current.pop();
+    const prev = pastRef.current.pop();
     if (prev) {
-      setDrawing(prev);
+      setDrawing((current) => {
+        futureRef.current.push(current);
+        return prev;
+      });
+      setSelectedId(null);
+    }
+  }
+
+  function handleRedo() {
+    const next = futureRef.current.pop();
+    if (next) {
+      setDrawing((current) => {
+        pastRef.current.push(current);
+        return next;
+      });
       setSelectedId(null);
     }
   }
@@ -85,6 +101,11 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
       comments: d.comments.filter((c) => c.id !== id),
     }));
     setSelectedId((cur) => (cur === id ? null : cur));
+  }
+
+  function clearAll() {
+    commit((d) => ({ ...d, markers: [], arrows: [], freehand: [], comments: [] }));
+    setSelectedId(null);
   }
 
   function handleShapePointerDown(e: React.PointerEvent, id: string) {
@@ -255,6 +276,39 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
     );
   }
 
+  function HistoryButton({ direction, onClick, disabled }: { direction: 'back' | 'forward'; onClick: () => void; disabled: boolean }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={direction === 'back' ? 'Rückgängig' : 'Wiederholen'}
+        title={direction === 'back' ? 'Rückgängig' : 'Wiederholen'}
+        className="flex size-9 items-center justify-center rounded-full border border-border text-text-muted transition hover:bg-surface-alt disabled:opacity-30"
+      >
+        <svg viewBox="0 0 20 20" width={18} height={18} aria-hidden="true">
+          <line
+            x1={direction === 'back' ? 16 : 4}
+            y1={10}
+            x2={direction === 'back' ? 6 : 14}
+            y2={10}
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+          />
+          <path
+            d={direction === 'back' ? 'M10,5 L5,10 L10,15' : 'M10,5 L15,10 L10,15'}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    );
+  }
+
   return (
     <Modal title="Übung zeichnen" onClose={onClose} wide>
       <div className="flex flex-col gap-3">
@@ -385,16 +439,18 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={handleUndo} disabled={historyRef.current.length === 0}>
-              Rückgängig
-            </Button>
+          <div className="flex items-center gap-2">
+            <HistoryButton direction="back" onClick={handleUndo} disabled={pastRef.current.length === 0} />
+            <HistoryButton direction="forward" onClick={handleRedo} disabled={futureRef.current.length === 0} />
             {selectedId && (
               <Button type="button" variant="secondary" onClick={() => deleteShape(selectedId)}>
-                Löschen
+                Element löschen
               </Button>
             )}
           </div>
+          <Button type="button" variant="secondary" onClick={clearAll}>
+            Alles löschen
+          </Button>
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}

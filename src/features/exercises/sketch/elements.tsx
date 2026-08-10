@@ -113,25 +113,26 @@ export function MarkerShape({ marker, selected }: { marker: SketchMarker; select
   }
 
   const isOffense = kind === 'player_offense';
+  const color = isOffense ? OFFENSE_COLOR : DEFENSE_COLOR;
   return (
     <g>
       {selected && <SelectionRing x={x} y={y} r={MARKER_RADIUS} />}
-      {isOffense ? (
-        <circle cx={x} cy={y} r={MARKER_RADIUS} fill={OFFENSE_COLOR} />
-      ) : (
-        <polygon
-          points={`${x},${y - MARKER_RADIUS * 1.1} ${x - MARKER_RADIUS * 1.05},${y + MARKER_RADIUS * 0.85} ${x + MARKER_RADIUS * 1.05},${y + MARKER_RADIUS * 0.85}`}
-          fill={DEFENSE_COLOR}
-        />
-      )}
+      <g stroke={color} strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <circle cx={x} cy={y - 9} r={3.4} fill={color} stroke="none" />
+        <line x1={x} y1={y - 5.6} x2={x} y2={y + 3} />
+        <line x1={x} y1={y - 3} x2={x - 6} y2={y + 2} />
+        <line x1={x} y1={y - 3} x2={x + 6} y2={y + 2} />
+        <line x1={x} y1={y + 3} x2={x - 5} y2={y + 11} />
+        <line x1={x} y1={y + 3} x2={x + 5} y2={y + 11} />
+      </g>
       {label && (
         <text
           x={x}
-          y={y + (isOffense ? 4 : 6)}
+          y={y + 21}
           textAnchor="middle"
-          fontSize={13}
+          fontSize={11}
           fontWeight={700}
-          fill="#ffffff"
+          fill={color}
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         >
           {label}
