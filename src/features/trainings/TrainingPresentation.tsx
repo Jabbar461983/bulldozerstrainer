@@ -237,7 +237,7 @@ export function TrainingPresentation({ training, teamId, trainings, onClose }: T
                 {page.startClock && page.endClock && ` · ${page.startClock.slice(0, 5)}–${page.endClock.slice(0, 5)}`}
               </p>
             </div>
-            {page.exercise.media.length > 0 && <ExerciseMediaCarousel media={page.exercise.media} />}
+            {page.exercise.media.length > 0 && <ExerciseMediaCarousel media={page.exercise.media} autoPlay />}
             {page.exercise.exerciseDescription && (
               <div>
                 <h2 className="mb-1 text-sm font-semibold text-text-muted">Beschreibung</h2>
