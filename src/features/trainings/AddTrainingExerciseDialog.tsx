@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
-import { fetchExerciseOptions, ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS } from '../exercises/api';
-import type { ExerciseOption } from '../exercises/api';
+import {
+  fetchExerciseOptions,
+  fetchExerciseMediaByIds,
+  ON_FIELD_FOCUS_OPTIONS,
+  OFF_FIELD_FOCUS_OPTIONS,
+} from '../exercises/api';
+import type { ExerciseOption, ExerciseMediaView } from '../exercises/api';
 import type { ExerciseFocus, TrainingFieldType } from '../../types/database';
 
 interface AddTrainingExerciseDialogProps {
@@ -14,6 +19,7 @@ interface AddTrainingExerciseDialogProps {
 
 export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAdd }: AddTrainingExerciseDialogProps) {
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
+  const [mediaByExercise, setMediaByExercise] = useState<Map<string, ExerciseMediaView[]>>(new Map());
   const [selectedFocus, setSelectedFocus] = useState<ExerciseFocus | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
@@ -21,7 +27,10 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
 
   useEffect(() => {
     fetchExerciseOptions()
-      .then(setExercises)
+      .then(async (options) => {
+        setExercises(options);
+        setMediaByExercise(await fetchExerciseMediaByIds(options.map((o) => o.id)));
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'Übungen konnten nicht geladen werden.'))
       .finally(() => setLoading(false));
   }, []);
@@ -124,17 +133,29 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
             {filteredExercises.length === 0 && (
               <p className="text-sm text-text-muted">Keine Übungen für diese Auswahl vorhanden.</p>
             )}
-            {filteredExercises.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                disabled={adding === e.id}
-                onClick={() => void handleSelectExercise(e.id)}
-                className="rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt disabled:opacity-50"
-              >
-                {adding === e.id ? 'Wird hinzugefügt…' : e.title}
-              </button>
-            ))}
+            {filteredExercises.map((e) => {
+              const thumbnail = mediaByExercise.get(e.id)?.find((m) => m.type === 'image' && m.url);
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  disabled={adding === e.id}
+                  onClick={() => void handleSelectExercise(e.id)}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt disabled:opacity-50"
+                >
+                  <span className="min-w-0 flex-1 truncate">
+                    {adding === e.id ? 'Wird hinzugefügt…' : e.title}
+                  </span>
+                  {thumbnail && (
+                    <img
+                      src={thumbnail.url ?? ''}
+                      alt=""
+                      className="h-12 w-16 shrink-0 rounded-lg border border-border object-cover"
+                    />
+                  )}
+                </button>
+              );
+            })}
           </>
         )}
       </div>
