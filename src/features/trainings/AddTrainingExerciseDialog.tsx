@@ -27,6 +27,7 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
   const [mediaByExercise, setMediaByExercise] = useState<Map<string, ExerciseMediaView[]>>(new Map());
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [selection, setSelection] = useState<ContentSelection | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,13 +79,21 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
     return fieldExercises.filter((e) => e.focus_areas.includes(selection.focus));
   }, [fieldExercises, favoriteFieldExercises, selection]);
 
+  const previewExercise = previewId ? (exercises.find((e) => e.id === previewId) ?? null) : null;
+
+  const title = previewExercise
+    ? previewExercise.title
+    : selection
+      ? 'Übung auswählen'
+      : 'Inhalt auswählen';
+
   return (
-    <Modal title={selection ? 'Übung auswählen' : 'Inhalt auswählen'} onClose={onClose}>
+    <Modal title={title} onClose={onClose}>
       <div className="flex flex-col gap-2">
         {loading && <p className="text-sm text-text-muted">Lädt…</p>}
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        {!loading && !selection && (
+        {!loading && !selection && !previewExercise && (
           <>
             {fieldExercises.length === 0 && (
               <p className="text-sm text-text-muted">
@@ -150,7 +159,7 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
           </>
         )}
 
-        {!loading && selection && (
+        {!loading && selection && !previewExercise && (
           <>
             <Button type="button" variant="ghost" onClick={() => setSelection(null)} className="self-start">
               ← Inhalt wechseln
@@ -162,27 +171,103 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
             {filteredExercises.map((e) => {
               const thumbnail = mediaByExercise.get(e.id)?.find((m) => m.type === 'image' && m.url);
               return (
-                <button
+                <div
                   key={e.id}
-                  type="button"
-                  disabled={adding === e.id}
-                  onClick={() => void handleSelectExercise(e.id)}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt disabled:opacity-50"
+                  className="flex items-center gap-3 rounded-xl border border-border px-3.5 py-2.5 text-sm transition hover:bg-surface-alt"
                 >
-                  <span className="min-w-0 flex-1 truncate">
-                    {adding === e.id ? 'Wird hinzugefügt…' : e.title}
-                  </span>
-                  {thumbnail && (
-                    <img
-                      src={thumbnail.url ?? ''}
-                      alt=""
-                      className="h-24 w-36 shrink-0 rounded-lg border border-border object-cover"
-                    />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewId(e.id)}
+                    className="min-w-0 flex-1 text-left font-medium text-text hover:text-accent hover:underline"
+                  >
+                    {e.title}
+                  </button>
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewId(e.id)}
+                      aria-label={`${e.title} – Details anzeigen`}
+                      className="block"
+                    >
+                      {thumbnail ? (
+                        <img
+                          src={thumbnail.url ?? ''}
+                          alt=""
+                          className="h-24 w-36 rounded-lg border border-border object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-24 w-36 items-center justify-center rounded-lg border border-dashed border-border text-xs text-text-muted">
+                          Keine Skizze
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={adding === e.id}
+                      onClick={() => void handleSelectExercise(e.id)}
+                      aria-label="Übung ins Training übernehmen"
+                      className="absolute -bottom-2 -right-2 flex size-9 items-center justify-center rounded-full border-2 border-surface bg-accent text-lg font-bold leading-none text-accent-foreground shadow transition hover:brightness-110 disabled:opacity-50"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </>
+        )}
+
+        {!loading && previewExercise && (
+          <div className="flex flex-col gap-3">
+            <Button type="button" variant="ghost" onClick={() => setPreviewId(null)} className="self-start">
+              ← Zurück
+            </Button>
+
+            {(mediaByExercise.get(previewExercise.id) ?? [])
+              .filter((m) => m.type === 'image' && m.url)
+              .map((m) => (
+                <img
+                  key={m.path}
+                  src={m.url ?? ''}
+                  alt=""
+                  className="w-full rounded-xl border border-border object-contain"
+                />
+              ))}
+
+            {previewExercise.description && (
+              <div>
+                <h3 className="mb-1 text-sm font-semibold text-text-muted">Beschreibung</h3>
+                <p className="whitespace-pre-wrap text-sm text-text">{previewExercise.description}</p>
+              </div>
+            )}
+
+            {previewExercise.coaching_questions && (
+              <div>
+                <h3 className="mb-1 text-sm font-semibold text-text-muted">Coachingfragen</h3>
+                <p className="whitespace-pre-wrap text-sm text-text">{previewExercise.coaching_questions}</p>
+              </div>
+            )}
+
+            {previewExercise.variants && (
+              <div>
+                <h3 className="mb-1 text-sm font-semibold text-text-muted">Varianten</h3>
+                <p className="whitespace-pre-wrap text-sm text-text">{previewExercise.variants}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <Button type="button" variant="secondary" onClick={() => setPreviewId(null)}>
+                Zurück
+              </Button>
+              <Button
+                type="button"
+                disabled={adding === previewExercise.id}
+                onClick={() => void handleSelectExercise(previewExercise.id)}
+              >
+                {adding === previewExercise.id ? 'Wird hinzugefügt…' : '+ Übernehmen'}
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </Modal>

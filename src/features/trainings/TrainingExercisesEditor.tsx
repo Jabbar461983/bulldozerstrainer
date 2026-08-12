@@ -20,9 +20,15 @@ interface TrainingExercisesEditorProps {
   trainingId: string;
   fieldType: TrainingFieldType;
   categoryId: string;
+  totalDurationMinutes: number;
 }
 
-export function TrainingExercisesEditor({ trainingId, fieldType, categoryId }: TrainingExercisesEditorProps) {
+export function TrainingExercisesEditor({
+  trainingId,
+  fieldType,
+  categoryId,
+  totalDurationMinutes,
+}: TrainingExercisesEditorProps) {
   const [rows, setRows] = useState<TrainingExerciseRow[] | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
@@ -157,12 +163,36 @@ export function TrainingExercisesEditor({ trainingId, fieldType, categoryId }: T
   }
 
   const detailRow = rows?.find((r) => r.id === detailRowId) ?? null;
+  const plannedMinutes = rows?.reduce((sum, r) => sum + r.duration_minutes, 0) ?? 0;
 
   return (
     <div className="flex flex-col gap-3">
-      <Button type="button" variant="secondary" onClick={() => openAddDialog(rows?.length ?? 0)} className="self-start">
-        + Übung hinzufügen
-      </Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => openAddDialog(rows?.length ?? 0)}
+          className="shrink-0"
+        >
+          + Übung hinzufügen
+        </Button>
+        {rows && rows.length > 0 && (
+          <div className="flex min-w-[140px] flex-1 items-center gap-2">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
+              <div
+                className={clsx(
+                  'h-full rounded-full transition-all',
+                  plannedMinutes > totalDurationMinutes ? 'bg-danger' : 'bg-success',
+                )}
+                style={{ width: `${Math.min(100, (plannedMinutes / Math.max(1, totalDurationMinutes)) * 100)}%` }}
+              />
+            </div>
+            <span className="shrink-0 text-xs text-text-muted">
+              {plannedMinutes} von {totalDurationMinutes} Min. verplant
+            </span>
+          </div>
+        )}
+      </div>
 
       {rows === null && <p className="text-sm text-text-muted">Lädt…</p>}
       {rows?.length === 0 && <p className="text-sm text-text-muted">Noch keine Übungen eingeplant.</p>}
@@ -216,14 +246,14 @@ export function TrainingExercisesEditor({ trainingId, fieldType, categoryId }: T
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDetailRowId(row.id)}
-                        className="min-w-0 flex-1 truncate text-left text-sm font-medium text-text hover:text-accent hover:underline"
-                      >
-                        {row.exerciseTitle}
-                      </button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailRowId(row.id)}
+                      className="block w-full text-left text-sm font-medium text-text hover:text-accent hover:underline"
+                    >
+                      {row.exerciseTitle}
+                    </button>
+                    <div className="mt-1 flex items-center gap-2">
                       <div className="w-14 shrink-0">
                         <Input
                           type="number"

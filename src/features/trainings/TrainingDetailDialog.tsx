@@ -227,9 +227,6 @@ export function TrainingDetailDialog({
 
         <div className="border-t border-border pt-4">
           <Label>Abgemeldet</Label>
-          <p className="mb-2 text-xs text-text-muted">
-            Alle Spieler und Trainer des Teams gelten standardmässig als angemeldet.
-          </p>
           <TrainingAbsencesEditor trainingId={training.id} teamId={training.team_id} />
         </div>
 
@@ -248,6 +245,7 @@ export function TrainingDetailDialog({
             trainingId={training.id}
             fieldType={fieldType}
             categoryId={categoryId}
+            totalDurationMinutes={duration}
           />
         </div>
 

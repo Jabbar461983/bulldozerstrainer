@@ -35,6 +35,9 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 export interface ExerciseOption {
   id: string;
   title: string;
+  description: string | null;
+  coaching_questions: string | null;
+  variants: string | null;
   age_category_ids: string[];
   focus_areas: ExerciseFocus[];
 }
@@ -42,7 +45,7 @@ export interface ExerciseOption {
 export async function fetchExerciseOptions(): Promise<ExerciseOption[]> {
   const { data, error } = await supabase
     .from('exercises')
-    .select('id, title, age_category_ids, focus_areas')
+    .select('id, title, description, coaching_questions, variants, age_category_ids, focus_areas')
     .order('title', { ascending: true });
   if (error) throw error;
   return data ?? [];
