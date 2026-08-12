@@ -21,6 +21,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
   const [title, setTitle] = useState(exercise.title);
   const [learningContent, setLearningContent] = useState(exercise.learning_content ?? '');
   const [description, setDescription] = useState(exercise.description ?? '');
+  const [coachingQuestions, setCoachingQuestions] = useState(exercise.coaching_questions ?? '');
   const [variants, setVariants] = useState(exercise.variants ?? '');
   const [focusAreas, setFocusAreas] = useState<string[]>(exercise.focus_areas);
   const [categoryIds, setCategoryIds] = useState<string[]>(exercise.age_category_ids);
@@ -47,6 +48,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
         title,
         learning_content: learningContent || null,
         description: description || null,
+        coaching_questions: coachingQuestions || null,
         variants: variants || null,
         focus_areas: focusAreas as ExerciseFocus[],
         age_category_ids: categoryIds,
@@ -96,6 +98,17 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+        </div>
+        <div>
+          <Label htmlFor="coachingQuestions">Coachingfragen (optional)</Label>
+          <textarea
+            id="coachingQuestions"
+            rows={3}
+            value={coachingQuestions}
+            onChange={(e) => setCoachingQuestions(e.target.value)}
+            placeholder="Fragen, die den Spielern die richtigen Details der Übung bewusst machen"
             className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
         </div>

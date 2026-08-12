@@ -250,6 +250,12 @@ export function TrainingPresentation({ training, teamId, trainings, onClose }: T
                 <p className="whitespace-pre-wrap text-sm text-text">{page.exercise.exerciseVariants}</p>
               </div>
             )}
+            {page.exercise.exerciseCoachingQuestions && (
+              <div>
+                <h2 className="mb-1 text-sm font-semibold text-text-muted">Coachingfragen</h2>
+                <p className="whitespace-pre-wrap text-sm text-text">{page.exercise.exerciseCoachingQuestions}</p>
+              </div>
+            )}
           </div>
         )}
 

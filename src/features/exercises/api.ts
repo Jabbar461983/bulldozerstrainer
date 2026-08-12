@@ -146,6 +146,7 @@ export async function createExercise(payload: {
   title: string;
   learning_content: string | null;
   description: string | null;
+  coaching_questions: string | null;
   variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
@@ -171,6 +172,7 @@ export interface ExerciseImportPayload {
   title: string;
   learning_content: string | null;
   description: string | null;
+  coaching_questions: string | null;
   variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
@@ -185,7 +187,16 @@ export async function importExercises(payloads: ExerciseImportPayload[], authorI
 export async function updateExercise(
   id: string,
   updates: Partial<
-    Pick<Exercise, 'title' | 'learning_content' | 'description' | 'variants' | 'focus_areas' | 'age_category_ids'>
+    Pick<
+      Exercise,
+      | 'title'
+      | 'learning_content'
+      | 'description'
+      | 'coaching_questions'
+      | 'variants'
+      | 'focus_areas'
+      | 'age_category_ids'
+    >
   >,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

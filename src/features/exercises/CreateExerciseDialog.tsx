@@ -20,6 +20,7 @@ export function CreateExerciseDialog({ categories, onClose, onCreated }: CreateE
   const [title, setTitle] = useState('');
   const [learningContent, setLearningContent] = useState('');
   const [description, setDescription] = useState('');
+  const [coachingQuestions, setCoachingQuestions] = useState('');
   const [variants, setVariants] = useState('');
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
@@ -53,6 +54,7 @@ export function CreateExerciseDialog({ categories, onClose, onCreated }: CreateE
         title,
         learning_content: learningContent || null,
         description: description || null,
+        coaching_questions: coachingQuestions || null,
         variants: variants || null,
         focus_areas: focusAreas as ExerciseFocus[],
         age_category_ids: categoryIds,
@@ -104,6 +106,17 @@ export function CreateExerciseDialog({ categories, onClose, onCreated }: CreateE
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+        </div>
+        <div>
+          <Label htmlFor="coachingQuestions">Coachingfragen (optional)</Label>
+          <textarea
+            id="coachingQuestions"
+            rows={3}
+            value={coachingQuestions}
+            onChange={(e) => setCoachingQuestions(e.target.value)}
+            placeholder="Fragen, die den Spielern die richtigen Details der Übung bewusst machen"
             className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
         </div>

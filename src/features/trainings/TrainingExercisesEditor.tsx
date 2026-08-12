@@ -175,6 +175,13 @@ export function TrainingExercisesEditor({ trainingId, fieldType, categoryId }: T
                 <p className="mt-2 pl-9 text-xs text-text-muted">{row.exerciseDescription}</p>
               )}
 
+              {row.exerciseCoachingQuestions && (
+                <p className="mt-2 pl-9 text-xs text-text-muted">
+                  <span className="font-medium text-text">Coachingfragen: </span>
+                  {row.exerciseCoachingQuestions}
+                </p>
+              )}
+
               {row.media.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2 pl-9">
                   {row.media.map((m) =>

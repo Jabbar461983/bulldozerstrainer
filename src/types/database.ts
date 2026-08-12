@@ -127,6 +127,7 @@ export interface Exercise {
   title: string;
   learning_content: string | null;
   description: string | null;
+  coaching_questions: string | null;
   variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
