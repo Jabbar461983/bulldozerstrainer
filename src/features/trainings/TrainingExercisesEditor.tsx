@@ -249,31 +249,42 @@ export function TrainingExercisesEditor({
                     <button
                       type="button"
                       onClick={() => setDetailRowId(row.id)}
-                      className="block w-full text-left text-sm font-medium text-text hover:text-accent hover:underline"
+                      className="block w-full text-left text-sm font-bold text-text hover:text-accent hover:underline"
                     >
                       {row.exerciseTitle}
                     </button>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="w-14 shrink-0">
+                    <div className="mt-1 flex items-center gap-1">
+                      <div className="w-16 shrink-0">
                         <Input
                           type="number"
                           min={1}
                           value={row.duration_minutes}
                           disabled={busy}
                           onChange={(e) => void handleDurationChange(row.id, Number(e.target.value))}
-                          className="text-center"
+                          className="text-center font-semibold"
                         />
                       </div>
-                      <span className="shrink-0 text-xs text-text-muted">Min.</span>
+                      <span className="shrink-0 text-[10px] text-text-muted">Min.</span>
                     </div>
-                    <textarea
-                      rows={1}
-                      placeholder="Notizen zu dieser Übung…"
-                      value={notesDraft[row.id] ?? ''}
-                      onChange={(e) => setNotesDraft((prev) => ({ ...prev, [row.id]: e.target.value }))}
-                      onBlur={() => void handleNotesBlur(row.id)}
-                      className="mt-1 w-full resize-none rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-                    />
+                    <div className="mt-1 flex items-center gap-2">
+                      <textarea
+                        rows={1}
+                        placeholder="Notizen zu dieser Übung…"
+                        value={notesDraft[row.id] ?? ''}
+                        onChange={(e) => setNotesDraft((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                        onBlur={() => void handleNotesBlur(row.id)}
+                        className="min-w-0 flex-1 resize-none rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      />
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handleRemove(row.id)}
+                        aria-label="Übung aus Training entfernen"
+                        className="shrink-0 text-text-muted transition hover:text-danger disabled:opacity-50"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

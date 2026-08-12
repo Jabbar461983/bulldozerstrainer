@@ -185,9 +185,10 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
                   <div className="relative shrink-0">
                     <button
                       type="button"
-                      onClick={() => setPreviewId(e.id)}
-                      aria-label={`${e.title} – Details anzeigen`}
-                      className="block"
+                      disabled={adding === e.id}
+                      onClick={() => void handleSelectExercise(e.id)}
+                      aria-label="Übung ins Training übernehmen"
+                      className="block disabled:opacity-50"
                     >
                       {thumbnail ? (
                         <img
