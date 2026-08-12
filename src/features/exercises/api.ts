@@ -225,3 +225,31 @@ export async function deleteExercise(id: string, media: ExerciseMedia[]) {
   if (error) throw error;
   await Promise.all(media.map((m) => removeExerciseMediaFile(m.path)));
 }
+
+// Persönliche Favoriten: jeder Trainer markiert unabhängig von den anderen.
+export async function fetchFavoriteExerciseIds(profileId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('exercise_favorites')
+    .select('exercise_id')
+    .eq('profile_id', profileId);
+  if (error) throw error;
+  return new Set((data ?? []).map((r: { exercise_id: string }) => r.exercise_id));
+}
+
+export async function addExerciseFavorite(profileId: string, exerciseId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('exercise_favorites') as any).insert({
+    profile_id: profileId,
+    exercise_id: exerciseId,
+  });
+  if (error) throw error;
+}
+
+export async function removeExerciseFavorite(profileId: string, exerciseId: string) {
+  const { error } = await supabase
+    .from('exercise_favorites')
+    .delete()
+    .eq('profile_id', profileId)
+    .eq('exercise_id', exerciseId);
+  if (error) throw error;
+}

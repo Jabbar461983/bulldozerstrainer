@@ -137,6 +137,13 @@ export interface Exercise {
   updated_at: string;
 }
 
+export interface ExerciseFavorite {
+  id: string;
+  profile_id: string;
+  exercise_id: string;
+  created_at: string;
+}
+
 export interface Training {
   id: string;
   team_id: string;
@@ -401,6 +408,11 @@ export interface Database {
         Update: Partial<PlayerGoal>;
       };
       exercises: { Row: Exercise; Insert: Partial<Exercise>; Update: Partial<Exercise> };
+      exercise_favorites: {
+        Row: ExerciseFavorite;
+        Insert: Partial<ExerciseFavorite>;
+        Update: Partial<ExerciseFavorite>;
+      };
       trainings: { Row: Training; Insert: Partial<Training>; Update: Partial<Training> };
       training_exercises: {
         Row: TrainingExercise;

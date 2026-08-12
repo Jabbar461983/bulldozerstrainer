@@ -4,10 +4,12 @@ import { Button } from '../../components/Button';
 import {
   fetchExerciseOptions,
   fetchExerciseMediaByIds,
+  fetchFavoriteExerciseIds,
   ON_FIELD_FOCUS_OPTIONS,
   OFF_FIELD_FOCUS_OPTIONS,
 } from '../exercises/api';
 import type { ExerciseOption, ExerciseMediaView } from '../exercises/api';
+import { useAuth } from '../../auth/AuthContext';
 import type { ExerciseFocus, TrainingFieldType } from '../../types/database';
 
 interface AddTrainingExerciseDialogProps {
@@ -17,10 +19,14 @@ interface AddTrainingExerciseDialogProps {
   onAdd: (exerciseId: string) => Promise<void>;
 }
 
+type ContentSelection = { kind: 'favorites' } | { kind: 'focus'; focus: ExerciseFocus };
+
 export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAdd }: AddTrainingExerciseDialogProps) {
+  const { profile } = useAuth();
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
   const [mediaByExercise, setMediaByExercise] = useState<Map<string, ExerciseMediaView[]>>(new Map());
-  const [selectedFocus, setSelectedFocus] = useState<ExerciseFocus | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [selection, setSelection] = useState<ContentSelection | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,11 +35,16 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
     fetchExerciseOptions()
       .then(async (options) => {
         setExercises(options);
-        setMediaByExercise(await fetchExerciseMediaByIds(options.map((o) => o.id)));
+        const [media, favorites] = await Promise.all([
+          fetchExerciseMediaByIds(options.map((o) => o.id)),
+          profile?.id ? fetchFavoriteExerciseIds(profile.id) : Promise.resolve(new Set<string>()),
+        ]);
+        setMediaByExercise(media);
+        setFavoriteIds(favorites);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Übungen konnten nicht geladen werden.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [profile?.id]);
 
   async function handleSelectExercise(exerciseId: string) {
     setAdding(exerciseId);
@@ -56,18 +67,24 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
     return categoryExercises.filter((e) => e.focus_areas.some((f) => OFF_FIELD_FOCUS_OPTIONS.includes(f)));
   }, [categoryExercises, fieldType]);
 
+  const favoriteFieldExercises = useMemo(
+    () => fieldExercises.filter((e) => favoriteIds.has(e.id)),
+    [fieldExercises, favoriteIds],
+  );
+
   const filteredExercises = useMemo(() => {
-    if (!selectedFocus) return [];
-    return fieldExercises.filter((e) => e.focus_areas.includes(selectedFocus));
-  }, [fieldExercises, selectedFocus]);
+    if (!selection) return [];
+    if (selection.kind === 'favorites') return favoriteFieldExercises;
+    return fieldExercises.filter((e) => e.focus_areas.includes(selection.focus));
+  }, [fieldExercises, favoriteFieldExercises, selection]);
 
   return (
-    <Modal title={selectedFocus ? 'Übung auswählen' : 'Inhalt auswählen'} onClose={onClose}>
+    <Modal title={selection ? 'Übung auswählen' : 'Inhalt auswählen'} onClose={onClose}>
       <div className="flex flex-col gap-2">
         {loading && <p className="text-sm text-text-muted">Lädt…</p>}
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        {!loading && !selectedFocus && (
+        {!loading && !selection && (
           <>
             {fieldExercises.length === 0 && (
               <p className="text-sm text-text-muted">
@@ -75,12 +92,21 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
               </p>
             )}
 
+            <button
+              type="button"
+              onClick={() => setSelection({ kind: 'favorites' })}
+              className="flex items-center justify-between rounded-xl border border-accent/40 bg-accent/5 px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-accent/10"
+            >
+              ★ Persönliche Favoriten
+              <span className="text-xs font-normal text-text-muted">{favoriteFieldExercises.length} Übungen</span>
+            </button>
+
             {fieldType === 'off_field' ? (
               OFF_FIELD_FOCUS_OPTIONS.map((f) => (
                 <button
                   key={f}
                   type="button"
-                  onClick={() => setSelectedFocus(f)}
+                  onClick={() => setSelection({ kind: 'focus', focus: f })}
                   className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt"
                 >
                   {f}
@@ -95,7 +121,7 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
                   <button
                     key={f}
                     type="button"
-                    onClick={() => setSelectedFocus(f)}
+                    onClick={() => setSelection({ kind: 'focus', focus: f })}
                     className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5 text-left text-sm font-medium text-text hover:bg-surface-alt"
                   >
                     {f}
@@ -110,7 +136,7 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
                   <button
                     key={f}
                     type="button"
-                    onClick={() => setSelectedFocus(f)}
+                    onClick={() => setSelection({ kind: 'focus', focus: f })}
                     className="flex items-center justify-between rounded-lg border border-border px-2.5 py-1.5 text-left text-xs font-medium text-text-muted hover:bg-surface-alt"
                   >
                     {f}
@@ -124,9 +150,9 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
           </>
         )}
 
-        {!loading && selectedFocus && (
+        {!loading && selection && (
           <>
-            <Button type="button" variant="ghost" onClick={() => setSelectedFocus(null)} className="self-start">
+            <Button type="button" variant="ghost" onClick={() => setSelection(null)} className="self-start">
               ← Inhalt wechseln
             </Button>
 
