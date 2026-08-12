@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Button } from '../../components/Button';
+import { Input } from '../../components/Input';
 import { AddTrainingExerciseDialog } from './AddTrainingExerciseDialog';
 import { TrainingExerciseDetailDialog } from './TrainingExerciseDetailDialog';
 import {
@@ -208,20 +209,33 @@ export function TrainingExercisesEditor({ trainingId, fieldType, categoryId }: T
                     <img
                       src={thumbnail.url ?? ''}
                       alt=""
-                      className="h-16 w-20 shrink-0 rounded-lg border border-border object-cover"
+                      className="h-32 w-48 shrink-0 rounded-lg border border-border object-cover"
                     />
                   ) : (
-                    <div className="h-16 w-20 shrink-0 rounded-lg border border-dashed border-border" />
+                    <div className="h-32 w-48 shrink-0 rounded-lg border border-dashed border-border" />
                   )}
 
                   <div className="min-w-0 flex-1">
-                    <button
-                      type="button"
-                      onClick={() => setDetailRowId(row.id)}
-                      className="truncate text-left text-sm font-medium text-text hover:text-accent hover:underline"
-                    >
-                      {row.exerciseTitle}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDetailRowId(row.id)}
+                        className="min-w-0 flex-1 truncate text-left text-sm font-medium text-text hover:text-accent hover:underline"
+                      >
+                        {row.exerciseTitle}
+                      </button>
+                      <div className="w-14 shrink-0">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={row.duration_minutes}
+                          disabled={busy}
+                          onChange={(e) => void handleDurationChange(row.id, Number(e.target.value))}
+                          className="text-center"
+                        />
+                      </div>
+                      <span className="shrink-0 text-xs text-text-muted">Min.</span>
+                    </div>
                     <textarea
                       rows={1}
                       placeholder="Notizen zu dieser Übung…"

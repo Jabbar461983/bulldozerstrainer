@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
@@ -6,18 +6,9 @@ import { Input, Label } from '../../components/Input';
 import { TrainingExercisesEditor } from './TrainingExercisesEditor';
 import { TrainingRatingSection } from './TrainingRatingSection';
 import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
-import { TrainingTrainersEditor } from './TrainingTrainersEditor';
 import { FieldTypeToggle } from './FieldTypeToggle';
-import {
-  updateTraining,
-  deleteTraining,
-  fetchTrainingExercises,
-  fetchTrainingTrainers,
-  replaceTrainingTrainers,
-  fetchTrainingAbsences,
-} from './api';
-import { fetchTeamTrainerRoster, fetchTeamPlayerRoster } from '../../lib/roster';
-import type { RosterTrainer } from '../../lib/roster';
+import { updateTraining, deleteTraining, fetchTrainingExercises, fetchTrainingAbsences } from './api';
+import { fetchTeamPlayerRoster } from '../../lib/roster';
 import { exportTrainingPdf } from './trainingPdf';
 import { TrainingSeasonSummary } from '../seasonplanning/TrainingSeasonSummary';
 import { fetchApplicableSeasonPlanningEvents, computeTrainingSeasonCoverage } from '../seasonplanning/api';
@@ -59,34 +50,6 @@ export function TrainingDetailDialog({
   const [error, setError] = useState<string | null>(null);
   const [saveSummary, setSaveSummary] = useState<SaveSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
-
-  const [trainerRoster, setTrainerRoster] = useState<RosterTrainer[]>([]);
-  const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
-  const [trainersLoading, setTrainersLoading] = useState(true);
-  const [trainersError, setTrainersError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadTrainers() {
-      setTrainersError(null);
-      try {
-        const [roster, links] = await Promise.all([
-          fetchTeamTrainerRoster(training.team_id),
-          fetchTrainingTrainers(training.id),
-        ]);
-        setTrainerRoster(roster);
-        setSelectedTrainerIds(links.map((l) => l.trainer_id));
-      } catch (err) {
-        setTrainersError(err instanceof Error ? err.message : 'Trainer konnten nicht geladen werden.');
-      } finally {
-        setTrainersLoading(false);
-      }
-    }
-    void loadTrainers();
-  }, [training.id, training.team_id]);
-
-  function toggleTrainer(trainerId: string) {
-    setSelectedTrainerIds((prev) => (prev.includes(trainerId) ? prev.filter((id) => id !== trainerId) : [...prev, trainerId]));
-  }
 
   async function handleExportPdf() {
     setExportingPdf(true);
@@ -163,9 +126,6 @@ export function TrainingDetailDialog({
         information: information || null,
         show_exercise_descriptions: showExerciseDescriptions,
       });
-      if (!trainersLoading) {
-        await replaceTrainingTrainers(training.id, selectedTrainerIds);
-      }
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Änderungen konnten nicht gespeichert werden.');
@@ -266,18 +226,10 @@ export function TrainingDetailDialog({
         </form>
 
         <div className="border-t border-border pt-4">
-          <Label>Trainer</Label>
-          <TrainingTrainersEditor
-            trainers={trainerRoster}
-            selectedIds={selectedTrainerIds}
-            onToggle={toggleTrainer}
-            loading={trainersLoading}
-            error={trainersError}
-          />
-        </div>
-
-        <div className="border-t border-border pt-4">
           <Label>Abgemeldet</Label>
+          <p className="mb-2 text-xs text-text-muted">
+            Alle Spieler und Trainer des Teams gelten standardmässig als angemeldet.
+          </p>
           <TrainingAbsencesEditor trainingId={training.id} teamId={training.team_id} />
         </div>
 

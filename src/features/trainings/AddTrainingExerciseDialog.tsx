@@ -176,7 +176,7 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
                     <img
                       src={thumbnail.url ?? ''}
                       alt=""
-                      className="h-12 w-16 shrink-0 rounded-lg border border-border object-cover"
+                      className="h-24 w-36 shrink-0 rounded-lg border border-border object-cover"
                     />
                   )}
                 </button>
