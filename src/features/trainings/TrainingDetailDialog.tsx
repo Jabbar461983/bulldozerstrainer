@@ -20,9 +20,14 @@ import { fetchTeamTrainerRoster, fetchTeamPlayerRoster } from '../../lib/roster'
 import type { RosterTrainer } from '../../lib/roster';
 import { exportTrainingPdf } from './trainingPdf';
 import { TrainingSeasonSummary } from '../seasonplanning/TrainingSeasonSummary';
-import { fetchApplicableSeasonPlanningEvents } from '../seasonplanning/api';
+import { fetchApplicableSeasonPlanningEvents, computeTrainingSeasonCoverage } from '../seasonplanning/api';
 import { SEASON_CATEGORY_ORDER } from '../seasonplanning/categories';
 import type { Training, TrainingFieldType } from '../../types/database';
+
+interface SaveSummary {
+  coverage: number | null;
+  plannedMinutes: number;
+}
 
 interface TrainingDetailDialogProps {
   training: Training;
@@ -52,6 +57,8 @@ export function TrainingDetailDialog({
   const [deleting, setDeleting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveSummary, setSaveSummary] = useState<SaveSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const [trainerRoster, setTrainerRoster] = useState<RosterTrainer[]>([]);
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
@@ -126,6 +133,25 @@ export function TrainingDetailDialog({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSummaryLoading(true);
+    try {
+      const [exercises, seasonEvents] = await Promise.all([
+        fetchTrainingExercises(training.id),
+        fetchApplicableSeasonPlanningEvents(training.team_id, date),
+      ]);
+      const plannedMinutes = exercises.reduce((sum, ex) => sum + ex.duration_minutes, 0);
+      const coverage = await computeTrainingSeasonCoverage(training.id, seasonEvents).catch(() => null);
+      setSaveSummary({ coverage, plannedMinutes });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Übersicht konnte nicht geladen werden.');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }
+
+  async function performSave() {
+    setSaveSummary(null);
+    setError(null);
     setLoading(true);
     try {
       await updateTraining(training.id, {
@@ -186,8 +212,8 @@ export function TrainingDetailDialog({
           <Button type="button" variant="secondary" onClick={onClose}>
             Schliessen
           </Button>
-          <Button type="submit" form="edit-training-form" disabled={loading}>
-            {loading ? 'Speichern…' : 'Speichern'}
+          <Button type="submit" form="edit-training-form" disabled={loading || summaryLoading}>
+            {summaryLoading ? 'Lädt…' : loading ? 'Speichern…' : 'Speichern'}
           </Button>
         </>
       }
@@ -236,15 +262,6 @@ export function TrainingDetailDialog({
               className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-text">
-            <input
-              type="checkbox"
-              className="size-5"
-              checked={showExerciseDescriptions}
-              onChange={(e) => setShowExerciseDescriptions(e.target.checked)}
-            />
-            Übungsbeschreibung im PDF anzeigen
-          </label>
           {error && <p className="text-sm text-danger">{error}</p>}
         </form>
 
@@ -266,6 +283,15 @@ export function TrainingDetailDialog({
 
         <div className="border-t border-border pt-4">
           <Label>Übungen</Label>
+          <label className="mb-3 flex items-center gap-2 text-sm text-text">
+            <input
+              type="checkbox"
+              className="size-5"
+              checked={showExerciseDescriptions}
+              onChange={(e) => setShowExerciseDescriptions(e.target.checked)}
+            />
+            Übungsbeschreibung im PDF anzeigen
+          </label>
           <TrainingExercisesEditor
             trainingId={training.id}
             fieldType={fieldType}
@@ -278,6 +304,34 @@ export function TrainingDetailDialog({
           <TrainingRatingSection trainingId={training.id} />
         </div>
       </div>
+
+      {saveSummary && (
+        <Modal
+          title="Training speichern"
+          onClose={() => setSaveSummary(null)}
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setSaveSummary(null)}>
+                Zurück
+              </Button>
+              <Button type="button" disabled={loading} onClick={() => void performSave()}>
+                {loading ? 'Speichert…' : 'OK'}
+              </Button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-2 text-sm text-text">
+            <p>
+              {saveSummary.coverage !== null
+                ? `${saveSummary.coverage}% der Trainingseinheit gemäss Saisonplanung geplant.`
+                : 'Prozentzahl gemäss Saisonplanung konnte nicht berechnet werden.'}
+            </p>
+            <p>
+              {saveSummary.plannedMinutes} von {duration} Minuten des Trainings verplant.
+            </p>
+          </div>
+        </Modal>
+      )}
     </Modal>
   );
 }
