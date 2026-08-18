@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
@@ -7,7 +7,7 @@ import { GameLineupEditor } from './GameLineupEditor';
 import { GameAbsencesEditor } from './GameAbsencesEditor';
 import { GameRatingSection } from './GameRatingSection';
 import { GameComments } from './GameComments';
-import { updateGame, deleteGame } from './api';
+import { updateGame, deleteGame, fetchPastGamesForSeason, copyGameLineups } from './api';
 import type { Game } from '../../types/database';
 
 interface GameDetailDialogProps {
@@ -32,6 +32,33 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pastGames, setPastGames] = useState<Game[]>([]);
+  const [selectedSourceGameId, setSelectedSourceGameId] = useState<string>('');
+  const [copyingLineup, setCopyingLineup] = useState(false);
+
+  useEffect(() => {
+    if (season) {
+      fetchPastGamesForSeason(teamId, season)
+        .then((games) => setPastGames(games))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Fehler beim Laden vergangener Spiele'));
+    }
+  }, [season, teamId]);
+
+  async function handleCopyLineup() {
+    if (!selectedSourceGameId) return;
+
+    setCopyingLineup(true);
+    setError(null);
+    try {
+      await copyGameLineups(selectedSourceGameId, game.id);
+      setError(null);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Aufstellung konnte nicht kopiert werden');
+    } finally {
+      setCopyingLineup(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -122,20 +149,30 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
               <Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="resultUs">Tore wir</Label>
-              <Input id="resultUs" type="number" min={0} value={resultUs} onChange={(e) => setResultUs(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="resultThem">Tore Gegner</Label>
-              <Input
-                id="resultThem"
-                type="number"
-                min={0}
-                value={resultThem}
-                onChange={(e) => setResultThem(e.target.value)}
-              />
+          <div>
+            <Label>Resultat</Label>
+            <div className="grid grid-cols-3 gap-2 items-end">
+              <div>
+                <Input
+                  id="resultUs"
+                  type="number"
+                  min={0}
+                  value={resultUs}
+                  onChange={(e) => setResultUs(e.target.value)}
+                  placeholder="Tore"
+                />
+              </div>
+              <div className="text-center text-xl font-bold">:</div>
+              <div>
+                <Input
+                  id="resultThem"
+                  type="number"
+                  min={0}
+                  value={resultThem}
+                  onChange={(e) => setResultThem(e.target.value)}
+                  placeholder="Tore"
+                />
+              </div>
             </div>
           </div>
           <div>
@@ -153,6 +190,36 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
 
         <div className="border-t border-border pt-4">
           <Label>Aufstellung</Label>
+
+          {pastGames.length > 0 && (
+            <div className="mb-4 space-y-2 p-3 bg-surface-alt rounded-lg">
+              <p className="text-sm font-medium">Aufstellung kopieren</p>
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={selectedSourceGameId}
+                  onChange={(e) => setSelectedSourceGameId(e.target.value)}
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm col-span-2"
+                  disabled={copyingLineup}
+                >
+                  <option value="">Wählen Sie ein vergangenes Spiel...</option>
+                  {pastGames.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.date} – {g.home_team} vs {g.away_team}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCopyLineup}
+                  disabled={!selectedSourceGameId || copyingLineup}
+                >
+                  {copyingLineup ? 'Kopiert...' : '📋 Kopieren'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <GameLineupEditor gameId={game.id} teamId={teamId} categoryName={categoryName} />
         </div>
 

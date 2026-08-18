@@ -200,3 +200,44 @@ export async function deleteGameComment(id: string) {
   const { error } = await supabase.from('player_notes').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function fetchPastGamesForSeason(teamId: string, season: string): Promise<Game[]> {
+  const { data, error } = await supabase
+    .from('games')
+    .select('*')
+    .eq('our_team_id', teamId)
+    .eq('season', season)
+    .lt('date', new Date().toISOString().split('T')[0])
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function fetchGameLineups(gameId: string): Promise<GameLineup[]> {
+  const { data, error } = await supabase
+    .from('game_lineups')
+    .select('*')
+    .eq('game_id', gameId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function copyGameLineups(sourceGameId: string, targetGameId: string): Promise<void> {
+  const sourceLineups = await fetchGameLineups(sourceGameId);
+
+  if (sourceLineups.length === 0) return;
+
+  const newLineups = sourceLineups.map((lineup: GameLineup) => ({
+    ...lineup,
+    id: undefined,
+    game_id: targetGameId,
+    created_at: undefined,
+    updated_at: undefined,
+  }));
+
+  const { error: deleteError } = await supabase.from('game_lineups').delete().eq('game_id', targetGameId);
+  if (deleteError) throw deleteError;
+
+  const { error: insertError } = await (supabase.from('game_lineups') as any).insert(newLineups);
+  if (insertError) throw insertError;
+}
