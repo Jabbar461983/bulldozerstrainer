@@ -264,7 +264,7 @@ export interface TrainingFocusPercentage {
 
 export interface Budget {
   id: string;
-  team_id: string;
+  team_id: string | null;
   season: string;
   amount: number;
   updated_by: string | null;
@@ -273,7 +273,7 @@ export interface Budget {
 
 export interface Receipt {
   id: string;
-  team_id: string;
+  team_id: string | null;
   season: string;
   type: 'income' | 'expense';
   amount: number;

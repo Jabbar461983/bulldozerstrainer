@@ -15,6 +15,7 @@ import { ExercisesPage } from './features/exercises/ExercisesPage';
 import { TrainingsPage } from './features/trainings/TrainingsPage';
 import { GamesPage } from './features/games/GamesPage';
 import { FinancePage } from './features/finance/FinancePage';
+import { FinanceOverviewPage } from './features/finance/FinanceOverviewPage';
 import { SeasonPlanningWrapper } from './features/seasonplanning/SeasonPlanningWrapper';
 
 function App() {
@@ -89,6 +90,14 @@ function App() {
                 <ModuleRoute module="finanzen">
                   <FinancePage />
                 </ModuleRoute>
+              }
+            />
+            <Route
+              path="finanzen/uebersicht"
+              element={
+                <AdminRoute>
+                  <FinanceOverviewPage />
+                </AdminRoute>
               }
             />
             <Route
