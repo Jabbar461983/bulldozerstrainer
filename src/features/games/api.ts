@@ -228,7 +228,7 @@ export async function copyGameLineups(sourceGameId: string, targetGameId: string
   if (sourceLineups.length === 0) return;
 
   const newLineups = sourceLineups.map((lineup: GameLineup) => {
-    const { id, created_at, updated_at, ...rest } = lineup;
+    const { id, ...rest } = lineup;
     return {
       ...rest,
       game_id: targetGameId,
