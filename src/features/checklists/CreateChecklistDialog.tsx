@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
-import { createChecklist, updateChecklistTeamAssignments } from './api';
+import { createChecklist, updateChecklistTeamAssignments, createChecklistInstancesForHomeGames } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
 
@@ -17,6 +17,7 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
   const [description, setDescription] = useState('');
   const [hasReporting, setHasReporting] = useState(false);
   const [isGlobal, setIsGlobal] = useState(true);
+  const [autoCreateForHomeGames, setAutoCreateForHomeGames] = useState(false);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -43,10 +44,16 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
         description: description.trim() || null,
         has_reporting: hasReporting,
         is_global: isGlobal,
+        auto_create_for_home_games: autoCreateForHomeGames,
       });
 
       if (!isGlobal && selectedTeamIds.size > 0) {
         await updateChecklistTeamAssignments(id, Array.from(selectedTeamIds));
+      }
+
+      // If auto-create is enabled, create instances for existing home games
+      if (autoCreateForHomeGames && selectedTeamIds.size > 0) {
+        await createChecklistInstancesForHomeGames(id, Array.from(selectedTeamIds));
       }
 
       onCreated();
@@ -110,6 +117,19 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
             <span className="text-sm font-medium">Mit Reporting</span>
           </label>
           <p className="text-xs text-text-muted">Tracking wer wann welche Punkte abhackt</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoCreateForHomeGames}
+              onChange={(e) => setAutoCreateForHomeGames(e.target.checked)}
+              className="rounded border-border"
+            />
+            <span className="text-sm font-medium">Automatisch für Heimspiele erstellen</span>
+          </label>
+          <p className="text-xs text-text-muted">Erstellt automatisch eine Checkliste-Instanz für jedes Heimspiel der zugewiesenen Teams. Das Datum wird automatisch auf das Spieldatum gesetzt.</p>
         </div>
 
         <div className="space-y-2">

@@ -3,6 +3,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, createChecklistInstance } from './api';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
+import { ChecklistItemAttachments } from './ChecklistItemAttachments';
 
 interface ChecklistInstanceWorkspaceProps {
   checklist: ChecklistRow;
@@ -237,6 +238,15 @@ export function ChecklistInstanceWorkspace({
                   {item.title}
                 </span>
               </label>
+              {isCompleted && (
+                <div className="ml-8">
+                  <ChecklistItemAttachments
+                    itemId={item.id}
+                    instanceId={selectedInstance.id}
+                    isCompleted={isCompleted}
+                  />
+                </div>
+              )}
             </Card>
           );
         })}
