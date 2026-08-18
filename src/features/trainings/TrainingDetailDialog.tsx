@@ -191,7 +191,7 @@ export function TrainingDetailDialog({
           <Button
             type="button"
             variant="secondary"
-            disabled={loadingTrainings || trainings.length === 0}
+            disabled={loadingTrainings}
             onClick={() => void handleOpenCopyExercises()}
           >
             Training kopieren

@@ -31,9 +31,9 @@ export function CopyTrainingExercisesDialog({
   onClose,
   onDone,
 }: CopyTrainingExercisesDialogProps) {
-  const sorted = [...sourceTrainings].sort(
-    (a, b) => b.date.localeCompare(a.date) || (b.start_time ?? '').localeCompare(a.start_time ?? ''),
-  );
+  const sorted = [...sourceTrainings]
+    .filter((t) => t.id !== targetTrainingId)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time ?? '').localeCompare(a.start_time ?? ''));
   const [selectedId, setSelectedId] = useState(sorted[0]?.id ?? '');
   const [exercises, setExercises] = useState<TrainingExercise[]>([]);
   const [exerciseDetails, setExerciseDetails] = useState<Map<string, { title: string; description: string | null }>>(
@@ -92,44 +92,50 @@ export function CopyTrainingExercisesDialog({
       }
     >
       <div className="flex flex-col gap-4">
-        <div>
-          <Label htmlFor="sourceTraining">Bestehendes Training</Label>
-          <Select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} id="sourceTraining">
-            {sorted.map((t) => (
-              <option key={t.id} value={t.id}>
-                {formatTrainingLabel(t)}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <p className="rounded-xl bg-surface-alt p-3 text-sm text-text-muted">
-          Die Übungen und Notizen zu den Übungen vom gewählten Training werden übernommen. Alle bisherigen Übungen
-          werden ersetzt.
-        </p>
-
-        {error && <p className="text-sm text-danger">{error}</p>}
-
-        {loading ? (
-          <p className="text-sm text-text-muted">Lädt…</p>
-        ) : exercises.length === 0 ? (
-          <p className="text-sm text-text-muted">Dieses Training hat keine Übungen.</p>
+        {sorted.length === 0 ? (
+          <p className="text-sm text-text-muted">Keine anderen Trainings zum Kopieren verfügbar.</p>
         ) : (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-text">Übungen ({exercises.length}):</p>
-            <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg bg-surface p-3">
-              {exercises.map((e: TrainingExercise) => {
-                const detail = exerciseDetails.get(e.exercise_id);
-                return (
-                  <div key={e.id} className="text-sm text-text">
-                    <p className="font-medium">{detail?.title || 'Unbekannte Übung'}</p>
-                    {e.notes && <p className="text-xs text-text-muted">Notiz: {e.notes}</p>}
-                    <p className="text-xs text-text-muted">{e.duration_minutes} Min.</p>
-                  </div>
-                );
-              })}
+          <>
+            <div>
+              <Label htmlFor="sourceTraining">Bestehendes Training</Label>
+              <Select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} id="sourceTraining">
+                {sorted.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {formatTrainingLabel(t)}
+                  </option>
+                ))}
+              </Select>
             </div>
-          </div>
+
+            <p className="rounded-xl bg-surface-alt p-3 text-sm text-text-muted">
+              Die Übungen und Notizen zu den Übungen vom gewählten Training werden übernommen. Alle bisherigen Übungen
+              werden ersetzt.
+            </p>
+
+            {error && <p className="text-sm text-danger">{error}</p>}
+
+            {loading ? (
+              <p className="text-sm text-text-muted">Lädt…</p>
+            ) : exercises.length === 0 ? (
+              <p className="text-sm text-text-muted">Dieses Training hat keine Übungen.</p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-text">Übungen ({exercises.length}):</p>
+                <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg bg-surface p-3">
+                  {exercises.map((e: TrainingExercise) => {
+                    const detail = exerciseDetails.get(e.exercise_id);
+                    return (
+                      <div key={e.id} className="text-sm text-text">
+                        <p className="font-medium">{detail?.title || 'Unbekannte Übung'}</p>
+                        {e.notes && <p className="text-xs text-text-muted">Notiz: {e.notes}</p>}
+                        <p className="text-xs text-text-muted">{e.duration_minutes} Min.</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </Modal>
