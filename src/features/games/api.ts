@@ -44,9 +44,13 @@ export async function createGame(payload: {
   home_team: string;
   away_team: string;
   season: string | null;
+  is_home?: boolean;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('games') as any).insert(payload);
+  const { error } = await (supabase.from('games') as any).insert({
+    ...payload,
+    is_home: payload.is_home ?? true,
+  });
   if (error) throw error;
 }
 

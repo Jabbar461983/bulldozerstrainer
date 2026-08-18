@@ -3,6 +3,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, createChecklistInstance } from './api';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
+import { ChecklistItemAttachments } from './ChecklistItemAttachments';
 
 interface ChecklistInstanceWorkspaceProps {
   checklist: ChecklistRow;
@@ -112,7 +113,7 @@ export function ChecklistInstanceWorkspace({
         instance_id: selectedInstance.id,
         notes: globalNote,
       });
-      setMessage('Checkliste vollständig erledigt ✓');
+      setMessage('Checkliste archiviert ✓');
       setTimeout(() => onClose(), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
@@ -121,7 +122,6 @@ export function ChecklistInstanceWorkspace({
       setLoading(false);
     }
   }
-
 
   if (instances.length > 1 && !selectedInstance) {
     return (
@@ -238,6 +238,15 @@ export function ChecklistInstanceWorkspace({
                   {item.title}
                 </span>
               </label>
+              {isCompleted && (
+                <div className="ml-8">
+                  <ChecklistItemAttachments
+                    itemId={item.id}
+                    instanceId={selectedInstance.id}
+                    isCompleted={isCompleted}
+                  />
+                </div>
+              )}
             </Card>
           );
         })}
@@ -262,7 +271,7 @@ export function ChecklistInstanceWorkspace({
         disabled={loading}
         className="w-full"
       >
-        {loading ? 'Speichert...' : 'Speichern'}
+        {loading ? 'Archiviert...' : 'Checkliste komplett erledigt & archivieren'}
       </Button>
     </div>
   );

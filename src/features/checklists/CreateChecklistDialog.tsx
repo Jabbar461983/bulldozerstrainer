@@ -3,11 +3,9 @@ import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
-import { createChecklist, updateChecklistTeamAssignments, createChecklistItem } from './api';
+import { createChecklist, updateChecklistTeamAssignments, createChecklistInstancesForHomeGames } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
-import type { ChecklistItem } from '../../types/database';
-import { ChecklistItemEditor } from './ChecklistItemEditor';
 
 interface CreateChecklistDialogProps {
   onClose: () => void;
@@ -19,12 +17,9 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
   const [description, setDescription] = useState('');
   const [hasReporting, setHasReporting] = useState(false);
   const [isGlobal, setIsGlobal] = useState(true);
+  const [autoCreateForHomeGames, setAutoCreateForHomeGames] = useState(false);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
-  const [items, setItems] = useState<ChecklistItem[]>([]);
-  const [newItemTitle, setNewItemTitle] = useState('');
-  const [newItemIsSection, setNewItemIsSection] = useState(false);
-  const [eventDate, setEventDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,18 +44,16 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
         description: description.trim() || null,
         has_reporting: hasReporting,
         is_global: isGlobal,
+        auto_create_for_home_games: autoCreateForHomeGames,
       });
 
       if (!isGlobal && selectedTeamIds.size > 0) {
         await updateChecklistTeamAssignments(id, Array.from(selectedTeamIds));
       }
 
-      for (const item of items) {
-        await createChecklistItem({
-          checklist_id: id,
-          title: item.title,
-          parent_id: item.parent_id,
-        });
+      // If auto-create is enabled, create instances for existing home games
+      if (autoCreateForHomeGames && selectedTeamIds.size > 0) {
+        await createChecklistInstancesForHomeGames(id, Array.from(selectedTeamIds));
       }
 
       onCreated();
@@ -69,34 +62,6 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleAddItem() {
-    if (!newItemTitle.trim()) return;
-    setItems([
-      ...items,
-      {
-        id: 'temp-' + Date.now(),
-        checklist_id: '',
-        title: newItemTitle.trim(),
-        sort_order: items.length,
-        parent_id: null,
-        is_section: newItemIsSection,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    setNewItemTitle('');
-    setNewItemIsSection(false);
-  }
-
-  function handleUpdateItem(index: number, item: ChecklistItem) {
-    const updated = [...items];
-    updated[index] = item;
-    setItems(updated);
-  }
-
-  async function handleDeleteItem(index: number) {
-    setItems(items.filter((_, i) => i !== index));
   }
 
   return (
@@ -141,17 +106,6 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
           />
         </div>
 
-        <div>
-          <Label htmlFor="eventDate">Event-Datum (optional)</Label>
-          <Input
-            id="eventDate"
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-          />
-          <p className="text-xs text-text-muted mt-1">Für fixe Termine, wenn diese Checkliste nur an diesem Datum verwendet wird</p>
-        </div>
-
         <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -163,6 +117,19 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
             <span className="text-sm font-medium">Mit Reporting</span>
           </label>
           <p className="text-xs text-text-muted">Tracking wer wann welche Punkte abhackt</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoCreateForHomeGames}
+              onChange={(e) => setAutoCreateForHomeGames(e.target.checked)}
+              className="rounded border-border"
+            />
+            <span className="text-sm font-medium">Automatisch für Heimspiele erstellen</span>
+          </label>
+          <p className="text-xs text-text-muted">Erstellt automatisch eine Checkliste-Instanz für jedes Heimspiel der zugewiesenen Teams. Das Datum wird automatisch auf das Spieldatum gesetzt.</p>
         </div>
 
         <div className="space-y-2">
@@ -218,56 +185,6 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
             </div>
           </div>
         )}
-
-        <div className="space-y-3 border-t border-border pt-4">
-          <div className="flex items-center justify-between">
-            <Label>Punkte ({items.length})</Label>
-          </div>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {items.length === 0 ? (
-              <p className="text-xs text-text-muted">Noch keine Punkte</p>
-            ) : (
-              items.map((item, idx) => (
-                <ChecklistItemEditor
-                  key={item.id}
-                  item={item}
-                  index={idx}
-                  onUpdate={(updated) => handleUpdateItem(idx, updated)}
-                  onDelete={handleDeleteItem}
-                />
-              ))
-            )}
-          </div>
-
-          <div className="space-y-2 rounded-lg bg-surface-alt p-3">
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={newItemTitle}
-                onChange={(e) => setNewItemTitle(e.target.value)}
-                placeholder={newItemIsSection ? 'Überschrift...' : 'Neuer Punkt...'}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void handleAddItem();
-                  }
-                }}
-              />
-              <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!newItemTitle.trim()}>
-                + {newItemIsSection ? 'Überschrift' : 'Punkt'}
-              </Button>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={newItemIsSection}
-                onChange={(e) => setNewItemIsSection(e.target.checked)}
-                className="rounded border-border"
-              />
-              <span className="text-sm">Als Überschrift</span>
-            </label>
-          </div>
-        </div>
       </form>
     </Modal>
   );

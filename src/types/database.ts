@@ -208,6 +208,7 @@ export interface Game {
   result_us: number | null;
   result_them: number | null;
   pre_game_notes: string | null;
+  is_home: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -321,6 +322,7 @@ export interface Checklist {
   description: string | null;
   has_reporting: boolean;
   is_global: boolean;
+  auto_create_for_home_games: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -352,6 +354,7 @@ export interface ChecklistInstance {
   completed_by: string | null;
   created_at: string;
   completed_at: string | null;
+  archived_at: string | null;
 }
 
 export interface ChecklistItemCompletion {
@@ -361,6 +364,18 @@ export interface ChecklistItemCompletion {
   user_id: string;
   notes: string | null;
   completed_at: string;
+}
+
+export interface ChecklistItemAttachment {
+  id: string;
+  checklist_item_id: string;
+  checklist_instance_id: string | null;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  uploaded_by: string | null;
+  created_at: string;
 }
 
 // Minimal-Interface für den typisierten Supabase-Client. Da wir keine

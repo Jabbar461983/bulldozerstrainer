@@ -62,9 +62,13 @@ export async function createChecklist(payload: {
   description: string | null;
   has_reporting: boolean;
   is_global: boolean;
+  auto_create_for_home_games?: boolean;
 }) {
   const { data, error } = await (supabase.from('checklists') as any)
-    .insert(payload)
+    .insert({
+      ...payload,
+      auto_create_for_home_games: payload.auto_create_for_home_games ?? false,
+    })
     .select('id')
     .single();
   if (error) throw error;
@@ -101,17 +105,8 @@ export async function createChecklistItem(payload: {
   checklist_id: string;
   title: string;
   parent_id?: string | null;
-  is_section?: boolean;
 }) {
   const { error } = await (supabase.from('checklist_items') as any).insert(payload);
-  if (error) throw error;
-}
-
-export async function updateChecklistItem(
-  id: string,
-  updates: Partial<Pick<ChecklistItem, 'title' | 'is_section'>>,
-) {
-  const { error } = await (supabase.from('checklist_items') as any).update(updates).eq('id', id);
   if (error) throw error;
 }
 
@@ -141,7 +136,52 @@ export async function fetchChecklistInstances(checklistId: string): Promise<Chec
     { data: completions, error: completionsError },
     { data: teams, error: teamsError },
   ] = await Promise.all([
-    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId),
+    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId).is('archived_at', null),
+    supabase.from('checklists').select('title').eq('id', checklistId).single(),
+    supabase.from('checklist_items').select('*').eq('checklist_id', checklistId),
+    supabase.from('checklist_item_completions').select('*'),
+    supabase.from('teams').select('id, name'),
+  ]);
+
+  if (instancesError) throw instancesError;
+  if (checklistError) throw checklistError;
+  if (itemsError) throw itemsError;
+  if (completionsError) throw completionsError;
+  if (teamsError) throw teamsError;
+
+  const teamById = new Map((teams ?? []).map((t: any) => [t.id, t.name]));
+
+  return (instances ?? []).map((instance: any) => {
+    const itemsByInstance = (completions ?? [])
+      .filter((c: any) => c.checklist_instance_id === instance.id)
+      .reduce((acc: Record<string, any>, c: any) => {
+        acc[c.checklist_item_id] = c;
+        return acc;
+      }, {});
+
+    const completed = Object.keys(itemsByInstance).length;
+    const total = (items ?? []).length;
+
+    return {
+      ...instance,
+      checklistTitle: (checklist as any)?.title ?? 'Unbekannt',
+      teamName: instance.team_id ? teamById.get(instance.team_id) ?? null : null,
+      items: (items ?? []) as ChecklistItem[],
+      completions: itemsByInstance,
+      progress: { total, completed },
+    };
+  });
+}
+
+export async function fetchArchivedChecklistInstances(checklistId: string): Promise<ChecklistInstanceRow[]> {
+  const [
+    { data: instances, error: instancesError },
+    { data: checklist, error: checklistError },
+    { data: items, error: itemsError },
+    { data: completions, error: completionsError },
+    { data: teams, error: teamsError },
+  ] = await Promise.all([
+    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId).not('archived_at', 'is', null),
     supabase.from('checklists').select('title').eq('id', checklistId).single(),
     supabase.from('checklist_items').select('*').eq('checklist_id', checklistId),
     supabase.from('checklist_item_completions').select('*'),
@@ -296,58 +336,138 @@ export async function saveChecklistCompletion(payload: {
       notes: payload.notes || null,
       completed_at: new Date().toISOString(),
       completed_by: (await supabase.auth.getUser()).data.user?.id,
+      archived_at: new Date().toISOString(),
     })
     .eq('id', payload.instance_id);
 
   if (updateError) throw updateError;
 }
 
-export async function duplicateChecklist(id: string): Promise<string> {
+export async function createChecklistInstancesForHomeGames(checklistId: string, teamIds: string[]): Promise<void> {
   const { data: checklist, error: checklistError } = await supabase
     .from('checklists')
-    .select('*')
-    .eq('id', id)
+    .select('auto_create_for_home_games')
+    .eq('id', checklistId)
     .single();
 
   if (checklistError) throw checklistError;
+  if (!(checklist as any).auto_create_for_home_games) return;
 
-  const { data: items, error: itemsError } = await supabase
-    .from('checklist_items')
-    .select('*')
-    .eq('checklist_id', id)
-    .order('sort_order', { ascending: true });
+  // Find all future home games for the assigned teams that don't already have instances
+  const { data: games, error: gamesError } = await supabase
+    .from('games')
+    .select('id, our_team_id, date')
+    .eq('is_home', true)
+    .in('our_team_id', teamIds)
+    .gte('date', new Date().toISOString().split('T')[0]);
 
-  if (itemsError) throw itemsError;
+  if (gamesError) throw gamesError;
 
-  const { data: teams, error: teamsError } = await supabase
-    .from('checklist_teams')
-    .select('team_id')
-    .eq('checklist_id', id);
+  if (!games || games.length === 0) return;
 
-  if (teamsError) throw teamsError;
+  // For each game, create an instance if one doesn't already exist
+  for (const game of games) {
+    const { data: existingInstances, error: instanceCheckError } = await supabase
+      .from('checklist_instances')
+      .select('id', { count: 'exact' })
+      .eq('checklist_id', checklistId)
+      .eq('team_id', (game as any).our_team_id)
+      .eq('event_date', (game as any).date);
 
-  const newChecklistId = await createChecklist({
-    title: `${(checklist as any).title} (Kopie)`,
-    description: (checklist as any).description,
-    has_reporting: (checklist as any).has_reporting,
-    is_global: (checklist as any).is_global,
+    if (instanceCheckError) throw instanceCheckError;
+
+    // Only create if no instance exists for this team on this date
+    if (!existingInstances || existingInstances.length === 0) {
+      await createChecklistInstance({
+        checklist_id: checklistId,
+        team_id: (game as any).our_team_id,
+        event_date: (game as any).date,
+        event_context: null,
+      });
+    }
+  }
+}
+
+export async function uploadChecklistItemAttachment(
+  itemId: string,
+  instanceId: string | null,
+  file: File,
+): Promise<string> {
+  const fileName = `${Date.now()}_${file.name}`;
+  const filePath = `checklist-attachments/${itemId}/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('uploads')
+    .upload(filePath, file, { upsert: false });
+
+  if (uploadError) throw uploadError;
+
+  // Store metadata in database
+  const { error: dbError } = await (supabase.from('checklist_item_attachments') as any).insert({
+    checklist_item_id: itemId,
+    checklist_instance_id: instanceId,
+    file_name: file.name,
+    file_path: filePath,
+    file_type: file.type,
+    file_size: file.size,
+    uploaded_by: (await supabase.auth.getUser()).data.user?.id,
   });
 
-  for (const item of items ?? []) {
-    await createChecklistItem({
-      checklist_id: newChecklistId,
-      title: (item as any).title,
-      parent_id: (item as any).parent_id,
-      is_section: (item as any).is_section,
-    });
+  if (dbError) throw dbError;
+  return filePath;
+}
+
+export async function fetchChecklistItemAttachments(
+  itemId: string,
+  instanceId?: string,
+): Promise<{ id: string; fileName: string; fileType: string; fileSize: number; fileUrl: string; uploadedAt: string }[]> {
+  let query = supabase
+    .from('checklist_item_attachments')
+    .select('id, file_name, file_type, file_size, file_path, created_at')
+    .eq('checklist_item_id', itemId);
+
+  if (instanceId) {
+    query = query.eq('checklist_instance_id', instanceId);
   }
 
-  if (!((checklist as any).is_global) && teams && teams.length > 0) {
-    await updateChecklistTeamAssignments(
-      newChecklistId,
-      teams.map((t: any) => t.team_id),
-    );
-  }
+  const { data, error } = await query;
+  if (error) throw error;
 
-  return newChecklistId;
+  return (data ?? []).map((att: any) => {
+    const { data: signedUrl } = supabase.storage
+      .from('uploads')
+      .getPublicUrl(att.file_path);
+
+    return {
+      id: att.id,
+      fileName: att.file_name,
+      fileType: att.file_type,
+      fileSize: att.file_size,
+      fileUrl: signedUrl.publicUrl,
+      uploadedAt: att.created_at,
+    };
+  });
+}
+
+export async function deleteChecklistItemAttachment(attachmentId: string): Promise<void> {
+  const { data: attachment, error: fetchError } = await supabase
+    .from('checklist_item_attachments')
+    .select('file_path')
+    .eq('id', attachmentId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const { error: deleteFileError } = await supabase.storage
+    .from('uploads')
+    .remove([(attachment as any).file_path]);
+
+  if (deleteFileError) throw deleteFileError;
+
+  const { error: deleteDbError } = await supabase
+    .from('checklist_item_attachments')
+    .delete()
+    .eq('id', attachmentId);
+
+  if (deleteDbError) throw deleteDbError;
 }
