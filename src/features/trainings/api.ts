@@ -291,6 +291,29 @@ export async function removeTrainingExercise(id: string) {
   if (error) throw error;
 }
 
+export async function replaceTrainingExercises(sourceTrainingId: string, targetTrainingId: string) {
+  const exercises = await fetchTrainingExercises(sourceTrainingId);
+
+  const { error: deleteError } = await supabase
+    .from('training_exercises')
+    .delete()
+    .eq('training_id', targetTrainingId);
+  if (deleteError) throw deleteError;
+
+  if (exercises.length > 0) {
+    const rows = exercises.map((e) => ({
+      training_id: targetTrainingId,
+      exercise_id: e.exercise_id,
+      duration_minutes: e.duration_minutes,
+      notes: e.notes,
+      sort_order: e.sort_order,
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: insertError } = await (supabase.from('training_exercises') as any).insert(rows);
+    if (insertError) throw insertError;
+  }
+}
+
 export async function reorderTrainingExercises(items: { id: string; sort_order: number }[]) {
   for (const item of items) {
     const { error } = await (supabase.from('training_exercises') as any) // eslint-disable-line @typescript-eslint/no-explicit-any
