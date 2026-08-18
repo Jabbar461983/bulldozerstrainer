@@ -227,13 +227,13 @@ export async function copyGameLineups(sourceGameId: string, targetGameId: string
 
   if (sourceLineups.length === 0) return;
 
-  const newLineups = sourceLineups.map((lineup: GameLineup) => ({
-    ...lineup,
-    id: undefined,
-    game_id: targetGameId,
-    created_at: undefined,
-    updated_at: undefined,
-  }));
+  const newLineups = sourceLineups.map((lineup: GameLineup) => {
+    const { id, created_at, updated_at, ...rest } = lineup;
+    return {
+      ...rest,
+      game_id: targetGameId,
+    };
+  });
 
   const { error: deleteError } = await supabase.from('game_lineups').delete().eq('game_id', targetGameId);
   if (deleteError) throw deleteError;
