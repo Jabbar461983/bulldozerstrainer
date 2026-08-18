@@ -7,6 +7,7 @@ import { createChecklist, updateChecklistTeamAssignments, createChecklistItem } 
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
 import type { ChecklistItem } from '../../types/database';
+import { ChecklistItemEditor } from './ChecklistItemEditor';
 
 interface CreateChecklistDialogProps {
   onClose: () => void;
@@ -22,6 +23,8 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [newItemTitle, setNewItemTitle] = useState('');
+  const [newItemIsSection, setNewItemIsSection] = useState(false);
+  const [eventDate, setEventDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,10 +81,18 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
         title: newItemTitle.trim(),
         sort_order: items.length,
         parent_id: null,
+        is_section: newItemIsSection,
         created_at: new Date().toISOString(),
       },
     ]);
     setNewItemTitle('');
+    setNewItemIsSection(false);
+  }
+
+  function handleUpdateItem(index: number, item: ChecklistItem) {
+    const updated = [...items];
+    updated[index] = item;
+    setItems(updated);
   }
 
   async function handleDeleteItem(index: number) {
@@ -128,6 +139,17 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none"
             rows={3}
           />
+        </div>
+
+        <div>
+          <Label htmlFor="eventDate">Event-Datum (optional)</Label>
+          <Input
+            id="eventDate"
+            type="date"
+            value={eventDate}
+            onChange={(e) => setEventDate(e.target.value)}
+          />
+          <p className="text-xs text-text-muted mt-1">Für fixe Termine, wenn diese Checkliste nur an diesem Datum verwendet wird</p>
         </div>
 
         <div className="space-y-2">
@@ -198,44 +220,52 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
         )}
 
         <div className="space-y-3 border-t border-border pt-4">
-          <Label>Punkte ({items.length})</Label>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
+          <div className="flex items-center justify-between">
+            <Label>Punkte ({items.length})</Label>
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {items.length === 0 ? (
               <p className="text-xs text-text-muted">Noch keine Punkte</p>
             ) : (
               items.map((item, idx) => (
-                <div key={item.id} className="flex items-center gap-2 rounded-lg bg-surface-alt p-2">
-                  <span className="text-xs text-text-muted">#{idx + 1}</span>
-                  <span className="flex-1 text-sm">{item.title}</span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => void handleDeleteItem(idx)}
-                    className="text-error"
-                  >
-                    ✕
-                  </Button>
-                </div>
+                <ChecklistItemEditor
+                  key={item.id}
+                  item={item}
+                  index={idx}
+                  onUpdate={(updated) => handleUpdateItem(idx, updated)}
+                  onDelete={handleDeleteItem}
+                />
               ))
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={newItemTitle}
-              onChange={(e) => setNewItemTitle(e.target.value)}
-              placeholder="Neuer Punkt..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  void handleAddItem();
-                }
-              }}
-            />
-            <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!newItemTitle.trim()}>
-              + Hinzufügen
-            </Button>
+          <div className="space-y-2 rounded-lg bg-surface-alt p-3">
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={newItemTitle}
+                onChange={(e) => setNewItemTitle(e.target.value)}
+                placeholder={newItemIsSection ? 'Überschrift...' : 'Neuer Punkt...'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleAddItem();
+                  }
+                }}
+              />
+              <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!newItemTitle.trim()}>
+                + {newItemIsSection ? 'Überschrift' : 'Punkt'}
+              </Button>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newItemIsSection}
+                onChange={(e) => setNewItemIsSection(e.target.checked)}
+                className="rounded border-border"
+              />
+              <span className="text-sm">Als Überschrift</span>
+            </label>
           </div>
         </div>
       </form>

@@ -337,6 +337,7 @@ export interface ChecklistItem {
   title: string;
   sort_order: number;
   parent_id: string | null;
+  is_section: boolean;
   created_at: string;
 }
 

@@ -86,6 +86,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
           title: newItemTitle.trim(),
           sort_order: items.length,
           parent_id: null,
+          is_section: false,
           created_at: new Date().toISOString(),
         },
       ]);

@@ -101,8 +101,17 @@ export async function createChecklistItem(payload: {
   checklist_id: string;
   title: string;
   parent_id?: string | null;
+  is_section?: boolean;
 }) {
   const { error } = await (supabase.from('checklist_items') as any).insert(payload);
+  if (error) throw error;
+}
+
+export async function updateChecklistItem(
+  id: string,
+  updates: Partial<Pick<ChecklistItem, 'title' | 'is_section'>>,
+) {
+  const { error } = await (supabase.from('checklist_items') as any).update(updates).eq('id', id);
   if (error) throw error;
 }
 
@@ -291,4 +300,54 @@ export async function saveChecklistCompletion(payload: {
     .eq('id', payload.instance_id);
 
   if (updateError) throw updateError;
+}
+
+export async function duplicateChecklist(id: string): Promise<string> {
+  const { data: checklist, error: checklistError } = await supabase
+    .from('checklists')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (checklistError) throw checklistError;
+
+  const { data: items, error: itemsError } = await supabase
+    .from('checklist_items')
+    .select('*')
+    .eq('checklist_id', id)
+    .order('sort_order', { ascending: true });
+
+  if (itemsError) throw itemsError;
+
+  const { data: teams, error: teamsError } = await supabase
+    .from('checklist_teams')
+    .select('team_id')
+    .eq('checklist_id', id);
+
+  if (teamsError) throw teamsError;
+
+  const newChecklistId = await createChecklist({
+    title: `${(checklist as any).title} (Kopie)`,
+    description: (checklist as any).description,
+    has_reporting: (checklist as any).has_reporting,
+    is_global: (checklist as any).is_global,
+  });
+
+  for (const item of items ?? []) {
+    await createChecklistItem({
+      checklist_id: newChecklistId,
+      title: (item as any).title,
+      parent_id: (item as any).parent_id,
+      is_section: (item as any).is_section,
+    });
+  }
+
+  if (!((checklist as any).is_global) && teams && teams.length > 0) {
+    await updateChecklistTeamAssignments(
+      newChecklistId,
+      teams.map((t: any) => t.team_id),
+    );
+  }
+
+  return newChecklistId;
 }
