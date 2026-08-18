@@ -32,6 +32,7 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [pastGames, setPastGames] = useState<Game[]>([]);
   const [selectedSourceGameId, setSelectedSourceGameId] = useState<string>('');
   const [copyingLineup, setCopyingLineup] = useState(false);
@@ -58,12 +59,15 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
 
     setCopyingLineup(true);
     setError(null);
+    setMessage(null);
     try {
       await copyGameLineups(selectedSourceGameId, game.id);
-      setError(null);
-      onSaved();
+      setMessage('Aufstellung kopiert ✓');
+      setSelectedSourceGameId('');
+      setTimeout(() => setMessage(null), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Aufstellung konnte nicht kopiert werden');
+      setTimeout(() => setError(null), 3000);
     } finally {
       setCopyingLineup(false);
     }
@@ -195,6 +199,7 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
             />
           </div>
           {error && <p className="text-sm text-danger">{error}</p>}
+          {message && <p className="text-sm text-accent font-medium">{message}</p>}
         </form>
 
         <div className="border-t border-border pt-4">
