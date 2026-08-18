@@ -137,9 +137,13 @@ export async function createChecklistItem(payload: {
   checklist_id: string;
   title: string;
   parent_id?: string | null;
+  is_section?: boolean;
 }): Promise<string> {
   const { data, error } = await (supabase.from('checklist_items') as any)
-    .insert(payload)
+    .insert({
+      ...payload,
+      is_section: payload.is_section ?? false,
+    })
     .select('id')
     .single();
   if (error) throw error;

@@ -8,9 +8,6 @@ import {
   updateChecklistTeamAssignments,
   createChecklistItem,
   deleteChecklistItem,
-  uploadChecklistItemAttachment,
-  fetchChecklistItemAttachments,
-  deleteChecklistItemAttachment,
 } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
@@ -32,12 +29,11 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set(checklist.teamIds));
   const [items, setItems] = useState<ChecklistItem[]>(checklist.items);
   const [newItemTitle, setNewItemTitle] = useState('');
+  const [newItemType, setNewItemType] = useState<'heading' | 'subheading' | 'step'>('step');
+  const [newItemParentId, setNewItemParentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [itemAttachments, setItemAttachments] = useState<Record<string, Array<{ id: string; fileName: string; fileUrl: string }>>>({});
-  const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeamOptions()
@@ -79,11 +75,16 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   async function handleAddItem() {
     if (!newItemTitle.trim()) return;
     try {
+      const isSection = newItemType !== 'step';
       const itemId = await createChecklistItem({
         checklist_id: checklist.id,
         title: newItemTitle.trim(),
+        parent_id: newItemParentId,
+        is_section: isSection,
       });
       setNewItemTitle('');
+      setNewItemType('step');
+      setNewItemParentId(null);
       setItems([
         ...items,
         {
@@ -91,13 +92,26 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
           checklist_id: checklist.id,
           title: newItemTitle.trim(),
           sort_order: items.length,
-          parent_id: null,
-          is_section: false,
+          parent_id: newItemParentId,
+          is_section: isSection,
           created_at: new Date().toISOString(),
         },
       ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Item konnte nicht hinzugefügt werden.');
+    }
+  }
+
+  async function handleReorderItems(newItems: ChecklistItem[]) {
+    try {
+      const { reorderChecklistItems } = await import('./api');
+      await reorderChecklistItems(
+        checklist.id,
+        newItems.map((item, idx) => ({ id: item.id, sort_order: idx })),
+      );
+      setItems(newItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Reihenfolge konnte nicht geändert werden.');
     }
   }
 
@@ -111,51 +125,6 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     }
   }
 
-  async function loadAttachments(itemId: string) {
-    try {
-      const attachments = await fetchChecklistItemAttachments(itemId);
-      setItemAttachments((prev) => ({
-        ...prev,
-        [itemId]: attachments,
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Anhänge konnten nicht geladen werden.');
-    }
-  }
-
-  async function handleFileUpload(itemId: string, e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.currentTarget.files?.[0];
-    if (!file) return;
-
-    setUploadingItemId(itemId);
-    setError(null);
-    try {
-      await uploadChecklistItemAttachment(itemId, file);
-      await loadAttachments(itemId);
-      e.currentTarget.value = '';
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Datei konnte nicht hochgeladen werden.');
-    } finally {
-      setUploadingItemId(null);
-    }
-  }
-
-  async function handleDeleteAttachment(attachmentId: string, itemId: string) {
-    if (!confirm('Anhang wirklich löschen?')) return;
-    try {
-      await deleteChecklistItemAttachment(attachmentId);
-      await loadAttachments(itemId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Anhang konnte nicht gelöscht werden.');
-    }
-  }
-
-  async function handleExpandItem(itemId: string) {
-    setExpandedItemId(expandedItemId === itemId ? null : itemId);
-    if (expandedItemId !== itemId) {
-      await loadAttachments(itemId);
-    }
-  }
 
   async function handleDelete() {
     if (!confirm('Checkliste wirklich löschen?')) return;
@@ -291,88 +260,130 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
             {items.length === 0 ? (
               <p className="text-xs text-text-muted">Noch keine Punkte</p>
             ) : (
-              items.map((item, idx) => (
-                <div key={item.id} className="rounded-lg bg-surface-alt p-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-text-muted">#{idx + 1}</span>
-                    <span className="flex-1 text-sm">{item.title}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleExpandItem(item.id)}
-                      className="text-xs text-accent hover:underline"
-                    >
-                      {expandedItemId === item.id ? '▼ Anhänge' : '▶ Anhänge'}
-                    </button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => handleDeleteItem(item.id)}
-                      className="text-error"
-                    >
-                      ✕
-                    </Button>
-                  </div>
-
-                  {expandedItemId === item.id && (
-                    <div className="pl-4 space-y-2 border-t border-border pt-2">
-                      {(itemAttachments[item.id] || []).length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium">Anhänge:</p>
-                          {itemAttachments[item.id].map((att) => (
-                            <div key={att.id} className="flex items-center gap-2 text-xs bg-surface p-1 rounded">
-                              <a
-                                href={att.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-accent hover:underline flex-1 truncate"
-                                title={att.fileName}
-                              >
-                                {att.fileName}
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteAttachment(att.id, item.id)}
-                                className="text-error hover:font-bold"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium hover:bg-surface p-1 rounded">
-                        <input
-                          type="file"
-                          onChange={(e) => handleFileUpload(item.id, e)}
-                          disabled={uploadingItemId === item.id}
-                          className="hidden"
-                          accept="image/*,.pdf,.doc,.docx"
-                        />
-                        📤 {uploadingItemId === item.id ? 'Lädt...' : 'Datei hinzufügen'}
-                      </label>
+              items.map((item, idx) => {
+                const indent = item.parent_id ? 'ml-6' : 'ml-0';
+                const typeLabel = item.is_section
+                  ? (item.parent_id ? '📋 Subüberschrift' : '📌 Überschrift')
+                  : '✓ Schritt';
+                return (
+                  <div key={item.id} className={`rounded-lg bg-surface-alt p-2 space-y-2 ${indent}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-text-muted whitespace-nowrap">{typeLabel}</span>
+                      <span className="flex-1 text-sm font-medium">{item.title}</span>
+                      <div className="flex gap-1">
+                        {idx > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newItems = [...items];
+                              [newItems[idx - 1], newItems[idx]] = [newItems[idx], newItems[idx - 1]];
+                              void handleReorderItems(newItems);
+                            }}
+                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            title="Nach oben"
+                          >
+                            ↑
+                          </button>
+                        )}
+                        {idx < items.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newItems = [...items];
+                              [newItems[idx], newItems[idx + 1]] = [newItems[idx + 1], newItems[idx]];
+                              void handleReorderItems(newItems);
+                            }}
+                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            title="Nach unten"
+                          >
+                            ↓
+                          </button>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => handleDeleteItem(item.id)}
+                        className="text-error"
+                      >
+                        ✕
+                      </Button>
                     </div>
-                  )}
-                </div>
-              ))
+                  </div>
+                );
+              })
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={newItemTitle}
-              onChange={(e) => setNewItemTitle(e.target.value)}
-              placeholder="Neuer Punkt..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  void handleAddItem();
-                }
-              }}
-            />
-            <Button type="button" variant="secondary" onClick={handleAddItem} disabled={!newItemTitle.trim()}>
-              + Hinzufügen
-            </Button>
+          <div className="space-y-2 border-t border-border pt-3">
+            <Label>Neuer Punkt</Label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <select
+                  value={newItemType}
+                  onChange={(e) => {
+                    setNewItemType(e.target.value as 'heading' | 'subheading' | 'step');
+                    setNewItemParentId(null);
+                  }}
+                  className="px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+                >
+                  <option value="heading">Überschrift</option>
+                  <option value="subheading">Subüberschrift</option>
+                  <option value="step">Schritt</option>
+                </select>
+              </div>
+              {newItemType === 'subheading' && (
+                <div>
+                  <Label className="text-xs">Unter Überschrift:</Label>
+                  <select
+                    value={newItemParentId || ''}
+                    onChange={(e) => setNewItemParentId(e.target.value || null)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+                  >
+                    <option value="">-- Wähle Überschrift --</option>
+                    {items.filter((i) => i.is_section && !i.parent_id).map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {newItemType === 'step' && (
+                <div>
+                  <Label className="text-xs">Unter Subüberschrift (optional):</Label>
+                  <select
+                    value={newItemParentId || ''}
+                    onChange={(e) => setNewItemParentId(e.target.value || null)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+                  >
+                    <option value="">-- Alle Schritte --</option>
+                    {items.filter((i) => i.is_section && i.parent_id).map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  value={newItemTitle}
+                  onChange={(e) => setNewItemTitle(e.target.value)}
+                  placeholder="Titel eingeben..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleAddItem();
+                    }
+                  }}
+                />
+                <Button type="button" onClick={handleAddItem} disabled={!newItemTitle.trim()}>
+                  + Hinzufügen
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </form>
