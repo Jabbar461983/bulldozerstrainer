@@ -32,7 +32,7 @@ export async function fetchGames(teamId: string): Promise<Game[]> {
     .order('date', { ascending: false })
     .order('time', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Game[];
 }
 
 export async function createGame(payload: {
@@ -92,7 +92,7 @@ export async function importGames(rows: FixtureImportRow[], teamId: string, cate
 export async function fetchGameLineup(gameId: string): Promise<GameLineup[]> {
   const { data, error } = await supabase.from('game_lineups').select('*').eq('game_id', gameId);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as GameLineup[];
 }
 
 export async function replaceGameLineup(
@@ -111,7 +111,7 @@ export async function replaceGameLineup(
 export async function fetchGameAbsences(gameId: string): Promise<GameAbsence[]> {
   const { data, error } = await supabase.from('game_absences').select('*').eq('game_id', gameId);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as GameAbsence[];
 }
 
 export async function replaceGameAbsences(gameId: string, playerIds: string[], trainerIds: string[]) {
@@ -130,7 +130,7 @@ export async function replaceGameAbsences(gameId: string, playerIds: string[], t
 export async function fetchGameRatings(gameId: string): Promise<GameRating[]> {
   const { data, error } = await supabase.from('game_ratings').select('*').eq('game_id', gameId);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as GameRating[];
 }
 
 export async function saveGameRating(
@@ -213,8 +213,9 @@ export async function fetchPastGamesForSeason(teamId: string, season: string): P
     .order('time', { ascending: false });
   if (error) throw error;
 
+  const games = (data ?? []) as Game[];
   const now = new Date();
-  return (data ?? []).filter((game) => {
+  return games.filter((game) => {
     if (game.date < today) return true;
     if (game.date === today && game.time) {
       const gameTime = new Date(`${game.date}T${game.time}`);
@@ -230,7 +231,7 @@ export async function fetchGameLineups(gameId: string): Promise<GameLineup[]> {
     .select('*')
     .eq('game_id', gameId);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as GameLineup[];
 }
 
 export async function copyGameLineups(sourceGameId: string, targetGameId: string): Promise<void> {
