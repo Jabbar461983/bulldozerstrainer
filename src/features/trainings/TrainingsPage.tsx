@@ -71,7 +71,9 @@ export function TrainingsPage() {
   const { upcoming, past } = useMemo(() => {
     const today = todayIso();
     const upcoming = (trainings ?? []).filter((t) => t.date >= today).sort((a, b) => a.date.localeCompare(b.date));
-    const past = (trainings ?? []).filter((t) => t.date < today);
+    const past = (trainings ?? [])
+      .filter((t) => t.date < today)
+      .sort((a, b) => a.date.localeCompare(b.date));
     return { upcoming, past };
   }, [trainings]);
 
