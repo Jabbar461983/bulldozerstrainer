@@ -342,6 +342,7 @@ export interface ChecklistInstance {
   completed_by: string | null;
   created_at: string;
   completed_at: string | null;
+  archived_at: string | null;
 }
 
 export interface ChecklistItemCompletion {

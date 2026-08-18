@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion } from './api';
+import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, createChecklistInstance } from './api';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
 
 interface ChecklistInstanceWorkspaceProps {
@@ -15,6 +15,7 @@ export function ChecklistInstanceWorkspace({
   teamId,
   onClose,
 }: ChecklistInstanceWorkspaceProps) {
+  const [instances, setInstances] = useState<ChecklistInstanceRow[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<ChecklistInstanceRow | null>(null);
   const [globalNote, setGlobalNote] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -26,10 +27,29 @@ export function ChecklistInstanceWorkspace({
       try {
         const data = await fetchChecklistInstances(checklist.id);
         const filtered = data.filter((i) => !i.team_id || i.team_id === teamId);
-        if (filtered.length > 0) {
+        setInstances(filtered);
+
+        if (filtered.length === 0) {
+          // Automatisch neue Instanz erstellen
+          await createChecklistInstance({
+            checklist_id: checklist.id,
+            team_id: teamId,
+            event_date: null,
+            event_context: null,
+          });
+          // Neu laden nach Erstellung
+          const newData = await fetchChecklistInstances(checklist.id);
+          const newFiltered = newData.filter((i) => !i.team_id || i.team_id === teamId);
+          setInstances(newFiltered);
+          if (newFiltered.length > 0) {
+            setSelectedInstance(newFiltered[0]);
+            setGlobalNote(newFiltered[0].notes || '');
+          }
+        } else if (filtered.length === 1) {
           setSelectedInstance(filtered[0]);
           setGlobalNote(filtered[0].notes || '');
         }
+        // Wenn mehrere: Benutzer muss auswählen
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Fehler beim Laden');
       }
@@ -92,13 +112,8 @@ export function ChecklistInstanceWorkspace({
         instance_id: selectedInstance.id,
         notes: globalNote,
       });
-      setMessage('Checkliste vollständig erledigt ✓');
-      setTimeout(() => setMessage(null), 3000);
-      setSelectedInstance({
-        ...selectedInstance,
-        notes: globalNote,
-        completed_at: new Date().toISOString(),
-      });
+      setMessage('Checkliste archiviert ✓');
+      setTimeout(() => onClose(), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
       setTimeout(() => setError(null), 3000);
@@ -107,15 +122,45 @@ export function ChecklistInstanceWorkspace({
     }
   }
 
-  if (!selectedInstance) {
+  if (instances.length > 1 && !selectedInstance) {
     return (
       <div className="space-y-4">
         <Button onClick={onClose} variant="secondary">
           ← Zurück
         </Button>
-        <Card>
-          <p className="text-center text-text-muted">Keine Instanzen verfügbar</p>
-        </Card>
+        <h2 className="text-xl font-bold">Instanz auswählen</h2>
+        <div className="space-y-2">
+          {instances.map((instance) => (
+            <Card
+              key={instance.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setSelectedInstance(instance);
+                setGlobalNote(instance.notes || '');
+              }}
+              className="cursor-pointer hover:bg-surface-alt"
+            >
+              <div>
+                <p className="font-semibold">{instance.event_context || 'Ohne Kontext'}</p>
+                {instance.event_date && (
+                  <p className="text-sm text-text-muted">{instance.event_date}</p>
+                )}
+                <p className="text-xs text-text-muted mt-1">
+                  Fortschritt: {instance.progress.completed} / {instance.progress.total}
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedInstance) {
+    return (
+      <div className="flex justify-center py-12">
+        <p className="text-text-muted">Laden...</p>
       </div>
     );
   }
@@ -216,7 +261,7 @@ export function ChecklistInstanceWorkspace({
         disabled={loading}
         className="w-full"
       >
-        {loading ? 'Speichert...' : 'Speichern'}
+        {loading ? 'Archiviert...' : 'Checkliste komplett erledigt & archivieren'}
       </Button>
     </div>
   );

@@ -132,7 +132,52 @@ export async function fetchChecklistInstances(checklistId: string): Promise<Chec
     { data: completions, error: completionsError },
     { data: teams, error: teamsError },
   ] = await Promise.all([
-    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId),
+    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId).is('archived_at', null),
+    supabase.from('checklists').select('title').eq('id', checklistId).single(),
+    supabase.from('checklist_items').select('*').eq('checklist_id', checklistId),
+    supabase.from('checklist_item_completions').select('*'),
+    supabase.from('teams').select('id, name'),
+  ]);
+
+  if (instancesError) throw instancesError;
+  if (checklistError) throw checklistError;
+  if (itemsError) throw itemsError;
+  if (completionsError) throw completionsError;
+  if (teamsError) throw teamsError;
+
+  const teamById = new Map((teams ?? []).map((t: any) => [t.id, t.name]));
+
+  return (instances ?? []).map((instance: any) => {
+    const itemsByInstance = (completions ?? [])
+      .filter((c: any) => c.checklist_instance_id === instance.id)
+      .reduce((acc: Record<string, any>, c: any) => {
+        acc[c.checklist_item_id] = c;
+        return acc;
+      }, {});
+
+    const completed = Object.keys(itemsByInstance).length;
+    const total = (items ?? []).length;
+
+    return {
+      ...instance,
+      checklistTitle: (checklist as any)?.title ?? 'Unbekannt',
+      teamName: instance.team_id ? teamById.get(instance.team_id) ?? null : null,
+      items: (items ?? []) as ChecklistItem[],
+      completions: itemsByInstance,
+      progress: { total, completed },
+    };
+  });
+}
+
+export async function fetchArchivedChecklistInstances(checklistId: string): Promise<ChecklistInstanceRow[]> {
+  const [
+    { data: instances, error: instancesError },
+    { data: checklist, error: checklistError },
+    { data: items, error: itemsError },
+    { data: completions, error: completionsError },
+    { data: teams, error: teamsError },
+  ] = await Promise.all([
+    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId).not('archived_at', 'is', null),
     supabase.from('checklists').select('title').eq('id', checklistId).single(),
     supabase.from('checklist_items').select('*').eq('checklist_id', checklistId),
     supabase.from('checklist_item_completions').select('*'),
@@ -287,6 +332,7 @@ export async function saveChecklistCompletion(payload: {
       notes: payload.notes || null,
       completed_at: new Date().toISOString(),
       completed_by: (await supabase.auth.getUser()).data.user?.id,
+      archived_at: new Date().toISOString(),
     })
     .eq('id', payload.instance_id);
 
