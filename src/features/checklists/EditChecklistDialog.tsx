@@ -8,6 +8,9 @@ import {
   updateChecklistTeamAssignments,
   createChecklistItem,
   deleteChecklistItem,
+  uploadChecklistItemAttachment,
+  fetchChecklistItemAttachments,
+  deleteChecklistItemAttachment,
 } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
@@ -32,6 +35,9 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [itemAttachments, setItemAttachments] = useState<Record<string, Array<{ id: string; fileName: string; fileUrl: string }>>>({});
+  const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeamOptions()
@@ -105,6 +111,51 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     }
   }
 
+  async function loadAttachments(itemId: string) {
+    try {
+      const attachments = await fetchChecklistItemAttachments(itemId);
+      setItemAttachments((prev) => ({
+        ...prev,
+        [itemId]: attachments,
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Anhänge konnten nicht geladen werden.');
+    }
+  }
+
+  async function handleFileUpload(itemId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.currentTarget.files?.[0];
+    if (!file) return;
+
+    setUploadingItemId(itemId);
+    setError(null);
+    try {
+      await uploadChecklistItemAttachment(itemId, file);
+      await loadAttachments(itemId);
+      e.currentTarget.value = '';
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Datei konnte nicht hochgeladen werden.');
+    } finally {
+      setUploadingItemId(null);
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId: string, itemId: string) {
+    if (!confirm('Anhang wirklich löschen?')) return;
+    try {
+      await deleteChecklistItemAttachment(attachmentId);
+      await loadAttachments(itemId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Anhang konnte nicht gelöscht werden.');
+    }
+  }
+
+  async function handleExpandItem(itemId: string) {
+    setExpandedItemId(expandedItemId === itemId ? null : itemId);
+    if (expandedItemId !== itemId) {
+      await loadAttachments(itemId);
+    }
+  }
 
   async function handleDelete() {
     if (!confirm('Checkliste wirklich löschen?')) return;
@@ -236,22 +287,71 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
 
         <div className="space-y-3 border-t border-border pt-4">
           <Label>Punkte ({items.length})</Label>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {items.length === 0 ? (
               <p className="text-xs text-text-muted">Noch keine Punkte</p>
             ) : (
               items.map((item, idx) => (
-                <div key={item.id} className="flex items-center gap-2 rounded-lg bg-surface-alt p-2">
-                  <span className="text-xs text-text-muted">#{idx + 1}</span>
-                  <span className="flex-1 text-sm">{item.title}</span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => handleDeleteItem(item.id)}
-                    className="text-error"
-                  >
-                    ✕
-                  </Button>
+                <div key={item.id} className="rounded-lg bg-surface-alt p-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-text-muted">#{idx + 1}</span>
+                    <span className="flex-1 text-sm">{item.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleExpandItem(item.id)}
+                      className="text-xs text-accent hover:underline"
+                    >
+                      {expandedItemId === item.id ? '▼ Anhänge' : '▶ Anhänge'}
+                    </button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-error"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+
+                  {expandedItemId === item.id && (
+                    <div className="pl-4 space-y-2 border-t border-border pt-2">
+                      {(itemAttachments[item.id] || []).length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium">Anhänge:</p>
+                          {itemAttachments[item.id].map((att) => (
+                            <div key={att.id} className="flex items-center gap-2 text-xs bg-surface p-1 rounded">
+                              <a
+                                href={att.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-accent hover:underline flex-1 truncate"
+                                title={att.fileName}
+                              >
+                                {att.fileName}
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteAttachment(att.id, item.id)}
+                                className="text-error hover:font-bold"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium hover:bg-surface p-1 rounded">
+                        <input
+                          type="file"
+                          onChange={(e) => handleFileUpload(item.id, e)}
+                          disabled={uploadingItemId === item.id}
+                          className="hidden"
+                          accept="image/*,.pdf,.doc,.docx"
+                        />
+                        📤 {uploadingItemId === item.id ? 'Lädt...' : 'Datei hinzufügen'}
+                      </label>
+                    </div>
+                  )}
                 </div>
               ))
             )}

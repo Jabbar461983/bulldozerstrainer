@@ -390,7 +390,6 @@ export async function createChecklistInstancesForHomeGames(checklistId: string, 
 
 export async function uploadChecklistItemAttachment(
   itemId: string,
-  instanceId: string | null,
   file: File,
 ): Promise<string> {
   const fileName = `${Date.now()}_${file.name}`;
@@ -405,7 +404,6 @@ export async function uploadChecklistItemAttachment(
   // Store metadata in database
   const { error: dbError } = await (supabase.from('checklist_item_attachments') as any).insert({
     checklist_item_id: itemId,
-    checklist_instance_id: instanceId,
     file_name: file.name,
     file_path: filePath,
     file_type: file.type,
@@ -419,18 +417,12 @@ export async function uploadChecklistItemAttachment(
 
 export async function fetchChecklistItemAttachments(
   itemId: string,
-  instanceId?: string,
 ): Promise<{ id: string; fileName: string; fileType: string; fileSize: number; fileUrl: string; uploadedAt: string }[]> {
-  let query = supabase
+  const { data, error } = await supabase
     .from('checklist_item_attachments')
     .select('id, file_name, file_type, file_size, file_path, created_at')
     .eq('checklist_item_id', itemId);
 
-  if (instanceId) {
-    query = query.eq('checklist_instance_id', instanceId);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
 
   return (data ?? []).map((att: any) => {

@@ -240,11 +240,7 @@ export function ChecklistInstanceWorkspace({
               </label>
               {isCompleted && (
                 <div className="ml-8">
-                  <ChecklistItemAttachments
-                    itemId={item.id}
-                    instanceId={selectedInstance.id}
-                    isCompleted={isCompleted}
-                  />
+                  <ChecklistItemAttachments itemId={item.id} />
                 </div>
               )}
             </Card>
