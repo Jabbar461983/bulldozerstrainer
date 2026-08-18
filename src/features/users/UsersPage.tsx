@@ -119,6 +119,7 @@ export function UsersPage() {
                   >
                     {tr.categoryName} · {tr.teamName} –{' '}
                     {ROLE_LABELS[tr.role]}
+                    {tr.role !== 'finance' && tr.financeAccess && ' · Finanzen'}
                   </span>
                 ))}
               </div>

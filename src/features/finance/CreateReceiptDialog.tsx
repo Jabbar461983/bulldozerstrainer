@@ -9,7 +9,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { todayIso } from '../../lib/dates';
 
 interface CreateReceiptDialogProps {
-  teamId: string;
+  teamId: string | null;
   season: string;
   onClose: () => void;
   onCreated: () => void;

@@ -9,6 +9,7 @@ export interface CoachAssignmentView {
   firstName: string;
   lastName: string;
   role: CoachRole;
+  financeAccess: boolean;
 }
 
 export interface TeamRow extends Team {
@@ -25,6 +26,7 @@ export interface AssignableUser {
 export interface CoachAssignmentInput {
   user_id: string;
   role: CoachRole;
+  finance_access: boolean;
 }
 
 const FOREIGN_KEY_VIOLATION = '23503';
@@ -57,7 +59,7 @@ export async function fetchTeams(): Promise<TeamRow[]> {
       supabase.from('teams').select('*').order('season', { ascending: false }),
       supabase.from('categories').select('*'),
       supabase.from('profiles').select('id, first_name, last_name'),
-      supabase.from('user_team_roles').select('user_id, team_id, role'),
+      supabase.from('user_team_roles').select('user_id, team_id, role, finance_access'),
     ]);
   if (teamsError) throw teamsError;
   if (categoriesError) throw categoriesError;
@@ -74,13 +76,14 @@ export async function fetchTeams(): Promise<TeamRow[]> {
     categoryName: categoryById.get(team.category_id)?.name ?? '?',
     coachAssignments: (roles ?? [])
       .filter((r: { team_id: string }) => r.team_id === team.id)
-      .map((r: { user_id: string; role: CoachRole }) => {
+      .map((r: { user_id: string; role: CoachRole; finance_access: boolean }) => {
         const profile = profileById.get(r.user_id);
         return {
           userId: r.user_id,
           firstName: profile?.first_name ?? 'Unbekannt',
           lastName: profile?.last_name ?? '',
           role: r.role,
+          financeAccess: r.finance_access,
         };
       }),
   }));
@@ -144,7 +147,12 @@ export async function replaceCoachAssignments(teamId: string, assignments: Coach
   const { error: deleteError } = await supabase.from('user_team_roles').delete().eq('team_id', teamId);
   if (deleteError) throw deleteError;
   if (assignments.length === 0) return;
-  const rows = assignments.map((a) => ({ user_id: a.user_id, team_id: teamId, role: a.role }));
+  const rows = assignments.map((a) => ({
+    user_id: a.user_id,
+    team_id: teamId,
+    role: a.role,
+    finance_access: a.finance_access,
+  }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: insertError } = await (supabase.from('user_team_roles') as any).insert(rows);
   if (insertError) throw insertError;

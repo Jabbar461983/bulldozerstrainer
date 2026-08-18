@@ -30,13 +30,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase
         .from('user_team_roles')
-        .select('team_id, role')
+        .select('team_id, role, finance_access')
         .eq('user_id', userId) as unknown as Promise<{
-        data: Pick<UserTeamRole, 'team_id' | 'role'>[] | null;
+        data: Pick<UserTeamRole, 'team_id' | 'role' | 'finance_access'>[] | null;
       }>,
     ]);
     setProfile(profileData ?? null);
-    setMemberships((roleData ?? []).map((r) => ({ teamId: r.team_id, role: r.role })));
+    setMemberships(
+      (roleData ?? []).map((r) => ({ teamId: r.team_id, role: r.role, financeAccess: r.finance_access })),
+    );
   }
 
   useEffect(() => {

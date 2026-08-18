@@ -15,6 +15,7 @@ import { ExercisesPage } from './features/exercises/ExercisesPage';
 import { TrainingsPage } from './features/trainings/TrainingsPage';
 import { GamesPage } from './features/games/GamesPage';
 import { FinancePage } from './features/finance/FinancePage';
+import { FinanceOverviewPage } from './features/finance/FinanceOverviewPage';
 import { SeasonPlanningWrapper } from './features/seasonplanning/SeasonPlanningWrapper';
 import { ChecklistsCoachPage } from './features/checklists/ChecklistsCoachPage';
 import { ChecklistsAdminPage } from './features/checklists/ChecklistsAdminPage';
@@ -72,9 +73,9 @@ function App() {
             <Route
               path="trainer"
               element={
-                <ModuleRoute module="trainer">
+                <AdminRoute>
                   <CoachesPage />
-                </ModuleRoute>
+                </AdminRoute>
               }
             />
             <Route
@@ -91,6 +92,14 @@ function App() {
                 <ModuleRoute module="finanzen">
                   <FinancePage />
                 </ModuleRoute>
+              }
+            />
+            <Route
+              path="finanzen/uebersicht"
+              element={
+                <AdminRoute>
+                  <FinanceOverviewPage />
+                </AdminRoute>
               }
             />
             <Route

@@ -155,6 +155,7 @@ export function TeamsPage() {
                           className="rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                         >
                           {a.firstName} {a.lastName} – {ROLE_LABELS[a.role]}
+                          {a.role !== 'finance' && a.financeAccess && ' · Finanzen'}
                         </span>
                       ))}
                     </div>

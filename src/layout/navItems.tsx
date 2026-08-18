@@ -46,7 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/trainer',
     label: 'Trainer',
-    module: 'trainer',
+    adminOnly: true,
     icon: <Icon d="M4 20a5 5 0 0110-.2M9 12a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm10 8v-2a3 3 0 00-2.3-2.9M15 5.1a3 3 0 010 5.8" />,
   },
   {

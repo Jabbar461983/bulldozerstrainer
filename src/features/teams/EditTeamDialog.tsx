@@ -23,7 +23,7 @@ export function EditTeamDialog({ team, categories, users, onClose, onSaved }: Ed
   const [season, setSeason] = useState(team.season);
   const [duration, setDuration] = useState(team.default_training_duration_minutes);
   const [coachAssignments, setCoachAssignments] = useState<CoachAssignmentInput[]>(
-    team.coachAssignments.map((a) => ({ user_id: a.userId, role: a.role })),
+    team.coachAssignments.map((a) => ({ user_id: a.userId, role: a.role, finance_access: a.financeAccess })),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

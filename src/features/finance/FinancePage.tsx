@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Select } from '../../components/Select';
@@ -16,6 +17,11 @@ import type { Budget } from '../../types/database';
 import { BudgetSection } from './BudgetSection';
 import { FinanceJournal } from './FinanceJournal';
 import { CreateReceiptDialog } from './CreateReceiptDialog';
+
+// Sentinel für den <select>-Wert, da HTML-Optionen keinen echten null-Wert
+// transportieren können. Steht für "Verein" (team_id null), nur für Admins.
+const CLUB_SCOPE = '__club__';
+const CLUB_LABEL = 'Verein (kein Team)';
 
 export function FinancePage() {
   const { isAdmin, memberships } = useAuth();
@@ -35,18 +41,23 @@ export function FinancePage() {
         const filtered = scope.allTeams ? result.data : result.data.filter((t) => scope.teamIds.includes(t.teamId));
         setTeamOptions(filtered);
         if (filtered.length > 0) setTeamId(filtered[0].teamId);
+        else if (isAdmin) setTeamId(CLUB_SCOPE);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Teams konnten nicht geladen werden.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isClubScope = teamId === CLUB_SCOPE;
+  const resolvedTeamId = isClubScope ? null : teamId || null;
   const selectedTeam = teamOptions?.find((t) => t.teamId === teamId) ?? null;
+  const displayName = isClubScope ? CLUB_LABEL : selectedTeam?.teamName;
 
-  async function load(currentTeamId: string, currentSeasonValue: string) {
-    if (!currentTeamId || !currentSeasonValue) return;
+  async function load(currentTeamId: string | null, currentSeasonValue: string) {
+    if (currentTeamId === '' || !currentSeasonValue) return;
     setError(null);
     try {
-      const result = await withCache(`finance:${currentTeamId}:${currentSeasonValue}`, async () => {
+      const cacheKey = currentTeamId ?? CLUB_SCOPE;
+      const result = await withCache(`finance:${cacheKey}:${currentSeasonValue}`, async () => {
         const [budgetRow, receiptRows] = await Promise.all([
           fetchBudget(currentTeamId, currentSeasonValue),
           fetchReceipts(currentTeamId, currentSeasonValue),
@@ -62,19 +73,27 @@ export function FinancePage() {
   }
 
   useEffect(() => {
-    if (teamId && season) void load(teamId, season);
+    if (teamId && season) void load(resolvedTeamId, season);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, season]);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold text-text">Finanzen</h1>
-        <Button disabled={!teamId} onClick={() => setShowCreateReceipt(true)}>
-          + Neuer Beleg
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Link to="/finanzen/uebersicht">
+              <Button variant="secondary">Gesamtübersicht</Button>
+            </Link>
+          )}
+          <Button disabled={!teamId} onClick={() => setShowCreateReceipt(true)}>
+            + Neuer Beleg
+          </Button>
+        </div>
       </div>
 
-      {teamOptions !== null && teamOptions.length === 0 && (
+      {teamOptions !== null && teamOptions.length === 0 && !isAdmin && (
         <Card>
           <p className="text-sm text-text-muted">
             Dir ist kein Team für Finanzen zugewiesen. Bitte wende dich an einen Admin.
@@ -82,7 +101,7 @@ export function FinancePage() {
         </Card>
       )}
 
-      {teamOptions && teamOptions.length > 0 && (
+      {teamOptions && (teamOptions.length > 0 || isAdmin) && (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="team">Team</Label>
@@ -92,6 +111,7 @@ export function FinancePage() {
                   {t.categoryName} · {t.teamName}
                 </option>
               ))}
+              {isAdmin && <option value={CLUB_SCOPE}>{CLUB_LABEL}</option>}
             </Select>
           </div>
           <div>
@@ -106,32 +126,32 @@ export function FinancePage() {
 
       {receipts === null && teamId && <p className="text-sm text-text-muted">Lädt…</p>}
 
-      {receipts !== null && selectedTeam && (
+      {receipts !== null && displayName && (
         <>
           <BudgetSection
-            teamId={teamId}
+            teamId={resolvedTeamId}
             season={season}
             budget={budget}
-            onSaved={() => void load(teamId, season)}
+            onSaved={() => void load(resolvedTeamId, season)}
           />
           <FinanceJournal
             receipts={receipts}
             startingBalance={budget?.amount ?? 0}
-            teamName={selectedTeam.teamName}
+            teamName={displayName}
             season={season}
-            onChanged={() => void load(teamId, season)}
+            onChanged={() => void load(resolvedTeamId, season)}
           />
         </>
       )}
 
       {showCreateReceipt && teamId && (
         <CreateReceiptDialog
-          teamId={teamId}
+          teamId={resolvedTeamId}
           season={season}
           onClose={() => setShowCreateReceipt(false)}
           onCreated={() => {
             setShowCreateReceipt(false);
-            void load(teamId, season);
+            void load(resolvedTeamId, season);
           }}
         />
       )}

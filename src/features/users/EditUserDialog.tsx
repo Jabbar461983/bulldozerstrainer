@@ -22,7 +22,7 @@ export function EditUserDialog({ user, teamOptions, onClose, onSaved }: EditUser
   const [phone, setPhone] = useState(user.phone ?? '');
   const [isAdmin, setIsAdmin] = useState(user.is_admin);
   const [teamRoles, setTeamRoles] = useState<TeamRoleInput[]>(
-    user.teamRoles.map((tr) => ({ team_id: tr.teamId, role: tr.role })),
+    user.teamRoles.map((tr) => ({ team_id: tr.teamId, role: tr.role, finance_access: tr.financeAccess })),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

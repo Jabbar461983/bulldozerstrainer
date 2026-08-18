@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthContext';
 import type { Budget } from '../../types/database';
 
 interface BudgetSectionProps {
-  teamId: string;
+  teamId: string | null;
   season: string;
   budget: Budget | null;
   onSaved: () => void;

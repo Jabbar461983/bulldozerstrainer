@@ -22,7 +22,7 @@ export function TeamRolePicker({ teamOptions, value, onChange }: TeamRolePickerP
 
   function add() {
     if (teamOptions.length === 0) return;
-    onChange([...value, { team_id: teamOptions[0].teamId, role: 'assistant_coach' }]);
+    onChange([...value, { team_id: teamOptions[0].teamId, role: 'assistant_coach', finance_access: false }]);
   }
 
   if (teamOptions.length === 0) {
@@ -71,6 +71,17 @@ export function TeamRolePicker({ teamOptions, value, onChange }: TeamRolePickerP
               ✕
             </Button>
           </div>
+          {row.role !== 'finance' && (
+            <label className="flex items-center gap-2 text-sm text-text-muted">
+              <input
+                type="checkbox"
+                className="size-5"
+                checked={row.finance_access}
+                onChange={(e) => update(index, { finance_access: e.target.checked })}
+              />
+              Zugriff auf Finanzen dieses Teams
+            </label>
+          )}
         </div>
       ))}
       <Button type="button" variant="secondary" onClick={add} className="self-start">
