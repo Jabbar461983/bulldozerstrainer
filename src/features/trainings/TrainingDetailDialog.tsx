@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
@@ -6,23 +6,19 @@ import { Input, Label } from '../../components/Input';
 import { TrainingExercisesEditor } from './TrainingExercisesEditor';
 import { TrainingRatingSection } from './TrainingRatingSection';
 import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
-import { TrainingTrainersEditor } from './TrainingTrainersEditor';
 import { FieldTypeToggle } from './FieldTypeToggle';
-import {
-  updateTraining,
-  deleteTraining,
-  fetchTrainingExercises,
-  fetchTrainingTrainers,
-  replaceTrainingTrainers,
-  fetchTrainingAbsences,
-} from './api';
-import { fetchTeamTrainerRoster, fetchTeamPlayerRoster } from '../../lib/roster';
-import type { RosterTrainer } from '../../lib/roster';
+import { updateTraining, deleteTraining, fetchTrainingExercises, fetchTrainingAbsences } from './api';
+import { fetchTeamPlayerRoster } from '../../lib/roster';
 import { exportTrainingPdf } from './trainingPdf';
 import { TrainingSeasonSummary } from '../seasonplanning/TrainingSeasonSummary';
-import { fetchApplicableSeasonPlanningEvents } from '../seasonplanning/api';
+import { fetchApplicableSeasonPlanningEvents, computeTrainingSeasonCoverage } from '../seasonplanning/api';
 import { SEASON_CATEGORY_ORDER } from '../seasonplanning/categories';
 import type { Training, TrainingFieldType } from '../../types/database';
+
+interface SaveSummary {
+  coverage: number | null;
+  plannedMinutes: number;
+}
 
 interface TrainingDetailDialogProps {
   training: Training;
@@ -52,34 +48,8 @@ export function TrainingDetailDialog({
   const [deleting, setDeleting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [trainerRoster, setTrainerRoster] = useState<RosterTrainer[]>([]);
-  const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
-  const [trainersLoading, setTrainersLoading] = useState(true);
-  const [trainersError, setTrainersError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadTrainers() {
-      setTrainersError(null);
-      try {
-        const [roster, links] = await Promise.all([
-          fetchTeamTrainerRoster(training.team_id),
-          fetchTrainingTrainers(training.id),
-        ]);
-        setTrainerRoster(roster);
-        setSelectedTrainerIds(links.map((l) => l.trainer_id));
-      } catch (err) {
-        setTrainersError(err instanceof Error ? err.message : 'Trainer konnten nicht geladen werden.');
-      } finally {
-        setTrainersLoading(false);
-      }
-    }
-    void loadTrainers();
-  }, [training.id, training.team_id]);
-
-  function toggleTrainer(trainerId: string) {
-    setSelectedTrainerIds((prev) => (prev.includes(trainerId) ? prev.filter((id) => id !== trainerId) : [...prev, trainerId]));
-  }
+  const [saveSummary, setSaveSummary] = useState<SaveSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   async function handleExportPdf() {
     setExportingPdf(true);
@@ -126,6 +96,25 @@ export function TrainingDetailDialog({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSummaryLoading(true);
+    try {
+      const [exercises, seasonEvents] = await Promise.all([
+        fetchTrainingExercises(training.id),
+        fetchApplicableSeasonPlanningEvents(training.team_id, date),
+      ]);
+      const plannedMinutes = exercises.reduce((sum, ex) => sum + ex.duration_minutes, 0);
+      const coverage = await computeTrainingSeasonCoverage(training.id, seasonEvents).catch(() => null);
+      setSaveSummary({ coverage, plannedMinutes });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Übersicht konnte nicht geladen werden.');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }
+
+  async function performSave() {
+    setSaveSummary(null);
+    setError(null);
     setLoading(true);
     try {
       await updateTraining(training.id, {
@@ -137,9 +126,6 @@ export function TrainingDetailDialog({
         information: information || null,
         show_exercise_descriptions: showExerciseDescriptions,
       });
-      if (!trainersLoading) {
-        await replaceTrainingTrainers(training.id, selectedTrainerIds);
-      }
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Änderungen konnten nicht gespeichert werden.');
@@ -186,8 +172,8 @@ export function TrainingDetailDialog({
           <Button type="button" variant="secondary" onClick={onClose}>
             Schliessen
           </Button>
-          <Button type="submit" form="edit-training-form" disabled={loading}>
-            {loading ? 'Speichern…' : 'Speichern'}
+          <Button type="submit" form="edit-training-form" disabled={loading || summaryLoading}>
+            {summaryLoading ? 'Lädt…' : loading ? 'Speichern…' : 'Speichern'}
           </Button>
         </>
       }
@@ -217,7 +203,7 @@ export function TrainingDetailDialog({
           </div>
           <TrainingSeasonSummary teamId={training.team_id} trainingId={training.id} trainingDate={date} />
           <div>
-            <Label htmlFor="notes">Notizen</Label>
+            <Label htmlFor="notes">Notizen (Trainingsstart)</Label>
             <textarea
               id="notes"
               rows={3}
@@ -227,7 +213,7 @@ export function TrainingDetailDialog({
             />
           </div>
           <div>
-            <Label htmlFor="information">Informationen</Label>
+            <Label htmlFor="information">Informationen (Trainingsende)</Label>
             <textarea
               id="information"
               rows={3}
@@ -236,28 +222,8 @@ export function TrainingDetailDialog({
               className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-text">
-            <input
-              type="checkbox"
-              className="size-5"
-              checked={showExerciseDescriptions}
-              onChange={(e) => setShowExerciseDescriptions(e.target.checked)}
-            />
-            Übungsbeschreibung im PDF anzeigen
-          </label>
           {error && <p className="text-sm text-danger">{error}</p>}
         </form>
-
-        <div className="border-t border-border pt-4">
-          <Label>Trainer</Label>
-          <TrainingTrainersEditor
-            trainers={trainerRoster}
-            selectedIds={selectedTrainerIds}
-            onToggle={toggleTrainer}
-            loading={trainersLoading}
-            error={trainersError}
-          />
-        </div>
 
         <div className="border-t border-border pt-4">
           <Label>Abgemeldet</Label>
@@ -266,10 +232,20 @@ export function TrainingDetailDialog({
 
         <div className="border-t border-border pt-4">
           <Label>Übungen</Label>
+          <label className="mb-3 flex items-center gap-2 text-sm text-text">
+            <input
+              type="checkbox"
+              className="size-5"
+              checked={showExerciseDescriptions}
+              onChange={(e) => setShowExerciseDescriptions(e.target.checked)}
+            />
+            Übungsbeschreibung im PDF anzeigen
+          </label>
           <TrainingExercisesEditor
             trainingId={training.id}
             fieldType={fieldType}
             categoryId={categoryId}
+            totalDurationMinutes={duration}
           />
         </div>
 
@@ -278,6 +254,34 @@ export function TrainingDetailDialog({
           <TrainingRatingSection trainingId={training.id} />
         </div>
       </div>
+
+      {saveSummary && (
+        <Modal
+          title="Training speichern"
+          onClose={() => setSaveSummary(null)}
+          footer={
+            <>
+              <Button type="button" variant="secondary" onClick={() => setSaveSummary(null)}>
+                Zurück
+              </Button>
+              <Button type="button" disabled={loading} onClick={() => void performSave()}>
+                {loading ? 'Speichert…' : 'OK'}
+              </Button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-2 text-sm text-text">
+            <p>
+              {saveSummary.coverage !== null
+                ? `${saveSummary.coverage}% der Trainingseinheit gemäss Saisonplanung geplant.`
+                : 'Prozentzahl gemäss Saisonplanung konnte nicht berechnet werden.'}
+            </p>
+            <p>
+              {saveSummary.plannedMinutes} von {duration} Minuten des Trainings verplant.
+            </p>
+          </div>
+        </Modal>
+      )}
     </Modal>
   );
 }

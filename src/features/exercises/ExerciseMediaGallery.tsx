@@ -6,11 +6,12 @@ import type { ExerciseMedia } from '../../types/database';
 
 interface ExerciseMediaGalleryProps {
   exerciseId: string;
+  title: string;
   media: ExerciseMediaView[];
   onChange: (media: ExerciseMediaView[]) => void;
 }
 
-export function ExerciseMediaGallery({ exerciseId, media, onChange }: ExerciseMediaGalleryProps) {
+export function ExerciseMediaGallery({ exerciseId, title, media, onChange }: ExerciseMediaGalleryProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +28,7 @@ export function ExerciseMediaGallery({ exerciseId, media, onChange }: ExerciseMe
     setError(null);
     try {
       const existingRaw: ExerciseMedia[] = media.map((m) => ({ type: m.type, path: m.path, url: '' }));
-      await addExerciseMedia(exerciseId, existingRaw, files);
+      await addExerciseMedia(exerciseId, title, existingRaw, files);
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Datei konnte nicht hochgeladen werden.');

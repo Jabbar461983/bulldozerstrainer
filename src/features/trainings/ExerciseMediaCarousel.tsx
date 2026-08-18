@@ -1,16 +1,40 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TouchEvent } from 'react';
 import clsx from 'clsx';
 import type { ExerciseMediaView } from '../exercises/api';
 
+const AUTO_ADVANCE_MS = 4000;
+const SLOW_PLAYBACK_RATE = 0.5;
+
 interface ExerciseMediaCarouselProps {
   media: ExerciseMediaView[];
+  /** Bilder automatisch nacheinander weiterschalten und Videos in reduzierter Geschwindigkeit abspielen (Abspielmodus). */
+  autoPlay?: boolean;
 }
 
-export function ExerciseMediaCarousel({ media }: ExerciseMediaCarouselProps) {
+export function ExerciseMediaCarousel({ media, autoPlay = false }: ExerciseMediaCarouselProps) {
   const [index, setIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const current = media[Math.min(index, media.length - 1)];
+
+  useEffect(() => {
+    setIndex(0);
+  }, [media]);
+
+  useEffect(() => {
+    if (!autoPlay || media.length <= 1 || current?.type !== 'image') return;
+    const timer = setTimeout(() => {
+      setIndex((i) => (i + 1) % media.length);
+    }, AUTO_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [autoPlay, current, index, media.length]);
+
+  useEffect(() => {
+    if (autoPlay && videoRef.current) {
+      videoRef.current.playbackRate = SLOW_PLAYBACK_RATE;
+    }
+  }, [autoPlay, current]);
 
   function handleTouchStart(e: TouchEvent<HTMLDivElement>) {
     e.stopPropagation();
@@ -36,7 +60,16 @@ export function ExerciseMediaCarousel({ media }: ExerciseMediaCarouselProps) {
         {current.type === 'image' ? (
           <img src={current.url ?? ''} alt="" className="max-h-80 w-full object-contain" />
         ) : (
-          <video src={current.url ?? ''} controls className="max-h-80 w-full" />
+          <video
+            key={current.path}
+            ref={videoRef}
+            src={current.url ?? ''}
+            controls
+            className="max-h-80 w-full"
+            onLoadedMetadata={(e) => {
+              if (autoPlay) e.currentTarget.playbackRate = SLOW_PLAYBACK_RATE;
+            }}
+          />
         )}
       </div>
       {media.length > 1 && (

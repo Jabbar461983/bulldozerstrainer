@@ -2,16 +2,18 @@ import { supabase } from '../../lib/supabase';
 import type { Exercise, ExerciseFocus, ExerciseMedia } from '../../types/database';
 
 export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
-  'Angriff',
-  'Verteidigung',
+  'Offensivverhalten',
   'Schuss',
-  'Passspiel',
+  'Passen',
+  'Aufbau',
   'Ballabdecken',
   'Lösen vom Gegner',
+  'Zweikampf',
   'Bullys',
-  'Zweikampfverhalten',
+  'Überzahlsituation',
   'Specialteams',
   'Torhüter',
+  'Minigames',
   'Spiel',
 ];
 
@@ -33,6 +35,9 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 export interface ExerciseOption {
   id: string;
   title: string;
+  description: string | null;
+  coaching_questions: string | null;
+  variants: string | null;
   age_category_ids: string[];
   focus_areas: ExerciseFocus[];
 }
@@ -40,7 +45,7 @@ export interface ExerciseOption {
 export async function fetchExerciseOptions(): Promise<ExerciseOption[]> {
   const { data, error } = await supabase
     .from('exercises')
-    .select('id, title, age_category_ids, focus_areas')
+    .select('id, title, description, coaching_questions, variants, age_category_ids, focus_areas')
     .order('title', { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -108,15 +113,27 @@ export async function fetchExerciseMediaByIds(ids: string[]): Promise<Map<string
   return result;
 }
 
-export async function uploadExerciseMedia(exerciseId: string, files: File[]): Promise<ExerciseMedia[]> {
+// Speichernamen sollen den Übungstitel enthalten, damit Dateien im Storage-
+// Bucket auch ohne Datenbankzugriff erkennbar sind. Zeichen, die in
+// Speicherpfaden problematisch sind, werden entfernt; Umlaute bleiben erhalten.
+function sanitizeForFilename(title: string): string {
+  const cleaned = title
+    .replace(/[/\\:*?"<>|#%«»]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  return cleaned.slice(0, 80) || 'uebung';
+}
+
+export async function uploadExerciseMedia(exerciseId: string, title: string, files: File[]): Promise<ExerciseMedia[]> {
   const uploaded: ExerciseMedia[] = [];
+  const titlePart = sanitizeForFilename(title);
   for (const file of files) {
     if (file.size > MAX_MEDIA_FILE_SIZE) {
       throw new Error(`Datei "${file.name}" ist zu gross (max. 50 MB).`);
     }
     const type: ExerciseMedia['type'] = file.type.startsWith('video/') ? 'video' : 'image';
     const extension = file.name.includes('.') ? file.name.split('.').pop() : undefined;
-    const path = `${exerciseId}/${crypto.randomUUID()}${extension ? `.${extension}` : ''}`;
+    const path = `${exerciseId}/${titlePart}-${crypto.randomUUID()}${extension ? `.${extension}` : ''}`;
     const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file);
     if (error) throw error;
     uploaded.push({ type, path, url: '' });
@@ -132,6 +149,7 @@ export async function createExercise(payload: {
   title: string;
   learning_content: string | null;
   description: string | null;
+  coaching_questions: string | null;
   variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
@@ -146,7 +164,7 @@ export async function createExercise(payload: {
   if (error) throw error;
 
   if (files.length > 0) {
-    const media = await uploadExerciseMedia(data.id, files);
+    const media = await uploadExerciseMedia(data.id, payload.title, files);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: mediaError } = await (supabase.from('exercises') as any).update({ media }).eq('id', data.id);
     if (mediaError) throw mediaError;
@@ -157,6 +175,7 @@ export interface ExerciseImportPayload {
   title: string;
   learning_content: string | null;
   description: string | null;
+  coaching_questions: string | null;
   variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
@@ -171,7 +190,16 @@ export async function importExercises(payloads: ExerciseImportPayload[], authorI
 export async function updateExercise(
   id: string,
   updates: Partial<
-    Pick<Exercise, 'title' | 'learning_content' | 'description' | 'variants' | 'focus_areas' | 'age_category_ids'>
+    Pick<
+      Exercise,
+      | 'title'
+      | 'learning_content'
+      | 'description'
+      | 'coaching_questions'
+      | 'variants'
+      | 'focus_areas'
+      | 'age_category_ids'
+    >
   >,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,8 +207,8 @@ export async function updateExercise(
   if (error) throw error;
 }
 
-export async function addExerciseMedia(exerciseId: string, existingMedia: ExerciseMedia[], files: File[]) {
-  const newMedia = await uploadExerciseMedia(exerciseId, files);
+export async function addExerciseMedia(exerciseId: string, title: string, existingMedia: ExerciseMedia[], files: File[]) {
+  const newMedia = await uploadExerciseMedia(exerciseId, title, files);
   const media = [...existingMedia, ...newMedia];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('exercises') as any).update({ media }).eq('id', exerciseId);
@@ -199,4 +227,32 @@ export async function deleteExercise(id: string, media: ExerciseMedia[]) {
   const { error } = await supabase.from('exercises').delete().eq('id', id);
   if (error) throw error;
   await Promise.all(media.map((m) => removeExerciseMediaFile(m.path)));
+}
+
+// Persönliche Favoriten: jeder Trainer markiert unabhängig von den anderen.
+export async function fetchFavoriteExerciseIds(profileId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('exercise_favorites')
+    .select('exercise_id')
+    .eq('profile_id', profileId);
+  if (error) throw error;
+  return new Set((data ?? []).map((r: { exercise_id: string }) => r.exercise_id));
+}
+
+export async function addExerciseFavorite(profileId: string, exerciseId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('exercise_favorites') as any).insert({
+    profile_id: profileId,
+    exercise_id: exerciseId,
+  });
+  if (error) throw error;
+}
+
+export async function removeExerciseFavorite(profileId: string, exerciseId: string) {
+  const { error } = await supabase
+    .from('exercise_favorites')
+    .delete()
+    .eq('profile_id', profileId)
+    .eq('exercise_id', exerciseId);
+  if (error) throw error;
 }

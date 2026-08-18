@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Label } from '../../components/Input';
-import { parseFixtureCsv, CsvFormatError, toCsv } from '../../lib/csv';
+import { parseFixtureCsv, readCsvFile, CsvFormatError, toCsv } from '../../lib/csv';
 import type { FixtureImportRow } from '../../lib/csv';
 import { downloadTextFile } from '../../lib/downloadFile';
 import { importGames } from './api';
@@ -34,7 +34,7 @@ export function ImportGamesDialog({ teamId, categoryId, onClose, onImported }: I
     setParseError(null);
     setRows([]);
     try {
-      const text = await file.text();
+      const text = await readCsvFile(file);
       setRows(parseFixtureCsv(text));
     } catch (err) {
       setParseError(err instanceof CsvFormatError ? err.message : 'Datei konnte nicht gelesen werden.');

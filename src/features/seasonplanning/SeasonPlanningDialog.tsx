@@ -17,13 +17,14 @@ const CATEGORY_OPTIONS: { value: SeasonPlanningCategory; label: string }[] = [
 ];
 
 const TECHNIQUE_SUBCATEGORIES = [
-  'Passspiel',
+  'Passen',
   'Schiessen',
   'Ballabdecken',
   'Lösen vom Gegner',
   'Railabdecken',
   'Bullys',
-  'Zweikampfverhalten',
+  'Zweikampf',
+  'Aufbau',
 ];
 
 const TACTICS_SUBCATEGORIES = [
@@ -32,6 +33,7 @@ const TACTICS_SUBCATEGORIES = [
   'Offensivtaktiken',
   'Wechsel',
   'Specialteams',
+  'Überzahlsituation',
 ];
 
 const ACTIVITIES_SUBCATEGORIES = [

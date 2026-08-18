@@ -237,7 +237,7 @@ export function TrainingPresentation({ training, teamId, trainings, onClose }: T
                 {page.startClock && page.endClock && ` · ${page.startClock.slice(0, 5)}–${page.endClock.slice(0, 5)}`}
               </p>
             </div>
-            {page.exercise.media.length > 0 && <ExerciseMediaCarousel media={page.exercise.media} />}
+            {page.exercise.media.length > 0 && <ExerciseMediaCarousel media={page.exercise.media} autoPlay />}
             {page.exercise.exerciseDescription && (
               <div>
                 <h2 className="mb-1 text-sm font-semibold text-text-muted">Beschreibung</h2>
@@ -248,6 +248,12 @@ export function TrainingPresentation({ training, teamId, trainings, onClose }: T
               <div>
                 <h2 className="mb-1 text-sm font-semibold text-text-muted">Varianten</h2>
                 <p className="whitespace-pre-wrap text-sm text-text">{page.exercise.exerciseVariants}</p>
+              </div>
+            )}
+            {page.exercise.exerciseCoachingQuestions && (
+              <div>
+                <h2 className="mb-1 text-sm font-semibold text-text-muted">Coachingfragen</h2>
+                <p className="whitespace-pre-wrap text-sm text-text">{page.exercise.exerciseCoachingQuestions}</p>
               </div>
             )}
           </div>

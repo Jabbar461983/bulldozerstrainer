@@ -1,6 +1,6 @@
 import type { CoachRole } from '../types/database';
 
-export type Module = 'finanzen' | 'training' | 'spiele' | 'spieler' | 'uebungen';
+export type Module = 'finanzen' | 'training' | 'spiele' | 'spieler' | 'uebungen' | 'checklisten';
 
 // Rechtematrix aus dem Konzept: Training/Spiele/Spieler/Übungen für
 // Headcoach und Assistenzcoach (jeweils nur im eigenen Team-Scope). Das
@@ -12,6 +12,7 @@ const MODULE_ROLES: Record<Exclude<Module, 'finanzen'>, CoachRole[]> = {
   spiele: ['headcoach', 'assistant_coach'],
   spieler: ['headcoach', 'assistant_coach'],
   uebungen: ['headcoach', 'assistant_coach'],
+  checklisten: ['headcoach', 'assistant_coach'],
 };
 
 export const ROLE_LABELS: Record<CoachRole, string> = {

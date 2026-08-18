@@ -206,6 +206,7 @@ export async function deleteTraining(id: string) {
 export interface TrainingExerciseRow extends TrainingExercise {
   exerciseTitle: string;
   exerciseDescription: string | null;
+  exerciseCoachingQuestions: string | null;
   exerciseVariants: string | null;
   media: ExerciseMediaView[];
 }
@@ -219,18 +220,27 @@ export async function fetchTrainingExercises(trainingId: string): Promise<Traini
   if (rowsError) throw rowsError;
 
   const exerciseIds = Array.from(new Set((rows ?? []).map((r: TrainingExercise) => r.exercise_id)));
-  let infoById = new Map<string, { title: string; description: string | null; variants: string | null }>();
+  let infoById = new Map<
+    string,
+    { title: string; description: string | null; coaching_questions: string | null; variants: string | null }
+  >();
   if (exerciseIds.length > 0) {
     const { data: exercises, error: exercisesError } = await supabase
       .from('exercises')
-      .select('id, title, description, variants')
+      .select('id, title, description, coaching_questions, variants')
       .in('id', exerciseIds);
     if (exercisesError) throw exercisesError;
     infoById = new Map(
       (exercises ?? []).map(
-        (e: { id: string; title: string; description: string | null; variants: string | null }) => [
+        (e: {
+          id: string;
+          title: string;
+          description: string | null;
+          coaching_questions: string | null;
+          variants: string | null;
+        }) => [
           e.id,
-          { title: e.title, description: e.description, variants: e.variants },
+          { title: e.title, description: e.description, coaching_questions: e.coaching_questions, variants: e.variants },
         ],
       ),
     );
@@ -241,6 +251,7 @@ export async function fetchTrainingExercises(trainingId: string): Promise<Traini
     ...r,
     exerciseTitle: infoById.get(r.exercise_id)?.title ?? 'Unbekannte Übung',
     exerciseDescription: infoById.get(r.exercise_id)?.description ?? null,
+    exerciseCoachingQuestions: infoById.get(r.exercise_id)?.coaching_questions ?? null,
     exerciseVariants: infoById.get(r.exercise_id)?.variants ?? null,
     media: mediaById.get(r.exercise_id) ?? [],
   }));

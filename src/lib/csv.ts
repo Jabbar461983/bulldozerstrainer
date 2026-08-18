@@ -1,3 +1,16 @@
+// Excel speichert "CSV" auf deutschen Windows-Systemen standardmässig in
+// Windows-1252 (ANSI), nicht UTF-8 - dabei werden ü/ä/ö/Ü/Ä/Ö sonst zu
+// Sonderzeichen. UTF-8 zuerst strikt versuchen, bei ungültigen Bytes auf
+// Windows-1252 zurückfallen.
+export async function readCsvFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+  } catch {
+    return new TextDecoder('windows-1252').decode(buffer);
+  }
+}
+
 function detectDelimiter(firstLine: string): ',' | ';' {
   const commaCount = (firstLine.match(/,/g) ?? []).length;
   const semicolonCount = (firstLine.match(/;/g) ?? []).length;
@@ -133,6 +146,7 @@ export interface ExerciseImportRow {
   title: string;
   learningContent: string;
   description: string;
+  coachingQuestions: string;
   variants: string;
   rawFocusAreas: string;
   rawCategories: string;
@@ -143,6 +157,7 @@ export interface ExerciseImportRow {
 const EXERCISE_TITLE_HEADERS = ['titel', 'title'];
 const LEARNING_CONTENT_HEADERS = ['lerninhalte', 'lerninhalt', 'learning content'];
 const EXERCISE_DESCRIPTION_HEADERS = ['beschreibung', 'description'];
+const COACHING_QUESTIONS_HEADERS = ['coachingfragen', 'coaching-fragen', 'coaching questions'];
 const VARIANTS_HEADERS = ['varianten', 'variants'];
 const FOCUS_AREA_HEADERS = ['fokus-bereiche', 'fokusbereiche', 'fokus', 'inhalte', 'inhalt', 'focus areas', 'focus'];
 const EXERCISE_CATEGORY_HEADERS = [
@@ -163,6 +178,7 @@ export function parseExerciseCsv(text: string): ExerciseImportRow[] {
   const titleIdx = header.findIndex((h) => EXERCISE_TITLE_HEADERS.includes(h));
   const learningContentIdx = header.findIndex((h) => LEARNING_CONTENT_HEADERS.includes(h));
   const descriptionIdx = header.findIndex((h) => EXERCISE_DESCRIPTION_HEADERS.includes(h));
+  const coachingQuestionsIdx = header.findIndex((h) => COACHING_QUESTIONS_HEADERS.includes(h));
   const variantsIdx = header.findIndex((h) => VARIANTS_HEADERS.includes(h));
   const focusIdx = header.findIndex((h) => FOCUS_AREA_HEADERS.includes(h));
   const categoryIdx = header.findIndex((h) => EXERCISE_CATEGORY_HEADERS.includes(h));
@@ -175,6 +191,7 @@ export function parseExerciseCsv(text: string): ExerciseImportRow[] {
     const title = (cols[titleIdx] ?? '').trim();
     const learningContent = learningContentIdx === -1 ? '' : (cols[learningContentIdx] ?? '').trim();
     const description = descriptionIdx === -1 ? '' : (cols[descriptionIdx] ?? '').trim();
+    const coachingQuestions = coachingQuestionsIdx === -1 ? '' : (cols[coachingQuestionsIdx] ?? '').trim();
     const variants = variantsIdx === -1 ? '' : (cols[variantsIdx] ?? '').trim();
     const rawFocusAreas = focusIdx === -1 ? '' : (cols[focusIdx] ?? '').trim();
     const rawCategories = categoryIdx === -1 ? '' : (cols[categoryIdx] ?? '').trim();
@@ -183,6 +200,7 @@ export function parseExerciseCsv(text: string): ExerciseImportRow[] {
       title,
       learningContent,
       description,
+      coachingQuestions,
       variants,
       rawFocusAreas,
       rawCategories,

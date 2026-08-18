@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Label } from '../../components/Input';
-import { parseExerciseCsv, CsvFormatError, toCsv } from '../../lib/csv';
+import { parseExerciseCsv, readCsvFile, CsvFormatError, toCsv } from '../../lib/csv';
 import type { ExerciseImportRow } from '../../lib/csv';
 import { downloadTextFile } from '../../lib/downloadFile';
 import { importExercises, EXERCISE_FOCUS_OPTIONS } from './api';
@@ -19,19 +19,29 @@ interface ImportExercisesDialogProps {
 function buildExampleCsv(categories: Category[]): string {
   const sample1 = categories[0]?.name ?? 'U9';
   const sample2 = categories[1]?.name ?? categories[0]?.name ?? 'U12';
-  const header = ['Titel', 'Lerninhalte', 'Beschreibung', 'Varianten', 'Fokus-Bereiche', 'Alterskategorien'];
+  const header = [
+    'Titel',
+    'Lerninhalte',
+    'Beschreibung',
+    'Coachingfragen',
+    'Varianten',
+    'Fokus-Bereiche',
+    'Alterskategorien',
+  ];
   const row1 = [
     'Bälleiburg',
     'Viel Bewegung, Ball führen und kontrollieren',
     'Es werden vier Teams gebildet. Jedes Team hat einen Ring mit Bällen drin.',
+    'Wie hältst du den Kopf beim Ballführen? Wo schaust du hin?',
     'Anstelle des Zurückführens muss ein Pass in die Homebase gespielt werden',
-    'Passspiel,Schuss',
+    'Passen,Schuss',
     `${sample1},${sample2}`,
   ];
   const row2 = [
     'Sprintleiter',
     'Schnelligkeit und Beinarbeit',
     'Seitliches und vorwärts Laufen durch die Leiter, danach kurzer Sprint.',
+    '',
     '',
     'Schnelligkeit,Koordination',
     sample1,
@@ -84,7 +94,7 @@ export function ImportExercisesDialog({ categories, onClose, onImported }: Impor
     setParseError(null);
     setRows([]);
     try {
-      const text = await file.text();
+      const text = await readCsvFile(file);
       setRows(parseExerciseCsv(text));
     } catch (err) {
       setParseError(err instanceof CsvFormatError ? err.message : 'Datei konnte nicht gelesen werden.');
@@ -113,6 +123,7 @@ export function ImportExercisesDialog({ categories, onClose, onImported }: Impor
             title: r.row.title,
             learning_content: r.row.learningContent || null,
             description: r.row.description || null,
+            coaching_questions: r.row.coachingQuestions || null,
             variants: r.row.variants || null,
             focus_areas: r.focus.matched,
             age_category_ids: r.category.matched,
@@ -145,9 +156,10 @@ export function ImportExercisesDialog({ categories, onClose, onImported }: Impor
       <div className="flex flex-col gap-4">
         <p className="text-sm text-text-muted">
           CSV-Datei mit der Spalte <strong>Titel</strong> (Pflicht) sowie optional <strong>Lerninhalte</strong>,{' '}
-          <strong>Beschreibung</strong>, <strong>Varianten</strong>, <strong>Fokus-Bereiche</strong> und{' '}
-          <strong>Alterskategorien</strong> in der ersten Zeile. Mehrere Fokus-Bereiche bzw. Alterskategorien pro
-          Übung mit Komma trennen (z.B. „Passspiel,Schuss"). Bilder/Videos sind nicht Teil des Imports und müssen pro
+          <strong>Beschreibung</strong>, <strong>Coachingfragen</strong>, <strong>Varianten</strong>,{' '}
+          <strong>Fokus-Bereiche</strong> und <strong>Alterskategorien</strong> in der ersten Zeile. Mehrere
+          Fokus-Bereiche bzw. Alterskategorien pro Übung mit Komma trennen (z.B. „Passen,Schuss"). Bilder/Videos sind
+          nicht Teil des Imports und müssen pro
           Übung separat ergänzt werden. Aus Excel exportierbar über „Datei &gt; Speichern unter &gt; CSV".
         </p>
 

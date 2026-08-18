@@ -4,7 +4,15 @@ import { Card } from '../../components/Card';
 import { ChipMultiPicker } from '../../components/ChipMultiPicker';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { useAuth } from '../../auth/AuthContext';
-import { fetchExercises, deleteExercise, ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS } from './api';
+import {
+  fetchExercises,
+  deleteExercise,
+  fetchFavoriteExerciseIds,
+  addExerciseFavorite,
+  removeExerciseFavorite,
+  ON_FIELD_FOCUS_OPTIONS,
+  OFF_FIELD_FOCUS_OPTIONS,
+} from './api';
 import type { ExerciseRow } from './api';
 import { fetchCategories } from '../../lib/categories';
 import type { Category, ExerciseFocus } from '../../types/database';
@@ -25,6 +33,8 @@ export function ExercisesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ExerciseRow | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
 
   async function load() {
     setError(null);
@@ -36,14 +46,38 @@ export function ExercisesPage() {
       setExercises(result.data.exerciseRows);
       setCategories(result.data.categoryRows);
       setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
+      if (profile?.id) setFavoriteIds(await fetchFavoriteExerciseIds(profile.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Übungen konnten nicht geladen werden.');
     }
   }
 
+  async function handleToggleFavorite(exerciseId: string) {
+    if (!profile?.id) return;
+    setFavoriteBusyId(exerciseId);
+    try {
+      if (favoriteIds.has(exerciseId)) {
+        await removeExerciseFavorite(profile.id, exerciseId);
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          next.delete(exerciseId);
+          return next;
+        });
+      } else {
+        await addExerciseFavorite(profile.id, exerciseId);
+        setFavoriteIds((prev) => new Set(prev).add(exerciseId));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Favorit konnte nicht gespeichert werden.');
+    } finally {
+      setFavoriteBusyId(null);
+    }
+  }
+
   useEffect(() => {
     void load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -129,8 +163,20 @@ export function ExercisesPage() {
           const canEdit = isAdmin || exercise.author_id === profile?.id;
           return (
             <Card key={exercise.id} className="flex flex-col gap-3">
-              <div>
+              <div className="flex items-start justify-between gap-2">
                 <p className="font-medium text-text">{exercise.title}</p>
+                <button
+                  type="button"
+                  disabled={favoriteBusyId === exercise.id}
+                  onClick={() => void handleToggleFavorite(exercise.id)}
+                  aria-label={favoriteIds.has(exercise.id) ? 'Von Favoriten entfernen' : 'Als Favorit markieren'}
+                  aria-pressed={favoriteIds.has(exercise.id)}
+                  className="shrink-0 text-xl leading-none text-accent transition disabled:opacity-50"
+                >
+                  {favoriteIds.has(exercise.id) ? '★' : '☆'}
+                </button>
+              </div>
+              <div>
                 {exercise.learning_content && (
                   <p className="mt-1 text-sm text-text-muted">
                     <span className="font-medium text-text">Lerninhalte: </span>
@@ -141,6 +187,12 @@ export function ExercisesPage() {
                   <p className="mt-1 text-sm text-text-muted">
                     <span className="font-medium text-text">Beschreibung: </span>
                     {exercise.description}
+                  </p>
+                )}
+                {exercise.coaching_questions && (
+                  <p className="mt-1 text-sm text-text-muted">
+                    <span className="font-medium text-text">Coachingfragen: </span>
+                    {exercise.coaching_questions}
                   </p>
                 )}
                 {exercise.variants && (

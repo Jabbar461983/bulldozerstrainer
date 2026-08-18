@@ -68,6 +68,18 @@ export const NAV_ITEMS: NavItem[] = [
     icon: <Icon d="M4 20a4 4 0 018 0M12 20a4 4 0 018 0M8 12a3 3 0 100-6 3 3 0 000 6zm8 0a3 3 0 100-6 3 3 0 000 6z" />,
   },
   {
+    to: '/checklisten',
+    label: 'Checklisten',
+    module: 'checklisten',
+    icon: <Icon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 15h6" />,
+  },
+  {
+    to: '/checklisten-verwaltung',
+    label: 'Checklisten-Verwaltung',
+    adminOnly: true,
+    icon: <Icon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 15h6" />,
+  },
+  {
     to: '/benutzer',
     label: 'Benutzer',
     adminOnly: true,

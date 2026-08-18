@@ -5,6 +5,7 @@ import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { TeamMultiPicker } from '../../components/TeamMultiPicker';
 import { PlayerNotes } from './PlayerNotes';
+import { PlayerGoals } from './PlayerGoals';
 import { updatePlayer, replacePlayerTeams } from './api';
 import type { PlayerRow } from './api';
 import type { TeamOption } from '../../lib/teams';
@@ -23,8 +24,15 @@ export function EditPlayerDialog({ player, teamOptions, onClose, onSaved }: Edit
   const [lastName, setLastName] = useState(player.last_name);
   const [birthdate, setBirthdate] = useState(player.birthdate ?? '');
   const [teamIds, setTeamIds] = useState<string[]>(player.teams.map((t) => t.teamId));
+  const [defaultSeason, setDefaultSeason] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get default season from first team
+  if (!defaultSeason && player.teams.length > 0) {
+    // This will be set on first render
+    setDefaultSeason(player.teams[0].season);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -79,6 +87,16 @@ export function EditPlayerDialog({ player, teamOptions, onClose, onSaved }: Edit
         <div>
           <Label>Team-Zuweisung</Label>
           <TeamMultiPicker teamOptions={teamOptions} value={teamIds} onChange={setTeamIds} />
+        </div>
+
+        <div>
+          <Label>Ziele</Label>
+          <PlayerGoals
+            playerId={player.id}
+            currentUserId={profile?.id ?? null}
+            defaultSeason={defaultSeason}
+            isAdmin={profile?.is_admin ?? false}
+          />
         </div>
 
         <div>

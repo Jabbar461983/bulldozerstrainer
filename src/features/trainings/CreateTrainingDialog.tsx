@@ -97,7 +97,7 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
           </div>
         </div>
         <div>
-          <Label htmlFor="notes">Notizen</Label>
+          <Label htmlFor="notes">Notizen (Trainingsstart)</Label>
           <textarea
             id="notes"
             rows={3}
@@ -107,7 +107,7 @@ export function CreateTrainingDialog({ teamId, onClose, onCreated }: CreateTrain
           />
         </div>
         <div>
-          <Label htmlFor="information">Informationen</Label>
+          <Label htmlFor="information">Informationen (Trainingsende)</Label>
           <textarea
             id="information"
             rows={3}

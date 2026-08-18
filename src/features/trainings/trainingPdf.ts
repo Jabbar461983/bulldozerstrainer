@@ -169,8 +169,8 @@ export async function exportTrainingPdf(
   const [exerciseImages, logo] = await Promise.all([
     Promise.all(
       exercises.map((ex) => {
-        const image = ex.media.find((m) => m.type === 'image' && m.url);
-        return image?.url ? loadImageAsDataUrl(image.url) : Promise.resolve(null);
+        const images = ex.media.filter((m) => m.type === 'image' && m.url);
+        return Promise.all(images.map((m) => loadImageAsDataUrl(m.url as string)));
       }),
     ),
     loadImageAsDataUrl('/logo-bulldozers_farbig.png'),
@@ -240,11 +240,17 @@ export async function exportTrainingPdf(
     const descLines: string[] =
       showDescriptions && ex.exerciseDescription ? doc.splitTextToSize(ex.exerciseDescription, subColWidth) : [];
     const notesLines: string[] = ex.notes ? doc.splitTextToSize(ex.notes, notesWidth) : [];
+    const coachingQuestionLines: string[] = ex.exerciseCoachingQuestions
+      ? doc.splitTextToSize(ex.exerciseCoachingQuestions, contentWidth)
+      : [];
     const textBlockHeight = 5 + Math.max(descLines.length, notesLines.length) * lineH;
-    const image = exerciseImages[i];
-    const bodyHeight = Math.max(textBlockHeight, image ? minImageHeight : 0);
+    const images = exerciseImages[i].filter((img): img is LoadedImage => img !== null);
+    const bodyHeight = Math.max(textBlockHeight, images.length > 0 ? minImageHeight : 0);
+    const coachingQuestionsHeight = coachingQuestionLines.length
+      ? 5 + coachingQuestionLines.length * lineH + 3
+      : 0;
     const titleHeight = 7;
-    const blockHeight = titleHeight + bodyHeight + 8;
+    const blockHeight = titleHeight + bodyHeight + coachingQuestionsHeight + 8;
 
     ensureSpace(blockHeight);
 
@@ -282,19 +288,36 @@ export async function exportTrainingPdf(
     if (descLines.length) doc.text(descLines, descX, textY);
     if (notesLines.length) doc.text(notesLines, notesX, textY);
 
-    if (image) {
-      const boxW = imageColWidth;
-      const boxH = bodyHeight;
-      let drawW = boxW;
-      let drawH = drawW / image.ratio;
-      if (drawH > boxH) {
-        drawH = boxH;
-        drawW = drawH * image.ratio;
-      }
-      doc.addImage(image.dataUrl, 'JPEG', imageX + (boxW - drawW) / 2, bodyTop, drawW, drawH);
+    if (images.length > 0) {
+      const imgGap = 2;
+      const slotWidth = (imageColWidth - imgGap * (images.length - 1)) / images.length;
+      images.forEach((img, imgIndex) => {
+        let drawW = slotWidth;
+        let drawH = drawW / img.ratio;
+        if (drawH > bodyHeight) {
+          drawH = bodyHeight;
+          drawW = drawH * img.ratio;
+        }
+        const slotX = imageX + imgIndex * (slotWidth + imgGap);
+        doc.addImage(img.dataUrl, 'JPEG', slotX + (slotWidth - drawW) / 2, bodyTop, drawW, drawH);
+      });
     }
 
-    y = bodyTop + bodyHeight + 8;
+    y = bodyTop + bodyHeight;
+
+    if (coachingQuestionLines.length) {
+      y += 4;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Coachingfragen:', margin, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.text(coachingQuestionLines, margin, y + 5);
+      y += 5 + coachingQuestionLines.length * lineH;
+    }
+
+    y += 8;
   });
 
   // Eisfeld-Skizzen am Ende

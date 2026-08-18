@@ -75,18 +75,38 @@ export interface PlayerNote {
   created_at: string;
 }
 
+export interface PlayerGoalSeason {
+  id: string;
+  player_id: string;
+  season: string;
+  created_at: string;
+}
+
+export interface PlayerGoal {
+  id: string;
+  player_goal_season_id: string;
+  title: string;
+  rating_stars: number | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ExerciseFocus =
   // On Field
-  | 'Angriff'
-  | 'Verteidigung'
+  | 'Offensivverhalten'
   | 'Schuss'
-  | 'Passspiel'
+  | 'Passen'
+  | 'Aufbau'
   | 'Ballabdecken'
   | 'Lösen vom Gegner'
+  | 'Zweikampf'
   | 'Bullys'
-  | 'Zweikampfverhalten'
+  | 'Überzahlsituation'
   | 'Specialteams'
   | 'Torhüter'
+  | 'Minigames'
   | 'Spiel'
   // Off Field
   | 'Kraft'
@@ -108,6 +128,7 @@ export interface Exercise {
   title: string;
   learning_content: string | null;
   description: string | null;
+  coaching_questions: string | null;
   variants: string | null;
   focus_areas: ExerciseFocus[];
   age_category_ids: string[];
@@ -115,6 +136,13 @@ export interface Exercise {
   author_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ExerciseFavorite {
+  id: string;
+  profile_id: string;
+  exercise_id: string;
+  created_at: string;
 }
 
 export interface Training {
@@ -287,6 +315,53 @@ export interface Receipt {
   created_at: string;
 }
 
+export interface Checklist {
+  id: string;
+  title: string;
+  description: string | null;
+  has_reporting: boolean;
+  is_global: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChecklistTeam {
+  checklist_id: string;
+  team_id: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  checklist_id: string;
+  title: string;
+  sort_order: number;
+  parent_id: string | null;
+  created_at: string;
+}
+
+export interface ChecklistInstance {
+  id: string;
+  checklist_id: string;
+  team_id: string | null;
+  event_date: string | null;
+  event_context: string | null;
+  notes: string | null;
+  created_by: string | null;
+  completed_by: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ChecklistItemCompletion {
+  id: string;
+  checklist_instance_id: string;
+  checklist_item_id: string;
+  user_id: string;
+  notes: string | null;
+  completed_at: string;
+}
+
 // Minimal-Interface für den typisierten Supabase-Client. Da wir keine
 // generierten Typen aus einem Live-Projekt beziehen, halten wir das
 // Database-Generic bewusst locker, damit der Client trotzdem mit
@@ -323,7 +398,22 @@ export interface Database {
         Insert: Partial<PlayerNote>;
         Update: Partial<PlayerNote>;
       };
+      player_goal_seasons: {
+        Row: PlayerGoalSeason;
+        Insert: Partial<PlayerGoalSeason>;
+        Update: Partial<PlayerGoalSeason>;
+      };
+      player_goals: {
+        Row: PlayerGoal;
+        Insert: Partial<PlayerGoal>;
+        Update: Partial<PlayerGoal>;
+      };
       exercises: { Row: Exercise; Insert: Partial<Exercise>; Update: Partial<Exercise> };
+      exercise_favorites: {
+        Row: ExerciseFavorite;
+        Insert: Partial<ExerciseFavorite>;
+        Update: Partial<ExerciseFavorite>;
+      };
       trainings: { Row: Training; Insert: Partial<Training>; Update: Partial<Training> };
       training_exercises: {
         Row: TrainingExercise;
@@ -382,6 +472,27 @@ export interface Database {
         Row: TrainingFocusPercentage;
         Insert: Partial<TrainingFocusPercentage>;
         Update: Partial<TrainingFocusPercentage>;
+      };
+      checklists: { Row: Checklist; Insert: Partial<Checklist>; Update: Partial<Checklist> };
+      checklist_teams: {
+        Row: ChecklistTeam;
+        Insert: Partial<ChecklistTeam>;
+        Update: Partial<ChecklistTeam>;
+      };
+      checklist_items: {
+        Row: ChecklistItem;
+        Insert: Partial<ChecklistItem>;
+        Update: Partial<ChecklistItem>;
+      };
+      checklist_instances: {
+        Row: ChecklistInstance;
+        Insert: Partial<ChecklistInstance>;
+        Update: Partial<ChecklistInstance>;
+      };
+      checklist_item_completions: {
+        Row: ChecklistItemCompletion;
+        Insert: Partial<ChecklistItemCompletion>;
+        Update: Partial<ChecklistItemCompletion>;
       };
     };
   };

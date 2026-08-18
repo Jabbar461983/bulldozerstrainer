@@ -17,6 +17,8 @@ import { GamesPage } from './features/games/GamesPage';
 import { FinancePage } from './features/finance/FinancePage';
 import { FinanceOverviewPage } from './features/finance/FinanceOverviewPage';
 import { SeasonPlanningWrapper } from './features/seasonplanning/SeasonPlanningWrapper';
+import { ChecklistsCoachPage } from './features/checklists/ChecklistsCoachPage';
+import { ChecklistsAdminPage } from './features/checklists/ChecklistsAdminPage';
 
 function App() {
   return (
@@ -105,6 +107,22 @@ function App() {
               element={
                 <AdminRoute>
                   <TeamsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="checklisten"
+              element={
+                <ModuleRoute module="checklisten">
+                  <ChecklistsCoachPage />
+                </ModuleRoute>
+              }
+            />
+            <Route
+              path="checklisten-verwaltung"
+              element={
+                <AdminRoute>
+                  <ChecklistsAdminPage />
                 </AdminRoute>
               }
             />

@@ -5,9 +5,10 @@ import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { ChipMultiPicker } from '../../components/ChipMultiPicker';
 import { ExerciseMediaGallery } from './ExerciseMediaGallery';
-import { ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS, updateExercise } from './api';
+import { ON_FIELD_FOCUS_OPTIONS, OFF_FIELD_FOCUS_OPTIONS, updateExercise, fetchExercise, addExerciseMedia } from './api';
 import type { ExerciseRow } from './api';
 import type { Category, ExerciseFocus } from '../../types/database';
+import { ExerciseSketchEditor } from './sketch/ExerciseSketchEditor';
 
 interface EditExerciseDialogProps {
   exercise: ExerciseRow;
@@ -20,12 +21,23 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
   const [title, setTitle] = useState(exercise.title);
   const [learningContent, setLearningContent] = useState(exercise.learning_content ?? '');
   const [description, setDescription] = useState(exercise.description ?? '');
+  const [coachingQuestions, setCoachingQuestions] = useState(exercise.coaching_questions ?? '');
   const [variants, setVariants] = useState(exercise.variants ?? '');
   const [focusAreas, setFocusAreas] = useState<string[]>(exercise.focus_areas);
   const [categoryIds, setCategoryIds] = useState<string[]>(exercise.age_category_ids);
   const [media, setMedia] = useState(exercise.media);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSketchEditor, setShowSketchEditor] = useState(false);
+
+  async function handleSketchSave(jpegBlob: Blob) {
+    const file = new File([jpegBlob], `Skizze-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const existingRaw = media.map((m) => ({ type: m.type, path: m.path, url: '' }));
+    await addExerciseMedia(exercise.id, title, existingRaw, [file]);
+    const fresh = await fetchExercise(exercise.id);
+    setMedia(fresh.media);
+    setShowSketchEditor(false);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,6 +48,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
         title,
         learning_content: learningContent || null,
         description: description || null,
+        coaching_questions: coachingQuestions || null,
         variants: variants || null,
         focus_areas: focusAreas as ExerciseFocus[],
         age_category_ids: categoryIds,
@@ -89,6 +102,17 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
           />
         </div>
         <div>
+          <Label htmlFor="coachingQuestions">Coachingfragen (optional)</Label>
+          <textarea
+            id="coachingQuestions"
+            rows={3}
+            value={coachingQuestions}
+            onChange={(e) => setCoachingQuestions(e.target.value)}
+            placeholder="Fragen, die den Spielern die richtigen Details der Übung bewusst machen"
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+        </div>
+        <div>
           <Label htmlFor="variants">Varianten (optional)</Label>
           <textarea
             id="variants"
@@ -126,12 +150,21 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
         </div>
 
         <div>
-          <Label>Bilder/Videos</Label>
-          <ExerciseMediaGallery exerciseId={exercise.id} media={media} onChange={setMedia} />
+          <div className="flex items-center justify-between gap-2">
+            <Label>Bilder/Videos</Label>
+            <Button type="button" variant="secondary" onClick={() => setShowSketchEditor(true)}>
+              Übung zeichnen
+            </Button>
+          </div>
+          <ExerciseMediaGallery exerciseId={exercise.id} title={exercise.title} media={media} onChange={setMedia} />
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </form>
+
+      {showSketchEditor && (
+        <ExerciseSketchEditor onClose={() => setShowSketchEditor(false)} onSave={handleSketchSave} />
+      )}
     </Modal>
   );
 }

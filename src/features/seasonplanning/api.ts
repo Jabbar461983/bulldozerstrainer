@@ -12,16 +12,18 @@ import type {
 // "activities" (Vereinsanlässe wie Testspiele/Teamweihnachten) hat bewusst keine
 // zugeordneten Inhalte - das ergibt sich nicht aus Trainingsübungen.
 const FOCUS_CATEGORY_MAP: Partial<Record<ExerciseFocus, SeasonPlanningCategory>> = {
-  Angriff: 'tactics',
-  Verteidigung: 'tactics',
+  Offensivverhalten: 'tactics',
   Schuss: 'technique',
-  Passspiel: 'technique',
+  Passen: 'technique',
+  Aufbau: 'technique',
   Ballabdecken: 'technique',
   'Lösen vom Gegner': 'technique',
   Bullys: 'technique',
-  Zweikampfverhalten: 'technique',
+  Zweikampf: 'technique',
+  Überzahlsituation: 'tactics',
   Specialteams: 'tactics',
   Torhüter: 'technique',
+  Minigames: 'tactics',
   Spiel: 'tactics',
   Kraft: 'physical',
   Ausdauer: 'physical',
@@ -32,18 +34,20 @@ const FOCUS_CATEGORY_MAP: Partial<Record<ExerciseFocus, SeasonPlanningCategory>>
 
 // Ordnet die konkreten Saisonplanungs-Unterkategorien (aus SeasonPlanningDialog) den
 // passenden Übungs-Inhalten zu. Nur Übungen mit einem dieser Inhalte zählen als
-// Abdeckung des jeweiligen Schwerpunkts - eine Passspiel-Übung deckt z.B. den
+// Abdeckung des jeweiligen Schwerpunkts - eine Passen-Übung deckt z.B. den
 // Schwerpunkt "Schiessen" nicht ab, auch wenn beides "Technik" ist.
 // Unterkategorien ohne Eintrag (z.B. "Wechsel", "Sommer-Training") haben keine
 // Entsprechung bei den Übungs-Inhalten und ergeben daher bewusst immer 0%.
 const SUBCATEGORY_FOCUS_MAP: Partial<Record<string, ExerciseFocus[]>> = {
-  Passspiel: ['Passspiel'],
+  Passen: ['Passen'],
   Schiessen: ['Schuss'],
   Ballabdecken: ['Ballabdecken'],
   'Lösen vom Gegner': ['Lösen vom Gegner'],
   Bullys: ['Bullys'],
-  Zweikampfverhalten: ['Zweikampfverhalten'],
-  Offensivtaktiken: ['Angriff'],
+  Zweikampf: ['Zweikampf'],
+  Aufbau: ['Aufbau'],
+  Offensivtaktiken: ['Offensivverhalten'],
+  Überzahlsituation: ['Überzahlsituation'],
   Specialteams: ['Specialteams'],
   'Body-pump': ['Kraft'],
 };
@@ -199,7 +203,7 @@ function exerciseMatchesAnyTarget(
 // dieses Datum geltenden Saisonplan-Schwerpunkten passt (ein einzelner Gesamtwert,
 // nicht mehr pro Kategorie). Eine Übung zählt nur, wenn ihr Inhalt zur konkreten
 // Unterkategorie des jeweiligen Saisonplan-Eintrags passt (z.B. deckt eine
-// Passspiel-Übung den Schwerpunkt "Schiessen" nicht ab, auch wenn beides unter
+// Passen-Übung den Schwerpunkt "Schiessen" nicht ab, auch wenn beides unter
 // "Technik" fällt).
 export async function computeTrainingSeasonCoverage(
   trainingId: string,
