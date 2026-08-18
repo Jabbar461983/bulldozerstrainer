@@ -37,11 +37,20 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
   const [copyingLineup, setCopyingLineup] = useState(false);
 
   useEffect(() => {
-    if (season) {
-      fetchPastGamesForSeason(teamId, season)
-        .then((games) => setPastGames(games))
-        .catch((err) => setError(err instanceof Error ? err.message : 'Fehler beim Laden vergangener Spiele'));
+    async function loadPastGames() {
+      if (!season) {
+        setPastGames([]);
+        return;
+      }
+      try {
+        const games = await fetchPastGamesForSeason(teamId, season);
+        setPastGames(games);
+      } catch (err) {
+        console.error('Failed to fetch past games:', err);
+        setPastGames([]);
+      }
     }
+    void loadPastGames();
   }, [season, teamId]);
 
   async function handleCopyLineup() {
@@ -191,9 +200,11 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
         <div className="border-t border-border pt-4">
           <Label>Aufstellung</Label>
 
-          {pastGames.length > 0 && (
-            <div className="mb-4 space-y-2 p-3 bg-surface-alt rounded-lg">
-              <p className="text-sm font-medium">Aufstellung kopieren</p>
+          <div className="mb-4 space-y-2 p-3 bg-surface-alt rounded-lg">
+            <p className="text-sm font-medium">Aufstellung kopieren</p>
+            {!season ? (
+              <p className="text-sm text-text-muted">Bitte setzen Sie die Saison, um Aufstellungen zu kopieren</p>
+            ) : pastGames.length > 0 ? (
               <div className="grid grid-cols-3 gap-2">
                 <select
                   value={selectedSourceGameId}
@@ -217,8 +228,10 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
                   {copyingLineup ? 'Kopiert...' : '📋 Kopieren'}
                 </Button>
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-text-muted">Keine vergangenen Spiele dieser Saison verfügbar</p>
+            )}
+          </div>
 
           <GameLineupEditor gameId={game.id} teamId={teamId} categoryName={categoryName} />
         </div>
