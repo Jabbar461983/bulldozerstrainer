@@ -5,6 +5,7 @@ import type { SeasonPlanningEvent, SeasonPlanningCategory } from '../../types/da
 import { useSeasonPlanningEventsByDateRange } from './useSeasonPlanning';
 import { SeasonPlanningDialog } from './SeasonPlanningDialog';
 import { SeasonPlanningCalendar } from './SeasonPlanningCalendar';
+import { createSeasonPlanningEventsFromGames } from './api';
 
 interface SeasonPlanningPageProps {
   teamId: string;
@@ -29,6 +30,7 @@ export function SeasonPlanningPage({ teamId, season }: SeasonPlanningPageProps) 
   const { events, loading, error, refresh } = useSeasonPlanningEventsByDateRange(teamId, season);
   const [showDialog, setShowDialog] = useState(false);
   const [editingEvent, setEditingEvent] = useState<SeasonPlanningEvent | null>(null);
+  const [importingGames, setImportingGames] = useState(false);
 
   const handleEdit = (event: SeasonPlanningEvent) => {
     setEditingEvent(event);
@@ -40,6 +42,18 @@ export function SeasonPlanningPage({ teamId, season }: SeasonPlanningPageProps) 
     setEditingEvent(null);
     // Reload events after creating/editing
     await refresh();
+  };
+
+  const handleImportGames = async () => {
+    setImportingGames(true);
+    try {
+      await createSeasonPlanningEventsFromGames(teamId, season);
+      await refresh();
+    } catch (err) {
+      console.error('Failed to import games:', err);
+    } finally {
+      setImportingGames(false);
+    }
   };
 
   if (loading) {
@@ -54,7 +68,12 @@ export function SeasonPlanningPage({ teamId, season }: SeasonPlanningPageProps) 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-text">Saisonplanung {season}</h1>
-        <Button onClick={() => setShowDialog(true)}>Aktivität hinzufügen</Button>
+        <div className="flex gap-2">
+          <Button onClick={handleImportGames} disabled={importingGames} variant="secondary">
+            {importingGames ? 'Importiert...' : '🎮 Spiele importieren'}
+          </Button>
+          <Button onClick={() => setShowDialog(true)}>Aktivität hinzufügen</Button>
+        </div>
       </div>
 
       <SeasonPlanningCalendar

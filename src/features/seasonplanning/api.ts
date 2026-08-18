@@ -339,3 +339,43 @@ export async function fetchApplicableSeasonPlanningEvents(teamId: string, traini
   if (error) throw error;
   return data ?? [];
 }
+
+export async function createSeasonPlanningEventsFromGames(teamId: string, season: string): Promise<void> {
+  // Fetch all games for this team and season
+  const { data: games, error: gamesError } = await (supabase as any)
+    .from('games')
+    .select('*')
+    .eq('our_team_id', teamId)
+    .eq('season', season);
+  if (gamesError) throw gamesError;
+
+  if (!games || games.length === 0) return;
+
+  // Fetch existing activity events to avoid duplicates
+  const { startDate, endDate } = await getSeasonDateRange(season);
+  const existingEvents = await fetchSeasonPlanningEventsByDateRange(teamId, startDate, endDate);
+  const existingDates = new Set(
+    existingEvents
+      .filter((e) => e.category === 'activities' && e.title.startsWith('Spiel:'))
+      .map((e) => e.start_date),
+  );
+
+  // Create activity events for each game
+  const newEvents = games
+    .filter((game) => !existingDates.has(game.date))
+    .map((game) => ({
+      team_id: teamId,
+      title: `Spiel: ${game.home_team} vs ${game.away_team}`,
+      category: 'activities' as const,
+      start_date: game.date,
+      end_date: game.date,
+      sort_order: 0,
+    }));
+
+  if (newEvents.length === 0) return;
+
+  const { error: insertError } = await (supabase as any)
+    .from('season_planning_events')
+    .insert(newEvents);
+  if (insertError) throw insertError;
+}
