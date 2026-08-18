@@ -137,9 +137,13 @@ export async function createChecklistItem(payload: {
   checklist_id: string;
   title: string;
   parent_id?: string | null;
-}) {
-  const { error } = await (supabase.from('checklist_items') as any).insert(payload);
+}): Promise<string> {
+  const { data, error } = await (supabase.from('checklist_items') as any)
+    .insert(payload)
+    .select('id')
+    .single();
   if (error) throw error;
+  return data.id;
 }
 
 export async function deleteChecklistItem(id: string) {
