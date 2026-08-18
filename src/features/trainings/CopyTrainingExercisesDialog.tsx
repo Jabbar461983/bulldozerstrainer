@@ -3,8 +3,11 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Label } from '../../components/Input';
 import { Select } from '../../components/Select';
+import { TrainingExerciseDetailDialog } from './TrainingExerciseDetailDialog';
 import { replaceTrainingExercises, fetchTrainingExercises } from './api';
-import type { Training, TrainingExercise } from '../../types/database';
+import { todayIso } from '../../lib/dates';
+import type { Training } from '../../types/database';
+import type { TrainingExerciseRow } from './api';
 
 interface CopyTrainingExercisesDialogProps {
   sourceTrainings: Training[];
@@ -31,17 +34,16 @@ export function CopyTrainingExercisesDialog({
   onClose,
   onDone,
 }: CopyTrainingExercisesDialogProps) {
+  const today = todayIso();
   const sorted = [...sourceTrainings]
-    .filter((t) => t.id !== targetTrainingId)
-    .sort((a, b) => b.date.localeCompare(a.date) || (b.start_time ?? '').localeCompare(a.start_time ?? ''));
-  const [selectedId, setSelectedId] = useState(sorted[0]?.id ?? '');
-  const [exercises, setExercises] = useState<TrainingExercise[]>([]);
-  const [exerciseDetails, setExerciseDetails] = useState<Map<string, { title: string; description: string | null }>>(
-    new Map(),
-  );
+    .filter((t) => t.id !== targetTrainingId && t.date < today)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''));
+  const [selectedId, setSelectedId] = useState(sorted[sorted.length - 1]?.id ?? '');
+  const [exercises, setExercises] = useState<TrainingExerciseRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [copying, setCopying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadExercises() {
@@ -51,8 +53,6 @@ export function CopyTrainingExercisesDialog({
       try {
         const exercises = await fetchTrainingExercises(selectedId);
         setExercises(exercises);
-        const details = new Map(exercises.map((e) => [e.exercise_id, { title: (e as any).exerciseTitle, description: (e as any).exerciseDescription }]));
-        setExerciseDetails(details);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Übungen konnten nicht geladen werden.');
       } finally {
@@ -122,22 +122,35 @@ export function CopyTrainingExercisesDialog({
               <div className="space-y-2">
                 <p className="text-sm font-medium text-text">Übungen ({exercises.length}):</p>
                 <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg bg-surface p-3">
-                  {exercises.map((e: TrainingExercise) => {
-                    const detail = exerciseDetails.get(e.exercise_id);
-                    return (
-                      <div key={e.id} className="text-sm text-text">
-                        <p className="font-medium">{detail?.title || 'Unbekannte Übung'}</p>
-                        {e.notes && <p className="text-xs text-text-muted">Notiz: {e.notes}</p>}
-                        <p className="text-xs text-text-muted">{e.duration_minutes} Min.</p>
-                      </div>
-                    );
-                  })}
+                  {exercises.map((e: TrainingExerciseRow) => (
+                    <div key={e.id} className="text-sm text-text cursor-pointer hover:bg-surface-alt p-2 rounded transition">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedExerciseId(e.id)}
+                        className="w-full text-left"
+                      >
+                        <p className="font-medium text-accent hover:underline">{e.exerciseTitle || 'Unbekannte Übung'}</p>
+                      </button>
+                      {e.notes && <p className="text-xs text-text-muted">Notiz: {e.notes}</p>}
+                      <p className="text-xs text-text-muted">{e.duration_minutes} Min.</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </>
         )}
       </div>
+
+      {selectedExerciseId && exercises.find((e) => e.id === selectedExerciseId) && (
+        <TrainingExerciseDetailDialog
+          row={exercises.find((e) => e.id === selectedExerciseId)!}
+          busy={false}
+          onClose={() => setSelectedExerciseId(null)}
+          onDurationChange={() => {}}
+          onRemove={() => {}}
+        />
+      )}
     </Modal>
   );
 }
