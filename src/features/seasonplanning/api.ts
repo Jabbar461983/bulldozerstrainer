@@ -342,12 +342,13 @@ export async function fetchApplicableSeasonPlanningEvents(teamId: string, traini
 }
 
 export async function createSeasonPlanningEventsFromGames(teamId: string, season: string): Promise<void> {
-  // Fetch all games for this team and season
+  // Fetch all home games for this team and season
   const { data: games, error: gamesError } = await (supabase as any)
     .from('games')
     .select('*')
     .eq('our_team_id', teamId)
-    .eq('season', season);
+    .eq('season', season)
+    .eq('is_home', true);
   if (gamesError) throw gamesError;
 
   if (!games || games.length === 0) return;
@@ -355,23 +356,38 @@ export async function createSeasonPlanningEventsFromGames(teamId: string, season
   // Fetch existing activity events to avoid duplicates
   const { startDate, endDate } = await getSeasonDateRange(season);
   const existingEvents = await fetchSeasonPlanningEventsByDateRange(teamId, startDate, endDate);
-  const existingDates = new Set(
+  const existingDateLocations = new Set(
     existingEvents
-      .filter((e) => e.category === 'activities' && e.title.startsWith('Spiel:'))
-      .map((e) => e.start_date),
+      .filter((e) => e.category === 'activities' && e.title.startsWith('Turnier'))
+      .map((e) => `${e.start_date}|${e.notes}`),
   );
 
-  // Create activity events for each game
-  const newEvents = (games as Game[])
-    .filter((game: Game) => !existingDates.has(game.date))
-    .map((game: Game) => ({
-      team_id: teamId,
-      title: `Spiel: ${game.home_team} vs ${game.away_team}`,
-      category: 'activities' as const,
-      start_date: game.date,
-      end_date: game.date,
-      sort_order: 0,
-    }));
+  // Group games by date and location
+  const groupedByDateAndLocation = new Map<string, Game[]>();
+  (games as Game[]).forEach((game: Game) => {
+    const key = `${game.date}|${game.location}`;
+    if (!groupedByDateAndLocation.has(key)) {
+      groupedByDateAndLocation.set(key, []);
+    }
+    groupedByDateAndLocation.get(key)!.push(game);
+  });
+
+  // Create activity events for each tournament (group by date and location)
+  const newEvents = Array.from(groupedByDateAndLocation.entries())
+    .filter(([key]) => !existingDateLocations.has(key))
+    .map(([, groupedGames]) => {
+      const firstGame = groupedGames[0];
+      const locationDisplay = firstGame.location || 'Ort unbekannt';
+      return {
+        team_id: teamId,
+        title: `Turnier ${locationDisplay}`,
+        category: 'activities' as const,
+        start_date: firstGame.date,
+        end_date: firstGame.date,
+        notes: firstGame.location,
+        sort_order: 0,
+      };
+    });
 
   if (newEvents.length === 0) return;
 
