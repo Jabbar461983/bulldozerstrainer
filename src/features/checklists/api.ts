@@ -90,6 +90,37 @@ export async function deleteChecklist(id: string) {
   if (error) throw error;
 }
 
+export async function duplicateChecklist(id: string): Promise<string> {
+  const checklist = await fetchChecklists();
+  const original = checklist.find((c) => c.id === id);
+  if (!original) throw new Error('Checklist not found');
+
+  const newChecklistId = await createChecklist({
+    title: `${original.title} (Kopie)`,
+    description: original.description,
+    has_reporting: original.has_reporting,
+    is_global: original.is_global,
+    auto_create_for_home_games: original.auto_create_for_home_games,
+  });
+
+  const { error: itemsError } = await (supabase.from('checklist_items') as any).insert(
+    original.items.map((item: any) => ({
+      checklist_id: newChecklistId,
+      title: item.title,
+      section_title: item.section_title,
+      sort_order: item.sort_order,
+      is_heading: item.is_heading,
+    }))
+  );
+  if (itemsError) throw itemsError;
+
+  if (original.teamIds.length > 0) {
+    await updateChecklistTeamAssignments(newChecklistId, original.teamIds);
+  }
+
+  return newChecklistId;
+}
+
 export async function updateChecklistTeamAssignments(id: string, teamIds: string[]) {
   const { error: deleteError } = await supabase.from('checklist_teams').delete().eq('checklist_id', id);
   if (deleteError) throw deleteError;
