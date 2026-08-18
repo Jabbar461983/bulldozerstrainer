@@ -51,7 +51,7 @@ export function SeasonPlanningWrapper() {
       </div>
 
       {selectedTeam && (
-        <SeasonPlanningPage teamId={selectedTeam.teamId} season={selectedTeam.season} />
+        <SeasonPlanningPage teamId={selectedTeam.teamId} season={selectedTeam.season} teamName={selectedTeam.teamName} />
       )}
     </div>
   );

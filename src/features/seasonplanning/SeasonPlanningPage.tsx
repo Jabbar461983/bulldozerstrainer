@@ -10,6 +10,7 @@ import { createSeasonPlanningEventsFromGames } from './api';
 interface SeasonPlanningPageProps {
   teamId: string;
   season: string;
+  teamName?: string;
 }
 
 const CATEGORY_NAMES: Record<SeasonPlanningCategory, string> = {
@@ -26,7 +27,7 @@ const CATEGORY_COLORS: Record<SeasonPlanningCategory, string> = {
   physical: 'bg-green-100 border-green-300 text-green-900',
 };
 
-export function SeasonPlanningPage({ teamId, season }: SeasonPlanningPageProps) {
+export function SeasonPlanningPage({ teamId, season, teamName }: SeasonPlanningPageProps) {
   const { events, loading, error, refresh } = useSeasonPlanningEventsByDateRange(teamId, season);
   const [showDialog, setShowDialog] = useState(false);
   const [editingEvent, setEditingEvent] = useState<SeasonPlanningEvent | null>(null);
@@ -79,6 +80,7 @@ export function SeasonPlanningPage({ teamId, season }: SeasonPlanningPageProps) 
       <SeasonPlanningCalendar
         events={events}
         season={season}
+        teamName={teamName}
         onEditEvent={handleEdit}
         categoryColors={CATEGORY_COLORS}
         categoryNames={CATEGORY_NAMES}
