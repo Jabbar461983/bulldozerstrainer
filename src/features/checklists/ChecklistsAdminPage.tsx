@@ -3,7 +3,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { withCache } from '../../lib/withCache';
-import { fetchChecklists, deleteChecklist, duplicateChecklist } from './api';
+import { fetchChecklists, deleteChecklist, duplicateChecklist, exportChecklistToPDF } from './api';
 import type { ChecklistRow } from './api';
 import { CreateChecklistDialog } from './CreateChecklistDialog';
 import { EditChecklistDialog } from './EditChecklistDialog';
@@ -103,6 +103,15 @@ export function ChecklistsAdminPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void exportChecklistToPDF(checklist);
+                    }}
+                  >
+                    📄 PDF
+                  </Button>
                   <Button
                     variant="secondary"
                     onClick={(e) => {

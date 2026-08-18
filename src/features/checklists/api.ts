@@ -5,6 +5,7 @@ import type {
   ChecklistInstance,
   ChecklistItemCompletion,
 } from '../../types/database';
+import { jsPDF } from 'jspdf';
 
 export interface ChecklistRow extends Checklist {
   items: ChecklistItem[];
@@ -462,4 +463,102 @@ export async function deleteChecklistItemAttachment(attachmentId: string): Promi
     .eq('id', attachmentId);
 
   if (deleteDbError) throw deleteDbError;
+}
+
+export async function exportChecklistToPDF(checklist: ChecklistRow): Promise<void> {
+  const doc = new jsPDF();
+  let yPos = 20;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const maxWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+
+  // Title
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(checklist.title, margin, yPos);
+  yPos += 10;
+
+  // Description if exists
+  if (checklist.description) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const descLines = doc.splitTextToSize(checklist.description, maxWidth);
+    doc.text(descLines, margin, yPos);
+    yPos += descLines.length * 5 + 5;
+  }
+
+  // Meta info
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  const metaInfo = [];
+  if (checklist.is_global) {
+    metaInfo.push('Global');
+  } else if (checklist.teamIds.length > 0) {
+    metaInfo.push(`Teams: ${checklist.teamIds.length}`);
+  }
+  if (checklist.has_reporting) {
+    metaInfo.push('Mit Reporting');
+  }
+  if (checklist.items.length > 0) {
+    metaInfo.push(`${checklist.items.length} Punkte`);
+  }
+  if (metaInfo.length > 0) {
+    doc.text(metaInfo.join(' • '), margin, yPos);
+    yPos += 8;
+  }
+
+  // Separator
+  doc.setDrawColor(200);
+  doc.line(margin, yPos, doc.internal.pageSize.getWidth() - margin, yPos);
+  yPos += 10;
+
+  // Items grouped by parent
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0);
+
+  const itemsByParent = new Map<string | null, ChecklistItem[]>();
+  for (const item of checklist.items) {
+    const key = item.parent_id || null;
+    if (!itemsByParent.has(key)) {
+      itemsByParent.set(key, []);
+    }
+    itemsByParent.get(key)!.push(item);
+  }
+
+  // First, render items without parent (headings)
+  const parentlessItems = itemsByParent.get(null) || [];
+  for (const parentItem of parentlessItems) {
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Heading
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(`☐ ${parentItem.title}`, margin, yPos);
+    yPos += 7;
+
+    // Sub-items
+    const subItems = itemsByParent.get(parentItem.id) || [];
+    if (subItems.length > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      for (const subItem of subItems) {
+        if (yPos > pageHeight - 15) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(`  ☐ ${subItem.title}`, margin + 5, yPos);
+        yPos += 5;
+      }
+    }
+
+    yPos += 2;
+  }
+
+  // Generate PDF
+  const fileName = `Checkliste_${checklist.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
 }
