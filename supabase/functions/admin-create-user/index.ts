@@ -6,7 +6,7 @@ interface CreateUserBody {
   last_name: string;
   phone?: string | null;
   is_admin?: boolean;
-  team_roles?: { team_id: string; role: 'headcoach' | 'assistant_coach' }[];
+  team_roles?: { team_id: string; role: 'headcoach' | 'assistant_coach' | 'finance'; finance_access?: boolean }[];
 }
 
 Deno.serve(async (req) => {
@@ -51,6 +51,7 @@ Deno.serve(async (req) => {
       user_id: invited.user!.id,
       team_id: tr.team_id,
       role: tr.role,
+      finance_access: tr.finance_access ?? false,
     }));
     const { error: rolesError } = await admin.from('user_team_roles').insert(rows);
     if (rolesError) {

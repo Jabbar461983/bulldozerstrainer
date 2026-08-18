@@ -36,6 +36,7 @@ export interface UserTeamRole {
   user_id: string;
   team_id: string;
   role: CoachRole;
+  finance_access: boolean;
 }
 
 export interface Player {

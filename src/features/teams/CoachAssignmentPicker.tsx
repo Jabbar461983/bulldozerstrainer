@@ -22,7 +22,7 @@ export function CoachAssignmentPicker({ users, value, onChange }: CoachAssignmen
 
   function add() {
     if (users.length === 0) return;
-    onChange([...value, { user_id: users[0].id, role: 'assistant_coach' }]);
+    onChange([...value, { user_id: users[0].id, role: 'assistant_coach', finance_access: false }]);
   }
 
   if (users.length === 0) {
@@ -66,6 +66,17 @@ export function CoachAssignmentPicker({ users, value, onChange }: CoachAssignmen
               ✕
             </Button>
           </div>
+          {row.role !== 'finance' && (
+            <label className="flex items-center gap-2 text-sm text-text-muted">
+              <input
+                type="checkbox"
+                className="size-5"
+                checked={row.finance_access}
+                onChange={(e) => update(index, { finance_access: e.target.checked })}
+              />
+              Zugriff auf Finanzen dieses Teams
+            </label>
+          )}
         </div>
       ))}
       <Button type="button" variant="secondary" onClick={add} className="self-start">

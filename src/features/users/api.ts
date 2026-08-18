@@ -12,6 +12,7 @@ export interface UserTeamRoleView {
   teamName: string;
   categoryName: string;
   role: CoachRole;
+  financeAccess: boolean;
 }
 
 export interface UserRow extends Profile {
@@ -22,7 +23,7 @@ export async function fetchUsers(): Promise<UserRow[]> {
   const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }, teamOptions] =
     await Promise.all([
       supabase.from('profiles').select('*').order('last_name', { ascending: true }),
-      supabase.from('user_team_roles').select('user_id, team_id, role'),
+      supabase.from('user_team_roles').select('user_id, team_id, role, finance_access'),
       fetchTeamOptions(),
     ]);
   if (profilesError) throw profilesError;
@@ -34,13 +35,14 @@ export async function fetchUsers(): Promise<UserRow[]> {
     ...profile,
     teamRoles: (roles ?? [])
       .filter((r: { user_id: string }) => r.user_id === profile.id)
-      .map((r: { team_id: string; role: CoachRole }) => {
+      .map((r: { team_id: string; role: CoachRole; finance_access: boolean }) => {
         const team = teamById.get(r.team_id);
         return {
           teamId: r.team_id,
           teamName: team?.teamName ?? 'Unbekanntes Team',
           categoryName: team?.categoryName ?? '',
           role: r.role,
+          financeAccess: r.finance_access,
         };
       }),
   }));
@@ -49,6 +51,7 @@ export async function fetchUsers(): Promise<UserRow[]> {
 export interface TeamRoleInput {
   team_id: string;
   role: CoachRole;
+  finance_access: boolean;
 }
 
 export async function createUser(payload: {
@@ -87,7 +90,12 @@ export async function replaceTeamRoles(userId: string, teamRoles: TeamRoleInput[
   const { error: deleteError } = await supabase.from('user_team_roles').delete().eq('user_id', userId);
   if (deleteError) throw deleteError;
   if (teamRoles.length === 0) return;
-  const rows = teamRoles.map((tr) => ({ user_id: userId, team_id: tr.team_id, role: tr.role }));
+  const rows = teamRoles.map((tr) => ({
+    user_id: userId,
+    team_id: tr.team_id,
+    role: tr.role,
+    finance_access: tr.finance_access,
+  }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: insertError } = await (supabase.from('user_team_roles') as any).insert(rows);
   if (insertError) throw insertError;
