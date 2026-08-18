@@ -8,6 +8,7 @@ import type { TeamOption } from '../../lib/teams';
 import { fetchChecklists, fetchChecklistInstances, fetchArchivedChecklistInstances } from './api';
 import type { ChecklistRow } from './api';
 import { ChecklistInstanceWorkspace } from './ChecklistInstanceWorkspace';
+import { useAuth } from '../../auth/AuthContext';
 
 interface ChecklistWithProgress extends ChecklistRow {
   activeProgress?: { completed: number; total: number };
@@ -15,6 +16,7 @@ interface ChecklistWithProgress extends ChecklistRow {
 }
 
 export function ChecklistsCoachPage() {
+  const { memberships, isAdmin } = useAuth();
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
   const [teamId, setTeamId] = useState('');
   const [checklists, setChecklists] = useState<ChecklistWithProgress[] | null>(null);
@@ -25,11 +27,17 @@ export function ChecklistsCoachPage() {
   useEffect(() => {
     withCache('team-options', fetchTeamOptions)
       .then((result) => {
-        setTeamOptions(result.data);
-        if (result.data.length > 0) setTeamId(result.data[0].teamId);
+        // Filter teams based on user memberships (non-admins only see their teams)
+        let filtered = result.data;
+        if (!isAdmin && memberships.length > 0) {
+          const membershipTeamIds = new Set(memberships.map((m) => m.teamId));
+          filtered = result.data.filter((t) => membershipTeamIds.has(t.teamId));
+        }
+        setTeamOptions(filtered);
+        if (filtered.length > 0) setTeamId(filtered[0].teamId);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Teams konnten nicht geladen werden.'));
-  }, []);
+  }, [memberships, isAdmin]);
 
   async function load() {
     setError(null);
