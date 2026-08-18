@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, saveChecklistProgress, createChecklistInstance, uploadChecklistItemAttachment, deleteChecklistItemAttachment } from './api';
+import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, saveChecklistProgress, createChecklistInstance } from './api';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
 import { ChecklistItemAttachments } from './ChecklistItemAttachments';
 import { supabase } from '../../lib/supabase';
