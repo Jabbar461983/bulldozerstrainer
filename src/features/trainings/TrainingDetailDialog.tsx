@@ -168,7 +168,7 @@ export function TrainingDetailDialog({
 
   async function handleCopyExercisesDone() {
     setShowCopyExercises(false);
-    onSaved();
+    // Keep the training detail dialog open, just close the copy dialog
   }
 
   return (

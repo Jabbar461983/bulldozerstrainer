@@ -148,7 +148,6 @@ export function CopyTrainingExercisesDialog({
           busy={false}
           onClose={() => setSelectedExerciseId(null)}
           onDurationChange={() => {}}
-          onRemove={() => {}}
         />
       )}
     </Modal>

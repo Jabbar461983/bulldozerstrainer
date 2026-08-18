@@ -8,7 +8,7 @@ interface TrainingExerciseDetailDialogProps {
   busy: boolean;
   onClose: () => void;
   onDurationChange: (duration: number) => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }
 
 export function TrainingExerciseDetailDialog({
@@ -74,11 +74,13 @@ export function TrainingExerciseDetailDialog({
           </div>
         )}
 
-        <div className="flex justify-end border-t border-border pt-3">
-          <Button type="button" variant="danger" disabled={busy} onClick={onRemove}>
-            Übung entfernen
-          </Button>
-        </div>
+        {onRemove && (
+          <div className="flex justify-end border-t border-border pt-3">
+            <Button type="button" variant="danger" disabled={busy} onClick={onRemove}>
+              Übung entfernen
+            </Button>
+          </div>
+        )}
       </div>
     </Modal>
   );
