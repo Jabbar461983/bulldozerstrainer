@@ -133,7 +133,7 @@ export function SeasonPlanningCalendar({
       ctx.strokeRect(timelineStartX, yOffset, timelineWidth, categoryHeight);
 
       // Month separators (vertical lines)
-      monthPositions.forEach((pos, idx) => {
+      monthPositions.forEach((pos) => {
         ctx.strokeStyle = '#e5e7eb';
         ctx.lineWidth = 1;
         ctx.beginPath();

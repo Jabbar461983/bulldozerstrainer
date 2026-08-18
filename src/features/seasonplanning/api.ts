@@ -5,6 +5,7 @@ import type {
   TrainingFocusPercentage,
   SeasonPlanningCategory,
   ExerciseFocus,
+  Game,
 } from '../../types/database';
 
 // Ordnet die Übungs-Inhalte den 4 Saisonplanungs-Kategorien zu, damit der Zeitanteil
@@ -361,9 +362,9 @@ export async function createSeasonPlanningEventsFromGames(teamId: string, season
   );
 
   // Create activity events for each game
-  const newEvents = games
-    .filter((game) => !existingDates.has(game.date))
-    .map((game) => ({
+  const newEvents = (games as Game[])
+    .filter((game: Game) => !existingDates.has(game.date))
+    .map((game: Game) => ({
       team_id: teamId,
       title: `Spiel: ${game.home_team} vs ${game.away_team}`,
       category: 'activities' as const,
