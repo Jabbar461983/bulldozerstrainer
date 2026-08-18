@@ -25,6 +25,7 @@ export function ChecklistInstanceWorkspace({
   const [message, setMessage] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [completionPhotos, setCompletionPhotos] = useState<{ id: string; url: string }[]>([]);
+  const [showConfirmArchive, setShowConfirmArchive] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -167,6 +168,13 @@ export function ChecklistInstanceWorkspace({
       return;
     }
 
+    setShowConfirmArchive(true);
+  }
+
+  async function handleConfirmArchive() {
+    if (!selectedInstance) return;
+
+    setShowConfirmArchive(false);
     setLoading(true);
     try {
       const notesWithPhotos = completionPhotos.length > 0
@@ -315,12 +323,11 @@ export function ChecklistInstanceWorkspace({
         })}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2">
         <Button
           onClick={handleSaveProgress}
           disabled={loading}
-          variant="secondary"
-          className="flex-1"
+          className="w-full bg-green-600 hover:bg-green-700 text-white"
         >
           {loading ? 'Speichert...' : '💾 Zwischenspeichern'}
         </Button>
@@ -386,6 +393,30 @@ export function ChecklistInstanceWorkspace({
       >
         {loading ? 'Archiviert...' : '✓ Checkliste komplett erledigt & archivieren'}
       </Button>
+
+      {showConfirmArchive && (
+        <Card className="bg-warning/10 border border-warning space-y-4 fixed inset-0 m-auto w-96 p-6 rounded-lg shadow-lg">
+          <h3 className="font-semibold text-lg text-text">Bestätigung erforderlich</h3>
+          <p className="text-sm text-text">
+            Bist du sicher, dass alles erledigt wurde und die Checkliste abgeschlossen werden kann?
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button
+              onClick={() => setShowConfirmArchive(false)}
+              variant="secondary"
+              disabled={loading}
+            >
+              Nein, zurück
+            </Button>
+            <Button
+              onClick={() => void handleConfirmArchive()}
+              disabled={loading}
+            >
+              {loading ? 'Archiviert...' : 'Ja, archivieren'}
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
