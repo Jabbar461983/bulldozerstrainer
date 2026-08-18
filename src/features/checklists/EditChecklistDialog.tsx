@@ -79,7 +79,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   async function handleAddItem() {
     if (!newItemTitle.trim()) return;
     try {
-      await createChecklistItem({
+      const itemId = await createChecklistItem({
         checklist_id: checklist.id,
         title: newItemTitle.trim(),
       });
@@ -87,7 +87,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
       setItems([
         ...items,
         {
-          id: 'temp-' + Date.now(),
+          id: itemId,
           checklist_id: checklist.id,
           title: newItemTitle.trim(),
           sort_order: items.length,
