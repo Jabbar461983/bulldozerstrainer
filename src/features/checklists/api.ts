@@ -403,11 +403,11 @@ export async function createChecklistInstancesForHomeGames(checklistId: string, 
   if (checklistError) throw checklistError;
   if (!(checklist as any).auto_create_for_home_games) return;
 
-  // Find all future home games for the assigned teams that don't already have instances
+  // Find all future home games (location = 'Kernenried') for the assigned teams that don't already have instances
   const { data: games, error: gamesError } = await supabase
     .from('games')
-    .select('id, our_team_id, date')
-    .eq('is_home', true)
+    .select('id, our_team_id, date, location')
+    .ilike('location', '%Kernenried%')
     .in('our_team_id', teamIds)
     .gte('date', new Date().toISOString().split('T')[0]);
 
