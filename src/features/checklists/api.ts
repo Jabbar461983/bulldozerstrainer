@@ -334,6 +334,20 @@ export async function getChecklistProgress(
   return { total, completed, pending: total - completed };
 }
 
+export async function saveChecklistProgress(payload: {
+  instance_id: string;
+  notes?: string;
+}) {
+  const { error: updateError } = await (supabase.from('checklist_instances') as any)
+    .update({
+      notes: payload.notes || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', payload.instance_id);
+
+  if (updateError) throw updateError;
+}
+
 export async function saveChecklistCompletion(payload: {
   instance_id: string;
   notes: string;

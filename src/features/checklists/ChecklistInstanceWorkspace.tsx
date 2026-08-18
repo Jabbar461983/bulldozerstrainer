@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, createChecklistInstance } from './api';
+import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, saveChecklistProgress, createChecklistInstance, uploadChecklistItemAttachment, deleteChecklistItemAttachment } from './api';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
 import { ChecklistItemAttachments } from './ChecklistItemAttachments';
+import { supabase } from '../../lib/supabase';
 
 interface ChecklistInstanceWorkspaceProps {
   checklist: ChecklistRow;
@@ -22,6 +23,8 @@ export function ChecklistInstanceWorkspace({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [completionPhotos, setCompletionPhotos] = useState<{ id: string; url: string }[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -97,6 +100,63 @@ export function ChecklistInstanceWorkspace({
     }
   }
 
+  async function handleSaveProgress() {
+    if (!selectedInstance) return;
+
+    setLoading(true);
+    try {
+      await saveChecklistProgress({
+        instance_id: selectedInstance.id,
+        notes: globalNote,
+      });
+      setMessage('Fortschritt gespeichert ✓');
+      setTimeout(() => setMessage(null), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.currentTarget.files?.[0];
+    if (!file || !selectedInstance) return;
+
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      // Create a temporary item for completion photos
+      const tempItemId = `completion-${selectedInstance.id}`;
+      const fileName = `Abschluss_${selectedInstance.id}_${Date.now()}_${file.name}`;
+      const filePath = `checklist-completion/${selectedInstance.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, file, { upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: signedUrl } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filePath);
+
+      setCompletionPhotos([
+        ...completionPhotos,
+        { id: tempItemId + Date.now(), url: signedUrl.publicUrl },
+      ]);
+      e.currentTarget.value = '';
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Foto konnte nicht hochgeladen werden');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function handleRemovePhoto(photoId: string) {
+    setCompletionPhotos(completionPhotos.filter((p) => p.id !== photoId));
+  }
+
   async function handleSave() {
     if (!selectedInstance) return;
 
@@ -109,9 +169,13 @@ export function ChecklistInstanceWorkspace({
 
     setLoading(true);
     try {
+      const notesWithPhotos = completionPhotos.length > 0
+        ? `${globalNote}\n\n[Fotos: ${completionPhotos.length}]`
+        : globalNote;
+
       await saveChecklistCompletion({
         instance_id: selectedInstance.id,
-        notes: globalNote,
+        notes: notesWithPhotos,
       });
       setMessage('Checkliste archiviert ✓');
       setTimeout(() => onClose(), 1500);
@@ -139,13 +203,16 @@ export function ChecklistInstanceWorkspace({
               onClick={() => {
                 setSelectedInstance(instance);
                 setGlobalNote(instance.notes || '');
+                setCompletionPhotos([]);
               }}
               className="cursor-pointer hover:bg-surface-alt"
             >
               <div>
-                <p className="font-semibold">{instance.event_context || 'Ohne Kontext'}</p>
                 {instance.event_date && (
-                  <p className="text-sm text-text-muted">{instance.event_date}</p>
+                  <p className="font-semibold text-accent">{instance.event_date}</p>
+                )}
+                {instance.event_context && (
+                  <p className="text-sm text-text-muted">{instance.event_context}</p>
                 )}
                 <p className="text-xs text-text-muted mt-1">
                   Fortschritt: {instance.progress.completed} / {instance.progress.total}
@@ -248,8 +315,19 @@ export function ChecklistInstanceWorkspace({
         })}
       </div>
 
+      <div className="flex gap-2">
+        <Button
+          onClick={handleSaveProgress}
+          disabled={loading}
+          variant="secondary"
+          className="flex-1"
+        >
+          {loading ? 'Speichert...' : '💾 Zwischenspeichern'}
+        </Button>
+      </div>
+
       {selectedInstance.progress.completed === selectedInstance.progress.total && (
-        <Card className="bg-surface-alt space-y-2">
+        <Card className="bg-surface-alt space-y-3">
           <label className="block text-sm font-semibold text-text">Abschließende Notiz</label>
           <textarea
             value={globalNote}
@@ -259,15 +337,54 @@ export function ChecklistInstanceWorkspace({
             rows={3}
             disabled={loading}
           />
+
+          <div className="border-t border-border pt-3">
+            <label className="block text-xs font-semibold text-text mb-2">Fotos (Defekte, Müll, etc.)</label>
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-medium hover:bg-surface p-2 rounded">
+              <input
+                type="file"
+                onChange={handlePhotoUpload}
+                disabled={uploadingPhoto || loading}
+                className="hidden"
+                accept="image/*"
+              />
+              📸 {uploadingPhoto ? 'Lädt...' : 'Foto hinzufügen'}
+            </label>
+
+            {completionPhotos.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-medium text-accent">{completionPhotos.length} Foto(s)</p>
+                {completionPhotos.map((photo) => (
+                  <div key={photo.id} className="flex items-center gap-2 text-xs bg-surface p-1 rounded">
+                    <a
+                      href={photo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:underline flex-1"
+                    >
+                      🖼 Foto
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(photo.id)}
+                      className="text-error hover:font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
       )}
 
       <Button
         onClick={handleSave}
-        disabled={loading}
+        disabled={loading || selectedInstance.progress.completed < selectedInstance.progress.total}
         className="w-full"
       >
-        {loading ? 'Archiviert...' : 'Checkliste komplett erledigt & archivieren'}
+        {loading ? 'Archiviert...' : '✓ Checkliste komplett erledigt & archivieren'}
       </Button>
     </div>
   );
