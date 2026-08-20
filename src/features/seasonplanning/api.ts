@@ -5,6 +5,7 @@ import type {
   TrainingFocusPercentage,
   SeasonPlanningCategory,
   ExerciseFocus,
+  Game,
 } from '../../types/database';
 
 // Ordnet die Übungs-Inhalte den 4 Saisonplanungs-Kategorien zu, damit der Zeitanteil
@@ -338,4 +339,54 @@ export async function fetchApplicableSeasonPlanningEvents(teamId: string, traini
     .order('sort_order', { ascending: true });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function createSeasonPlanningEventsFromGames(teamId: string, season: string): Promise<void> {
+  // Fetch all home games for this team and season
+  const { data: games, error: gamesError } = await (supabase as any)
+    .from('games')
+    .select('*')
+    .eq('our_team_id', teamId)
+    .eq('season', season)
+    .eq('is_home', true);
+  if (gamesError) throw gamesError;
+
+  if (!games || games.length === 0) return;
+
+  // Fetch existing activity events to avoid duplicates
+  const { startDate, endDate } = await getSeasonDateRange(season);
+  const existingEvents = await fetchSeasonPlanningEventsByDateRange(teamId, startDate, endDate);
+  const existingDates = new Set(
+    existingEvents
+      .filter((e) => e.category === 'activities' && e.title === 'Turnier')
+      .map((e) => e.start_date),
+  );
+
+  // Group games by date only
+  const groupedByDate = new Map<string, Game[]>();
+  (games as Game[]).forEach((game: Game) => {
+    if (!groupedByDate.has(game.date)) {
+      groupedByDate.set(game.date, []);
+    }
+    groupedByDate.get(game.date)!.push(game);
+  });
+
+  // Create activity events for each tournament date
+  const newEvents = Array.from(groupedByDate.entries())
+    .filter(([date]) => !existingDates.has(date))
+    .map(([date]) => ({
+      team_id: teamId,
+      title: 'Turnier',
+      category: 'activities' as const,
+      start_date: date,
+      end_date: date,
+      sort_order: 0,
+    }));
+
+  if (newEvents.length === 0) return;
+
+  const { error: insertError } = await (supabase as any)
+    .from('season_planning_events')
+    .insert(newEvents);
+  if (insertError) throw insertError;
 }

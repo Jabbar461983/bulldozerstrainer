@@ -7,7 +7,8 @@ import { TrainingExercisesEditor } from './TrainingExercisesEditor';
 import { TrainingRatingSection } from './TrainingRatingSection';
 import { TrainingAbsencesEditor } from './TrainingAbsencesEditor';
 import { FieldTypeToggle } from './FieldTypeToggle';
-import { updateTraining, deleteTraining, fetchTrainingExercises, fetchTrainingAbsences } from './api';
+import { CopyTrainingExercisesDialog } from './CopyTrainingExercisesDialog';
+import { updateTraining, deleteTraining, fetchTrainingExercises, fetchTrainingAbsences, fetchTrainings } from './api';
 import { fetchTeamPlayerRoster } from '../../lib/roster';
 import { exportTrainingPdf } from './trainingPdf';
 import { TrainingSeasonSummary } from '../seasonplanning/TrainingSeasonSummary';
@@ -50,6 +51,9 @@ export function TrainingDetailDialog({
   const [error, setError] = useState<string | null>(null);
   const [saveSummary, setSaveSummary] = useState<SaveSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [showCopyExercises, setShowCopyExercises] = useState(false);
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [loadingTrainings, setLoadingTrainings] = useState(false);
 
   async function handleExportPdf() {
     setExportingPdf(true);
@@ -149,6 +153,24 @@ export function TrainingDetailDialog({
     }
   }
 
+  async function handleOpenCopyExercises() {
+    setLoadingTrainings(true);
+    try {
+      const allTrainings = await fetchTrainings(training.team_id);
+      setTrainings(allTrainings);
+      setShowCopyExercises(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Trainings konnten nicht geladen werden.');
+    } finally {
+      setLoadingTrainings(false);
+    }
+  }
+
+  async function handleCopyExercisesDone() {
+    setShowCopyExercises(false);
+    // Keep the training detail dialog open, just close the copy dialog
+  }
+
   return (
     <Modal
       title={
@@ -165,6 +187,14 @@ export function TrainingDetailDialog({
         <>
           <Button type="button" variant="danger" disabled={deleting} onClick={() => void handleDelete()}>
             Löschen
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={loadingTrainings}
+            onClick={() => void handleOpenCopyExercises()}
+          >
+            Training kopieren
           </Button>
           <Button type="button" variant="secondary" disabled={exportingPdf} onClick={() => void handleExportPdf()}>
             {exportingPdf ? 'Erstelle PDF…' : 'Als PDF'}
@@ -281,6 +311,15 @@ export function TrainingDetailDialog({
             </p>
           </div>
         </Modal>
+      )}
+
+      {showCopyExercises && (
+        <CopyTrainingExercisesDialog
+          sourceTrainings={trainings}
+          targetTrainingId={training.id}
+          onClose={() => setShowCopyExercises(false)}
+          onDone={handleCopyExercisesDone}
+        />
       )}
     </Modal>
   );

@@ -35,16 +35,13 @@ export function CoachAssignmentPicker({ users, value, onChange }: CoachAssignmen
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       {value.map((row, index) => (
-        <div
-          key={index}
-          className="flex flex-col gap-2 rounded-xl border border-border p-2 sm:flex-row sm:items-center sm:border-0 sm:p-0"
-        >
+        <div key={index} className="flex flex-col gap-1 sm:gap-0 sm:flex-row sm:items-center sm:gap-2">
           <Select
             value={row.user_id}
             onChange={(e) => update(index, { user_id: e.target.value })}
-            className="w-full min-w-0 sm:flex-1"
+            className="flex-1 min-w-0"
           >
             {users.map((u) => (
               <option key={u.id} value={u.id}>
@@ -52,34 +49,32 @@ export function CoachAssignmentPicker({ users, value, onChange }: CoachAssignmen
               </option>
             ))}
           </Select>
-          <div className="flex gap-2">
-            <Select
-              value={row.role}
-              onChange={(e) => update(index, { role: e.target.value as CoachRole })}
-              className="flex-1 min-w-0 sm:w-44 sm:flex-none"
-            >
-              <option value="headcoach">{ROLE_LABELS.headcoach}</option>
-              <option value="assistant_coach">{ROLE_LABELS.assistant_coach}</option>
-              <option value="finance">{ROLE_LABELS.finance}</option>
-            </Select>
-            <Button type="button" variant="ghost" onClick={() => remove(index)} aria-label="Zeile entfernen">
-              ✕
-            </Button>
-          </div>
+          <Select
+            value={row.role}
+            onChange={(e) => update(index, { role: e.target.value as CoachRole })}
+            className="min-w-0 sm:w-32"
+          >
+            <option value="headcoach">{ROLE_LABELS.headcoach}</option>
+            <option value="assistant_coach">{ROLE_LABELS.assistant_coach}</option>
+            <option value="finance">{ROLE_LABELS.finance}</option>
+          </Select>
+          <Button type="button" variant="ghost" onClick={() => remove(index)} aria-label="Zeile entfernen" className="self-start sm:self-center">
+            ✕
+          </Button>
           {row.role !== 'finance' && (
             <label className="flex items-center gap-2 text-sm text-text-muted">
               <input
                 type="checkbox"
-                className="size-5"
+                className="size-4"
                 checked={row.finance_access}
                 onChange={(e) => update(index, { finance_access: e.target.checked })}
               />
-              Zugriff auf Finanzen dieses Teams
+              Zugriff
             </label>
           )}
         </div>
       ))}
-      <Button type="button" variant="secondary" onClick={add} className="self-start">
+      <Button type="button" variant="secondary" onClick={add} className="self-start text-sm">
         + Trainer-Zuweisung hinzufügen
       </Button>
     </div>

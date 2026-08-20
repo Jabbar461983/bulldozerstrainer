@@ -21,7 +21,7 @@ interface PlayerWithExtras extends PlayerRow {
 }
 
 export function PlayersPage() {
-  const { profile, isAdmin, memberships } = useAuth();
+  const { isAdmin, memberships } = useAuth();
   const [players, setPlayers] = useState<PlayerWithExtras[] | null>(null);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -229,7 +229,6 @@ export function PlayersPage() {
       {viewingPlayer && (
         <PlayerDetailDialog
           player={viewingPlayer}
-          currentUserId={profile?.id ?? null}
           onClose={() => setViewingPlayer(null)}
           onEdit={() => {
             setViewingPlayer(null);

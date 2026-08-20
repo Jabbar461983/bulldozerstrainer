@@ -5,6 +5,7 @@ import type {
   ChecklistInstance,
   ChecklistItemCompletion,
 } from '../../types/database';
+import { jsPDF } from 'jspdf';
 
 export interface ChecklistRow extends Checklist {
   items: ChecklistItem[];
@@ -62,9 +63,13 @@ export async function createChecklist(payload: {
   description: string | null;
   has_reporting: boolean;
   is_global: boolean;
+  auto_create_for_home_games?: boolean;
 }) {
   const { data, error } = await (supabase.from('checklists') as any)
-    .insert(payload)
+    .insert({
+      ...payload,
+      auto_create_for_home_games: payload.auto_create_for_home_games ?? false,
+    })
     .select('id')
     .single();
   if (error) throw error;
@@ -86,6 +91,37 @@ export async function deleteChecklist(id: string) {
   if (error) throw error;
 }
 
+export async function duplicateChecklist(id: string): Promise<string> {
+  const checklist = await fetchChecklists();
+  const original = checklist.find((c) => c.id === id);
+  if (!original) throw new Error('Checklist not found');
+
+  const newChecklistId = await createChecklist({
+    title: `${original.title} (Kopie)`,
+    description: original.description,
+    has_reporting: original.has_reporting,
+    is_global: original.is_global,
+    auto_create_for_home_games: original.auto_create_for_home_games,
+  });
+
+  const { error: itemsError } = await (supabase.from('checklist_items') as any).insert(
+    original.items.map((item: any) => ({
+      checklist_id: newChecklistId,
+      title: item.title,
+      section_title: item.section_title,
+      sort_order: item.sort_order,
+      is_heading: item.is_heading,
+    }))
+  );
+  if (itemsError) throw itemsError;
+
+  if (original.teamIds.length > 0) {
+    await updateChecklistTeamAssignments(newChecklistId, original.teamIds);
+  }
+
+  return newChecklistId;
+}
+
 export async function updateChecklistTeamAssignments(id: string, teamIds: string[]) {
   const { error: deleteError } = await supabase.from('checklist_teams').delete().eq('checklist_id', id);
   if (deleteError) throw deleteError;
@@ -101,9 +137,17 @@ export async function createChecklistItem(payload: {
   checklist_id: string;
   title: string;
   parent_id?: string | null;
-}) {
-  const { error } = await (supabase.from('checklist_items') as any).insert(payload);
+  is_section?: boolean;
+}): Promise<string> {
+  const { data, error } = await (supabase.from('checklist_items') as any)
+    .insert({
+      ...payload,
+      is_section: payload.is_section ?? false,
+    })
+    .select('id')
+    .single();
   if (error) throw error;
+  return data.id;
 }
 
 export async function deleteChecklistItem(id: string) {
@@ -132,7 +176,52 @@ export async function fetchChecklistInstances(checklistId: string): Promise<Chec
     { data: completions, error: completionsError },
     { data: teams, error: teamsError },
   ] = await Promise.all([
-    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId),
+    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId).is('archived_at', null),
+    supabase.from('checklists').select('title').eq('id', checklistId).single(),
+    supabase.from('checklist_items').select('*').eq('checklist_id', checklistId),
+    supabase.from('checklist_item_completions').select('*'),
+    supabase.from('teams').select('id, name'),
+  ]);
+
+  if (instancesError) throw instancesError;
+  if (checklistError) throw checklistError;
+  if (itemsError) throw itemsError;
+  if (completionsError) throw completionsError;
+  if (teamsError) throw teamsError;
+
+  const teamById = new Map((teams ?? []).map((t: any) => [t.id, t.name]));
+
+  return (instances ?? []).map((instance: any) => {
+    const itemsByInstance = (completions ?? [])
+      .filter((c: any) => c.checklist_instance_id === instance.id)
+      .reduce((acc: Record<string, any>, c: any) => {
+        acc[c.checklist_item_id] = c;
+        return acc;
+      }, {});
+
+    const completed = Object.keys(itemsByInstance).length;
+    const total = (items ?? []).length;
+
+    return {
+      ...instance,
+      checklistTitle: (checklist as any)?.title ?? 'Unbekannt',
+      teamName: instance.team_id ? teamById.get(instance.team_id) ?? null : null,
+      items: (items ?? []) as ChecklistItem[],
+      completions: itemsByInstance,
+      progress: { total, completed },
+    };
+  });
+}
+
+export async function fetchArchivedChecklistInstances(checklistId: string): Promise<ChecklistInstanceRow[]> {
+  const [
+    { data: instances, error: instancesError },
+    { data: checklist, error: checklistError },
+    { data: items, error: itemsError },
+    { data: completions, error: completionsError },
+    { data: teams, error: teamsError },
+  ] = await Promise.all([
+    supabase.from('checklist_instances').select('*').eq('checklist_id', checklistId).not('archived_at', 'is', null),
     supabase.from('checklists').select('title').eq('id', checklistId).single(),
     supabase.from('checklist_items').select('*').eq('checklist_id', checklistId),
     supabase.from('checklist_item_completions').select('*'),
@@ -249,6 +338,20 @@ export async function getChecklistProgress(
   return { total, completed, pending: total - completed };
 }
 
+export async function saveChecklistProgress(payload: {
+  instance_id: string;
+  notes?: string;
+}) {
+  const { error: updateError } = await (supabase.from('checklist_instances') as any)
+    .update({
+      notes: payload.notes || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', payload.instance_id);
+
+  if (updateError) throw updateError;
+}
+
 export async function saveChecklistCompletion(payload: {
   instance_id: string;
   notes: string;
@@ -287,8 +390,228 @@ export async function saveChecklistCompletion(payload: {
       notes: payload.notes || null,
       completed_at: new Date().toISOString(),
       completed_by: (await supabase.auth.getUser()).data.user?.id,
+      archived_at: new Date().toISOString(),
     })
     .eq('id', payload.instance_id);
 
   if (updateError) throw updateError;
+}
+
+export async function createChecklistInstancesForHomeGames(checklistId: string, teamIds: string[]): Promise<void> {
+  const { data: checklist, error: checklistError } = await supabase
+    .from('checklists')
+    .select('auto_create_for_home_games')
+    .eq('id', checklistId)
+    .single();
+
+  if (checklistError) throw checklistError;
+  if (!(checklist as any).auto_create_for_home_games) return;
+
+  // Find all future home games (location = 'Kernenried') for the assigned teams that don't already have instances
+  const { data: games, error: gamesError } = await supabase
+    .from('games')
+    .select('id, our_team_id, date, location')
+    .ilike('location', '%Kernenried%')
+    .in('our_team_id', teamIds)
+    .gte('date', new Date().toISOString().split('T')[0]);
+
+  if (gamesError) throw gamesError;
+
+  if (!games || games.length === 0) return;
+
+  // For each game, create an instance if one doesn't already exist
+  for (const game of games) {
+    const { data: existingInstances, error: instanceCheckError } = await supabase
+      .from('checklist_instances')
+      .select('id', { count: 'exact' })
+      .eq('checklist_id', checklistId)
+      .eq('team_id', (game as any).our_team_id)
+      .eq('event_date', (game as any).date);
+
+    if (instanceCheckError) throw instanceCheckError;
+
+    // Only create if no instance exists for this team on this date
+    if (!existingInstances || existingInstances.length === 0) {
+      await createChecklistInstance({
+        checklist_id: checklistId,
+        team_id: (game as any).our_team_id,
+        event_date: (game as any).date,
+        event_context: null,
+      });
+    }
+  }
+}
+
+export async function uploadChecklistItemAttachment(
+  itemId: string,
+  file: File,
+): Promise<string> {
+  const fileName = `${Date.now()}_${file.name}`;
+  const filePath = `checklist-attachments/${itemId}/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('uploads')
+    .upload(filePath, file, { upsert: false });
+
+  if (uploadError) throw uploadError;
+
+  // Store metadata in database
+  const { error: dbError } = await (supabase.from('checklist_item_attachments') as any).insert({
+    checklist_item_id: itemId,
+    file_name: file.name,
+    file_path: filePath,
+    file_type: file.type,
+    file_size: file.size,
+    uploaded_by: (await supabase.auth.getUser()).data.user?.id,
+  });
+
+  if (dbError) throw dbError;
+  return filePath;
+}
+
+export async function fetchChecklistItemAttachments(
+  itemId: string,
+): Promise<{ id: string; fileName: string; fileType: string; fileSize: number; fileUrl: string; uploadedAt: string }[]> {
+  const { data, error } = await supabase
+    .from('checklist_item_attachments')
+    .select('id, file_name, file_type, file_size, file_path, created_at')
+    .eq('checklist_item_id', itemId);
+
+  if (error) throw error;
+
+  return (data ?? []).map((att: any) => {
+    const { data: signedUrl } = supabase.storage
+      .from('uploads')
+      .getPublicUrl(att.file_path);
+
+    return {
+      id: att.id,
+      fileName: att.file_name,
+      fileType: att.file_type,
+      fileSize: att.file_size,
+      fileUrl: signedUrl.publicUrl,
+      uploadedAt: att.created_at,
+    };
+  });
+}
+
+export async function deleteChecklistItemAttachment(attachmentId: string): Promise<void> {
+  const { data: attachment, error: fetchError } = await supabase
+    .from('checklist_item_attachments')
+    .select('file_path')
+    .eq('id', attachmentId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const { error: deleteFileError } = await supabase.storage
+    .from('uploads')
+    .remove([(attachment as any).file_path]);
+
+  if (deleteFileError) throw deleteFileError;
+
+  const { error: deleteDbError } = await supabase
+    .from('checklist_item_attachments')
+    .delete()
+    .eq('id', attachmentId);
+
+  if (deleteDbError) throw deleteDbError;
+}
+
+export async function exportChecklistToPDF(checklist: ChecklistRow): Promise<void> {
+  const doc = new jsPDF();
+  let yPos = 20;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const maxWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+
+  // Title
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(checklist.title, margin, yPos);
+  yPos += 10;
+
+  // Description if exists
+  if (checklist.description) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const descLines = doc.splitTextToSize(checklist.description, maxWidth);
+    doc.text(descLines, margin, yPos);
+    yPos += descLines.length * 5 + 5;
+  }
+
+  // Meta info
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  const metaInfo = [];
+  if (checklist.is_global) {
+    metaInfo.push('Global');
+  } else if (checklist.teamIds.length > 0) {
+    metaInfo.push(`Teams: ${checklist.teamIds.length}`);
+  }
+  if (checklist.has_reporting) {
+    metaInfo.push('Mit Reporting');
+  }
+  if (checklist.items.length > 0) {
+    metaInfo.push(`${checklist.items.length} Punkte`);
+  }
+  if (metaInfo.length > 0) {
+    doc.text(metaInfo.join(' • '), margin, yPos);
+    yPos += 8;
+  }
+
+  // Separator
+  doc.setDrawColor(200);
+  doc.line(margin, yPos, doc.internal.pageSize.getWidth() - margin, yPos);
+  yPos += 10;
+
+  // Items grouped by parent
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0);
+
+  const itemsByParent = new Map<string | null, ChecklistItem[]>();
+  for (const item of checklist.items) {
+    const key = item.parent_id || null;
+    if (!itemsByParent.has(key)) {
+      itemsByParent.set(key, []);
+    }
+    itemsByParent.get(key)!.push(item);
+  }
+
+  // First, render items without parent (headings)
+  const parentlessItems = itemsByParent.get(null) || [];
+  for (const parentItem of parentlessItems) {
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Heading
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(`☐ ${parentItem.title}`, margin, yPos);
+    yPos += 7;
+
+    // Sub-items
+    const subItems = itemsByParent.get(parentItem.id) || [];
+    if (subItems.length > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      for (const subItem of subItems) {
+        if (yPos > pageHeight - 15) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(`  ☐ ${subItem.title}`, margin + 5, yPos);
+        yPos += 5;
+      }
+    }
+
+    yPos += 2;
+  }
+
+  // Generate PDF
+  const fileName = `Checkliste_${checklist.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
 }

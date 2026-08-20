@@ -19,6 +19,7 @@ export function CreateGameDialog({ teamId, categoryId, onClose, onCreated }: Cre
   const [homeTeam, setHomeTeam] = useState('');
   const [awayTeam, setAwayTeam] = useState('');
   const [season, setSeason] = useState('');
+  const [isHome, setIsHome] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +37,7 @@ export function CreateGameDialog({ teamId, categoryId, onClose, onCreated }: Cre
         home_team: homeTeam,
         away_team: awayTeam,
         season: season || null,
+        is_home: isHome,
       });
       onCreated();
     } catch (err) {
@@ -88,6 +90,19 @@ export function CreateGameDialog({ teamId, categoryId, onClose, onCreated }: Cre
         <div>
           <Label htmlFor="season">Saison (optional)</Label>
           <Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isHome}
+              onChange={(e) => setIsHome(e.target.checked)}
+              className="rounded border-border"
+            />
+            <span className="text-sm font-medium">Heimspiel</span>
+          </label>
+          <p className="text-xs text-text-muted">Aktivieren wenn das Team Zuhause spielt</p>
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}

@@ -3,7 +3,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { withCache } from '../../lib/withCache';
-import { fetchChecklists, deleteChecklist } from './api';
+import { fetchChecklists, deleteChecklist, duplicateChecklist, exportChecklistToPDF } from './api';
 import type { ChecklistRow } from './api';
 import { CreateChecklistDialog } from './CreateChecklistDialog';
 import { EditChecklistDialog } from './EditChecklistDialog';
@@ -38,6 +38,15 @@ export function ChecklistsAdminPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Löschen fehlgeschlagen.');
+    }
+  }
+
+  async function handleDuplicate(id: string) {
+    try {
+      await duplicateChecklist(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Duplizieren fehlgeschlagen.');
     }
   }
 
@@ -98,6 +107,15 @@ export function ChecklistsAdminPage() {
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
+                      void exportChecklistToPDF(checklist);
+                    }}
+                  >
+                    📄 PDF
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedChecklist(checklist);
                       setShowEdit(true);
                     }}
@@ -106,6 +124,16 @@ export function ChecklistsAdminPage() {
                   </Button>
                   <Button
                     variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDuplicate(checklist.id);
+                    }}
+                  >
+                    📋 Duplizieren
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="text-error"
                     onClick={(e) => {
                       e.stopPropagation();
                       void handleDelete(checklist.id);

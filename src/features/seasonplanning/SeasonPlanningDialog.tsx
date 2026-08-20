@@ -37,6 +37,7 @@ const TACTICS_SUBCATEGORIES = [
 ];
 
 const ACTIVITIES_SUBCATEGORIES = [
+  'Spiel/Turnier',
   'Testspiel',
   'Freundschaftsspiele',
   'Teamweihnachten',

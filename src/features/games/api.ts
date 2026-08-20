@@ -32,7 +32,7 @@ export async function fetchGames(teamId: string): Promise<Game[]> {
     .order('date', { ascending: false })
     .order('time', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Game[];
 }
 
 export async function createGame(payload: {
@@ -44,9 +44,13 @@ export async function createGame(payload: {
   home_team: string;
   away_team: string;
   season: string | null;
+  is_home?: boolean;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase.from('games') as any).insert(payload);
+  const { error } = await (supabase.from('games') as any).insert({
+    ...payload,
+    is_home: payload.is_home ?? true,
+  });
   if (error) throw error;
 }
 
@@ -88,7 +92,7 @@ export async function importGames(rows: FixtureImportRow[], teamId: string, cate
 export async function fetchGameLineup(gameId: string): Promise<GameLineup[]> {
   const { data, error } = await supabase.from('game_lineups').select('*').eq('game_id', gameId);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as GameLineup[];
 }
 
 export async function replaceGameLineup(
@@ -107,7 +111,7 @@ export async function replaceGameLineup(
 export async function fetchGameAbsences(gameId: string): Promise<GameAbsence[]> {
   const { data, error } = await supabase.from('game_absences').select('*').eq('game_id', gameId);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as GameAbsence[];
 }
 
 export async function replaceGameAbsences(gameId: string, playerIds: string[], trainerIds: string[]) {
@@ -126,7 +130,7 @@ export async function replaceGameAbsences(gameId: string, playerIds: string[], t
 export async function fetchGameRatings(gameId: string): Promise<GameRating[]> {
   const { data, error } = await supabase.from('game_ratings').select('*').eq('game_id', gameId);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as GameRating[];
 }
 
 export async function saveGameRating(
@@ -195,4 +199,69 @@ export async function addGameComment(gameId: string, playerId: string, note: str
 export async function deleteGameComment(id: string) {
   const { error } = await supabase.from('player_notes').delete().eq('id', id);
   if (error) throw error;
+}
+
+export async function fetchPastGamesForSeason(teamId: string, season: string): Promise<Game[]> {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('games')
+    .select('*')
+    .eq('our_team_id', teamId)
+    .eq('season', season)
+    .lte('date', today)
+    .order('date', { ascending: false })
+    .order('time', { ascending: false });
+  if (error) throw error;
+
+  const games = (data ?? []) as Game[];
+  const now = new Date();
+  return games.filter((game) => {
+    if (game.date < today) return true;
+    if (game.date === today && game.time) {
+      const gameTime = new Date(`${game.date}T${game.time}`);
+      return gameTime < now;
+    }
+    return false;
+  });
+}
+
+export async function fetchGameLineups(gameId: string): Promise<GameLineup[]> {
+  const { data, error } = await supabase
+    .from('game_lineups')
+    .select('*')
+    .eq('game_id', gameId);
+  if (error) throw error;
+  return (data ?? []) as GameLineup[];
+}
+
+export async function copyGameLineups(sourceGameId: string, targetGameId: string): Promise<void> {
+  const sourceLineups = await fetchGameLineups(sourceGameId);
+  const sourceAbsences = await fetchGameAbsences(sourceGameId);
+
+  const absentPlayerIds = new Set(
+    sourceAbsences
+      .filter((a) => a.person_type === 'player')
+      .map((a) => a.player_id)
+      .filter((id) => id !== null),
+  );
+
+  if (sourceLineups.length === 0) return;
+
+  const newLineups = sourceLineups
+    .filter((lineup) => !absentPlayerIds.has(lineup.player_id))
+    .map((lineup: GameLineup) => {
+      const { id, ...rest } = lineup;
+      return {
+        ...rest,
+        game_id: targetGameId,
+      };
+    });
+
+  const { error: deleteError } = await supabase.from('game_lineups').delete().eq('game_id', targetGameId);
+  if (deleteError) throw deleteError;
+
+  if (newLineups.length > 0) {
+    const { error: insertError } = await (supabase.from('game_lineups') as any).insert(newLineups);
+    if (insertError) throw insertError;
+  }
 }

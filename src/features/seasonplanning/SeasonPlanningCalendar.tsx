@@ -6,6 +6,7 @@ import type { SeasonPlanningEvent, SeasonPlanningCategory } from '../../types/da
 interface SeasonPlanningCalendarProps {
   events: SeasonPlanningEvent[];
   season: string;
+  teamName?: string;
   onEditEvent: (event: SeasonPlanningEvent) => void;
   categoryColors: Record<SeasonPlanningCategory, string>;
   categoryNames: Record<SeasonPlanningCategory, string>;
@@ -25,6 +26,7 @@ interface EventWithPosition extends SeasonPlanningEvent {
 export function SeasonPlanningCalendar({
   events,
   season,
+  teamName,
   onEditEvent,
   categoryColors,
   categoryNames,
@@ -47,8 +49,8 @@ export function SeasonPlanningCalendar({
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas context not available');
 
-    const canvasWidth = 1400;
-    const canvasHeight = 900;
+    const canvasWidth = 1500;
+    const canvasHeight = 950;
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
     const dpr = window.devicePixelRatio || 1;
@@ -60,51 +62,93 @@ export function SeasonPlanningCalendar({
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    const margin = 50;
-    const categoryHeight = 140;
+    const margin = 40;
+    const leftMargin = 150;
+    const categoryHeight = 160;
     const totalDays = getTotalSeasonDays();
 
     // Title
-    ctx.font = 'bold 28px sans-serif';
+    ctx.font = 'bold 26px sans-serif';
     ctx.fillStyle = '#000000';
-    ctx.textAlign = 'center';
-    ctx.fillText(`Saisonplanung ${season}`, canvasWidth / 2, 40);
+    ctx.textAlign = 'left';
+    ctx.fillText(`Saisonplanung ${season}${teamName ? ` - ${teamName}` : ''}`, margin, 35);
 
-    let yOffset = margin + 30;
+    let yOffset = 70;
+
+    // Month header row (once, for all categories)
+    const timelineStartX = margin + leftMargin;
+    const timelineWidth = canvasWidth - margin * 2 - leftMargin;
+
+    // Month separators and centered labels
+    const monthPositions: Array<{ x: number; width: number; label: string }> = [];
+    MONTHS.forEach((month, idx) => {
+      const monthStartDay = idx === 0 ? 0 : getMonthStartDay(idx);
+      const nextMonthStartDay = idx === MONTHS.length - 1 ? totalDays : getMonthStartDay(idx + 1);
+
+      const xPos = timelineStartX + (monthStartDay / totalDays) * timelineWidth;
+      const nextXPos = timelineStartX + (nextMonthStartDay / totalDays) * timelineWidth;
+      const monthWidth = nextXPos - xPos;
+
+      monthPositions.push({ x: xPos, width: monthWidth, label: month });
+
+      ctx.strokeStyle = '#d1d5db';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(xPos, yOffset);
+      ctx.lineTo(xPos, yOffset + 30);
+      ctx.stroke();
+
+      // Centered month label
+      ctx.font = '11px sans-serif';
+      ctx.fillStyle = '#4b5563';
+      ctx.textAlign = 'center';
+      ctx.fillText(month, xPos + monthWidth / 2, yOffset + 20);
+    });
+
+    // Right border
+    ctx.strokeStyle = '#d1d5db';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(timelineStartX + timelineWidth, yOffset);
+    ctx.lineTo(timelineStartX + timelineWidth, yOffset + 30);
+    ctx.stroke();
+
+    yOffset += 40;
 
     // For each category
     CATEGORIES.forEach((category) => {
       const stackedEvents = categoryEvents(category);
 
       // Category label
-      ctx.font = 'bold 16px sans-serif';
+      ctx.font = 'bold 14px sans-serif';
       ctx.fillStyle = '#1f2937';
       ctx.textAlign = 'left';
       ctx.fillText(categoryNames[category], margin, yOffset + 25);
 
       // Timeline background
       ctx.fillStyle = '#f9fafb';
-      ctx.strokeStyle = '#e5e7eb';
-      ctx.lineWidth = 1;
-      ctx.fillRect(margin + 120, yOffset, canvasWidth - margin * 2 - 120, categoryHeight);
-      ctx.strokeRect(margin + 120, yOffset, canvasWidth - margin * 2 - 120, categoryHeight);
+      ctx.strokeStyle = '#d1d5db';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(timelineStartX, yOffset, timelineWidth, categoryHeight);
+      ctx.strokeRect(timelineStartX, yOffset, timelineWidth, categoryHeight);
 
-      // Month separators and labels
-      MONTHS.forEach((month, idx) => {
-        const monthStartDay = getMonthStartDay(idx + 1);
-        const xPos = margin + 120 + (monthStartDay / totalDays) * (canvasWidth - margin * 2 - 120);
-
+      // Month separators (vertical lines)
+      monthPositions.forEach((pos) => {
         ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(xPos, yOffset);
-        ctx.lineTo(xPos, yOffset + categoryHeight);
+        ctx.moveTo(pos.x, yOffset);
+        ctx.lineTo(pos.x, yOffset + categoryHeight);
         ctx.stroke();
-
-        ctx.font = '12px sans-serif';
-        ctx.fillStyle = '#666666';
-        ctx.textAlign = 'left';
-        ctx.fillText(month, xPos + 3, yOffset - 8);
       });
+
+      // Right border
+      ctx.strokeStyle = '#d1d5db';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(timelineStartX + timelineWidth, yOffset);
+      ctx.lineTo(timelineStartX + timelineWidth, yOffset + categoryHeight);
+      ctx.stroke();
 
       // Events
       stackedEvents.forEach((event) => {
@@ -112,10 +156,9 @@ export function SeasonPlanningCalendar({
         const endDay = getDayOfSeason(event.end_date);
         const duration = Math.max(1, endDay - startDay + 1);
 
-        const timelineWidth = canvasWidth - margin * 2 - 120;
-        const xStart = margin + 120 + (startDay / totalDays) * timelineWidth;
+        const xStart = timelineStartX + (startDay / totalDays) * timelineWidth;
         const width = Math.max(8, (duration / totalDays) * timelineWidth);
-        const yPos = yOffset + 15 + event.row * 25;
+        const yPos = yOffset + 12 + event.row * 28;
 
         const color = getCategoryColor(event.category);
         const isSingle = duration === 1;
@@ -133,23 +176,23 @@ export function SeasonPlanningCalendar({
           // Multi-day event - bar
           ctx.fillStyle = color;
           ctx.strokeStyle = '#333333';
-          ctx.lineWidth = 1;
-          ctx.fillRect(xStart, yPos, width, 18);
-          ctx.strokeRect(xStart, yPos, width, 18);
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(xStart, yPos, width, 20);
+          ctx.strokeRect(xStart, yPos, width, 20);
 
           // Event text
           const text = event.subcategory || event.title || 'Event';
-          ctx.font = '11px sans-serif';
+          ctx.font = 'bold 11px sans-serif';
           ctx.fillStyle = '#ffffff';
           ctx.textAlign = 'left';
           const textWidth = ctx.measureText(text).width;
           if (width > textWidth + 8) {
-            ctx.fillText(text, xStart + 4, yPos + 13);
+            ctx.fillText(text, xStart + 4, yPos + 14);
           }
         }
       });
 
-      yOffset += categoryHeight + 40;
+      yOffset += categoryHeight + 25;
     });
 
     return canvas;
