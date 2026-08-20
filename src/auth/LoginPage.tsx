@@ -17,10 +17,17 @@ export function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     setLoading(false);
     if (signInError) {
-      setError('Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.');
+      setError(
+        signInError.message === 'Invalid login credentials'
+          ? 'Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.'
+          : signInError.message,
+      );
       return;
     }
     navigate('/', { replace: true });

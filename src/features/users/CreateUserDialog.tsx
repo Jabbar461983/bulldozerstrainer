@@ -33,7 +33,7 @@ export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUser
     setLoading(true);
     try {
       await createUser({
-        email,
+        email: email.trim(),
         password,
         first_name: firstName,
         last_name: lastName,

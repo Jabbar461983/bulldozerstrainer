@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   // daher wird das Konto direkt mit Passwort und bestätigter E-Mail angelegt
   // - keine Einladungs-/Bestätigungs-E-Mail nötig.
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: body.email,
+    email: body.email.trim(),
     password: body.password,
     email_confirm: true,
     user_metadata: {
