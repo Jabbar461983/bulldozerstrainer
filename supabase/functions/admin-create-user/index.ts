@@ -2,6 +2,7 @@ import { adminClient, corsHeaders, json, requireAdmin } from '../_shared/admin.t
 
 interface CreateUserBody {
   email: string;
+  password: string;
   first_name: string;
   last_name: string;
   phone?: string | null;
@@ -30,11 +31,20 @@ Deno.serve(async (req) => {
   if (!body.email || !body.first_name || !body.last_name) {
     return json({ error: 'E-Mail, Vorname und Nachname sind Pflichtfelder.' }, 400);
   }
+  if (!body.password || body.password.length < 8) {
+    return json({ error: 'Das Passwort muss mindestens 8 Zeichen lang sein.' }, 400);
+  }
 
   const admin = adminClient();
 
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(body.email, {
-    data: {
+  // Der Benutzer erhält Login-Daten direkt vom Admin (z.B. per WhatsApp),
+  // daher wird das Konto direkt mit Passwort und bestätigter E-Mail angelegt
+  // - keine Einladungs-/Bestätigungs-E-Mail nötig.
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email: body.email,
+    password: body.password,
+    email_confirm: true,
+    user_metadata: {
       first_name: body.first_name,
       last_name: body.last_name,
       phone: body.phone ?? null,
@@ -42,13 +52,13 @@ Deno.serve(async (req) => {
     },
   });
 
-  if (inviteError || !invited.user) {
-    return json({ error: inviteError?.message ?? 'Benutzer konnte nicht angelegt werden.' }, 400);
+  if (createError || !created.user) {
+    return json({ error: createError?.message ?? 'Benutzer konnte nicht angelegt werden.' }, 400);
   }
 
   if (body.team_roles?.length) {
     const rows = body.team_roles.map((tr) => ({
-      user_id: invited.user!.id,
+      user_id: created.user!.id,
       team_id: tr.team_id,
       role: tr.role,
       finance_access: tr.finance_access ?? false,
@@ -58,12 +68,12 @@ Deno.serve(async (req) => {
       return json(
         {
           warning: `Benutzer wurde angelegt, Team-/Rollenzuweisung ist aber fehlgeschlagen: ${rolesError.message}`,
-          user: { id: invited.user.id, email: invited.user.email },
+          user: { id: created.user.id, email: created.user.email },
         },
         200,
       );
     }
   }
 
-  return json({ user: { id: invited.user.id, email: invited.user.email } }, 200);
+  return json({ user: { id: created.user.id, email: created.user.email } }, 200);
 });

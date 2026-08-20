@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { useAuth } from '../../auth/AuthContext';
-import { fetchUsers, fetchTeamOptions, deleteUser, sendPasswordReset } from './api';
+import { fetchUsers, fetchTeamOptions, deleteUser } from './api';
 import type { UserRow, TeamOption } from './api';
 import { ROLE_LABELS } from '../../auth/permissions';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
+import { SetPasswordDialog } from './SetPasswordDialog';
 
 export function UsersPage() {
   const { profile: currentProfile } = useAuth();
@@ -15,8 +16,8 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
+  const [passwordUser, setPasswordUser] = useState<UserRow | null>(null);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
     setError(null);
@@ -51,20 +52,6 @@ export function UsersPage() {
     }
   }
 
-  async function handlePasswordReset(user: UserRow) {
-    setBusyUserId(user.id);
-    setNotice(null);
-    setError(null);
-    try {
-      await sendPasswordReset(user.email);
-      setNotice(`Reset-Link an ${user.email} gesendet.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reset-Link konnte nicht gesendet werden.');
-    } finally {
-      setBusyUserId(null);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
@@ -74,9 +61,6 @@ export function UsersPage() {
 
       {error && (
         <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>
-      )}
-      {notice && (
-        <p className="rounded-xl bg-success/10 p-3 text-sm text-success">{notice}</p>
       )}
 
       {users === null && <p className="text-sm text-text-muted">Lädt…</p>}
@@ -129,12 +113,8 @@ export function UsersPage() {
               <Button variant="secondary" onClick={() => setEditingUser(user)}>
                 Bearbeiten
               </Button>
-              <Button
-                variant="secondary"
-                disabled={busyUserId === user.id}
-                onClick={() => void handlePasswordReset(user)}
-              >
-                Passwort-Reset senden
+              <Button variant="secondary" onClick={() => setPasswordUser(user)}>
+                Neues Passwort setzen
               </Button>
               {user.id !== currentProfile?.id && (
                 <Button
@@ -172,6 +152,8 @@ export function UsersPage() {
           }}
         />
       )}
+
+      {passwordUser && <SetPasswordDialog user={passwordUser} onClose={() => setPasswordUser(null)} />}
     </div>
   );
 }

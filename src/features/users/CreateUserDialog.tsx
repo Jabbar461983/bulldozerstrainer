@@ -6,6 +6,7 @@ import { Input, Label } from '../../components/Input';
 import { TeamRolePicker } from './TeamRolePicker';
 import { createUser } from './api';
 import type { TeamOption, TeamRoleInput } from './api';
+import { generatePassword } from '../../lib/password';
 
 interface CreateUserDialogProps {
   teamOptions: TeamOption[];
@@ -18,10 +19,13 @@ export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUser
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState(() => generatePassword());
   const [isAdmin, setIsAdmin] = useState(false);
   const [teamRoles, setTeamRoles] = useState<TeamRoleInput[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [created, setCreated] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -30,18 +34,63 @@ export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUser
     try {
       await createUser({
         email,
+        password,
         first_name: firstName,
         last_name: lastName,
         phone: phone || null,
         is_admin: isAdmin,
         team_roles: teamRoles,
       });
-      onCreated();
+      setCreated(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Benutzer konnte nicht angelegt werden.');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleCopy() {
+    const text = `Bulldozers Junioren Manager\nE-Mail: ${email}\nPasswort: ${password}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      // Zwischenablage evtl. nicht verfügbar - Text bleibt zum manuellen Kopieren sichtbar.
+    }
+  }
+
+  if (created) {
+    return (
+      <Modal
+        title="Benutzer angelegt"
+        onClose={onCreated}
+        footer={
+          <Button type="button" onClick={onCreated}>
+            Fertig
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-text-muted">
+            Bitte gib diese Zugangsdaten {firstName} {lastName} weiter (z.B. per WhatsApp) - eine
+            Bestätigungs-E-Mail wird nicht verschickt.
+          </p>
+          <div className="rounded-xl border border-border bg-surface-alt p-3 text-sm">
+            <p>
+              <span className="text-text-muted">E-Mail: </span>
+              <span className="font-medium text-text">{email}</span>
+            </p>
+            <p>
+              <span className="text-text-muted">Passwort: </span>
+              <span className="font-medium text-text">{password}</span>
+            </p>
+          </div>
+          <Button type="button" variant="secondary" onClick={() => void handleCopy()} className="self-start">
+            {copied ? 'Kopiert ✓' : 'In Zwischenablage kopieren'}
+          </Button>
+        </div>
+      </Modal>
+    );
   }
 
   return (
@@ -73,8 +122,25 @@ export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUser
         <div>
           <Label htmlFor="email">E-Mail-Adresse</Label>
           <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="password">Passwort</Label>
+          <div className="flex gap-2">
+            <Input
+              id="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="flex-1"
+            />
+            <Button type="button" variant="secondary" onClick={() => setPassword(generatePassword())}>
+              Neu generieren
+            </Button>
+          </div>
           <p className="mt-1 text-xs text-text-muted">
-            Der Benutzer erhält eine Einladung per E-Mail und setzt dort sein eigenes Passwort.
+            Mind. 8 Zeichen. Nach dem Anlegen kannst du dieses Passwort dem Benutzer weitergeben (z.B. per
+            WhatsApp) - es wird keine E-Mail verschickt.
           </p>
         </div>
         <div>

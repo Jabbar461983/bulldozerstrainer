@@ -56,6 +56,7 @@ export interface TeamRoleInput {
 
 export async function createUser(payload: {
   email: string;
+  password: string;
   first_name: string;
   last_name: string;
   phone: string | null;
@@ -64,6 +65,15 @@ export async function createUser(payload: {
 }) {
   const { data, error } = await supabase.functions.invoke('admin-create-user', { body: payload });
   if (error) throw new Error(await functionErrorMessage(error, 'Benutzer konnte nicht angelegt werden.'));
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+export async function setUserPassword(userId: string, password: string) {
+  const { data, error } = await supabase.functions.invoke('admin-set-password', {
+    body: { user_id: userId, password },
+  });
+  if (error) throw new Error(await functionErrorMessage(error, 'Passwort konnte nicht gesetzt werden.'));
   if (data?.error) throw new Error(data.error);
   return data;
 }
@@ -99,11 +109,4 @@ export async function replaceTeamRoles(userId: string, teamRoles: TeamRoleInput[
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: insertError } = await (supabase.from('user_team_roles') as any).insert(rows);
   if (insertError) throw insertError;
-}
-
-export async function sendPasswordReset(email: string) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/passwort-zuruecksetzen`,
-  });
-  if (error) throw error;
 }
