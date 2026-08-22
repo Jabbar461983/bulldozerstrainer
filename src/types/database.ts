@@ -316,6 +316,22 @@ export interface Receipt {
   created_at: string;
 }
 
+export interface Task {
+  id: string;
+  task_group_id: string;
+  title: string;
+  description: string | null;
+  due_date: string;
+  attachment_path: string | null;
+  is_team_task: boolean;
+  created_by: string;
+  assigned_to: string;
+  completed: boolean;
+  completed_at: string | null;
+  remark: string | null;
+  created_at: string;
+}
+
 export interface Checklist {
   id: string;
   title: string;
@@ -510,6 +526,7 @@ export interface Database {
         Insert: Partial<ChecklistItemCompletion>;
         Update: Partial<ChecklistItemCompletion>;
       };
+      tasks: { Row: Task; Insert: Partial<Task>; Update: Partial<Task> };
     };
   };
 }

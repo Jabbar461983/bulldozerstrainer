@@ -20,6 +20,11 @@ export function Icon({ d }: { d: string }) {
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Start', icon: <Icon d="M3 11.5L12 4l9 7.5M5 10v9h5v-5h4v5h5v-9" /> },
   {
+    to: '/aufgaben',
+    label: 'Aufgaben',
+    icon: <Icon d="M9 5a2 2 0 012-2h2a2 2 0 012 2M5 5h14a1 1 0 011 1v13a2 2 0 01-2 2H6a2 2 0 01-2-2V6a1 1 0 011-1zM8 12l2.5 2.5L16 9" />,
+  },
+  {
     to: '/training',
     label: 'Training',
     module: 'training',

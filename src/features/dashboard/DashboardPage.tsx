@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { Card } from '../../components/Card';
 import { NAV_ITEMS } from '../../layout/navItems';
+import { DueTasksWidget } from '../tasks/DueTasksWidget';
 
 export function DashboardPage() {
   const { profile, isAdmin, canAccess, memberships } = useAuth();
@@ -25,6 +26,8 @@ export function DashboardPage() {
             : `Du bist Coach in ${memberships.length} Team(s).`}
         </p>
       </div>
+
+      <DueTasksWidget />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {quickLinks.map((item) => (

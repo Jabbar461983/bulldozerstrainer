@@ -19,6 +19,8 @@ import { FinanceOverviewPage } from './features/finance/FinanceOverviewPage';
 import { SeasonPlanningWrapper } from './features/seasonplanning/SeasonPlanningWrapper';
 import { ChecklistsCoachPage } from './features/checklists/ChecklistsCoachPage';
 import { ChecklistsAdminPage } from './features/checklists/ChecklistsAdminPage';
+import { TasksPage } from './features/tasks/TasksPage';
+import { TasksOverviewPage } from './features/tasks/TasksOverviewPage';
 
 function App() {
   return (
@@ -38,6 +40,15 @@ function App() {
             }
           >
             <Route index element={<DashboardPage />} />
+            <Route path="aufgaben" element={<TasksPage />} />
+            <Route
+              path="aufgaben/uebersicht"
+              element={
+                <AdminRoute>
+                  <TasksOverviewPage />
+                </AdminRoute>
+              }
+            />
             <Route
               path="training"
               element={
