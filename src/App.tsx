@@ -21,6 +21,7 @@ import { ChecklistsCoachPage } from './features/checklists/ChecklistsCoachPage';
 import { ChecklistsAdminPage } from './features/checklists/ChecklistsAdminPage';
 import { TasksPage } from './features/tasks/TasksPage';
 import { TasksOverviewPage } from './features/tasks/TasksOverviewPage';
+import { TasksStatsPage } from './features/tasks/TasksStatsPage';
 
 function App() {
   return (
@@ -46,6 +47,14 @@ function App() {
               element={
                 <AdminRoute>
                   <TasksOverviewPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="aufgaben/statistik"
+              element={
+                <AdminRoute>
+                  <TasksStatsPage />
                 </AdminRoute>
               }
             />

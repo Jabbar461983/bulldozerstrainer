@@ -324,7 +324,7 @@ export interface Task {
   due_date: string;
   attachment_path: string | null;
   is_team_task: boolean;
-  created_by: string;
+  created_by: string | null;
   assigned_to: string;
   completed: boolean;
   completed_at: string | null;

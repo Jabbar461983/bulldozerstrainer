@@ -1,9 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../../components/Card';
-import { deriveTaskStatus, fetchAllTasks, TASK_STATUS_LABELS } from './api';
-import type { TaskRow } from './api';
+import { Label } from '../../components/Input';
+import { Select } from '../../components/Select';
+import {
+  deriveTaskStatus,
+  fetchAllTasks,
+  fetchTaskRecipientOptions,
+  fetchTaskTeamOptions,
+  TASK_STATUS_LABELS,
+} from './api';
+import type { TaskRow, TeamOptionForTask } from './api';
 import { TaskDetailDialog } from './TaskDetailDialog';
+
+const ALL = '__all__';
 
 function formatDate(dateIso: string): string {
   return new Date(`${dateIso}T00:00:00`).toLocaleDateString('de-CH', {
@@ -15,13 +25,26 @@ function formatDate(dateIso: string): string {
 
 export function TasksOverviewPage() {
   const [tasks, setTasks] = useState<TaskRow[] | null>(null);
+  const [teams, setTeams] = useState<TeamOptionForTask[]>([]);
+  const [teamMemberIds, setTeamMemberIds] = useState<Map<string, Set<string>>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+  const [personFilter, setPersonFilter] = useState(ALL);
+  const [teamFilter, setTeamFilter] = useState(ALL);
 
   async function load() {
     setError(null);
     try {
-      setTasks(await fetchAllTasks());
+      const [allTasks, teamOptions] = await Promise.all([fetchAllTasks(), fetchTaskTeamOptions()]);
+      setTasks(allTasks);
+      setTeams(teamOptions);
+      const memberships = await Promise.all(
+        teamOptions.map(async (team) => ({
+          teamId: team.teamId,
+          memberIds: new Set((await fetchTaskRecipientOptions('team_coaches', team.teamId)).map((m) => m.userId)),
+        })),
+      );
+      setTeamMemberIds(new Map(memberships.map((m) => [m.teamId, m.memberIds])));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Übersicht konnte nicht geladen werden.');
     }
@@ -30,6 +53,22 @@ export function TasksOverviewPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  const persons = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const t of tasks ?? []) byId.set(t.assigned_to, t.assigneeName);
+    return Array.from(byId.entries())
+      .map(([userId, name]) => ({ userId, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'de-CH'));
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    return (tasks ?? []).filter((t) => {
+      if (personFilter !== ALL && t.assigned_to !== personFilter) return false;
+      if (teamFilter !== ALL && !(teamMemberIds.get(teamFilter)?.has(t.assigned_to) ?? false)) return false;
+      return true;
+    });
+  }, [tasks, personFilter, teamFilter, teamMemberIds]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -40,16 +79,41 @@ export function TasksOverviewPage() {
         </Link>
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="personFilter">Person</Label>
+          <Select id="personFilter" value={personFilter} onChange={(e) => setPersonFilter(e.target.value)}>
+            <option value={ALL}>Alle</option>
+            {persons.map((p) => (
+              <option key={p.userId} value={p.userId}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="teamFilter">Team</Label>
+          <Select id="teamFilter" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+            <option value={ALL}>Alle</option>
+            {teams.map((t) => (
+              <option key={t.teamId} value={t.teamId}>
+                {t.categoryName} · {t.teamName}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
       {tasks === null && !error && <p className="text-sm text-text-muted">Lädt…</p>}
-      {tasks?.length === 0 && (
+      {tasks !== null && filteredTasks.length === 0 && (
         <Card>
-          <p className="text-sm text-text-muted">Noch keine Aufgaben erfasst.</p>
+          <p className="text-sm text-text-muted">Keine Aufgaben gefunden.</p>
         </Card>
       )}
 
       <div className="flex flex-col gap-2">
-        {tasks?.map((t) => {
+        {filteredTasks.map((t) => {
           const status = deriveTaskStatus(t);
           const styles: Record<string, string> = {
             offen: 'bg-surface-alt text-text-muted',

@@ -76,9 +76,14 @@ export function TasksPage() {
         <h1 className="text-xl font-semibold text-text">Aufgaben</h1>
         <div className="flex gap-2">
           {isAdmin && (
-            <Link to="/aufgaben/uebersicht">
-              <Button variant="secondary">Gesamtübersicht</Button>
-            </Link>
+            <>
+              <Link to="/aufgaben/statistik">
+                <Button variant="secondary">Übersicht Team/Person</Button>
+              </Link>
+              <Link to="/aufgaben/uebersicht">
+                <Button variant="secondary">Gesamtübersicht</Button>
+              </Link>
+            </>
           )}
           <Button onClick={() => setShowCreate(true)}>+ Neue Aufgabe</Button>
         </div>
@@ -141,7 +146,13 @@ export function TasksPage() {
             const first = group[0];
             return (
               <Card key={first.task_group_id}>
-                <p className="font-medium text-text">{first.title}</p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(first)}
+                  className="font-medium text-accent hover:underline"
+                >
+                  {first.title}
+                </button>
                 <p className="text-sm text-text-muted">
                   Fällig: {formatDate(first.due_date)}
                   {first.is_team_task && ' · Teamaufgabe'}

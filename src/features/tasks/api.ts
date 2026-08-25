@@ -25,8 +25,42 @@ export function deriveTaskStatus(task: Pick<Task, 'completed' | 'remark'>): Task
   return 'offen';
 }
 
+const OVERDUE_THRESHOLD_DAYS = 5;
+
+function isOverdue(dueDate: string): boolean {
+  const due = new Date(`${dueDate}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+  return diffDays > OVERDUE_THRESHOLD_DAYS;
+}
+
+export interface TaskStats {
+  offen: number;
+  erledigt: number;
+  ueberfaellig: number;
+}
+
+/** "Überfällig" zählt zusätzlich als "offen" (mehr als 5 Tage im Verzug). */
+export function computeTaskStats(tasks: Pick<Task, 'completed' | 'due_date'>[]): TaskStats {
+  let offen = 0;
+  let erledigt = 0;
+  let ueberfaellig = 0;
+  for (const t of tasks) {
+    if (t.completed) {
+      erledigt++;
+    } else {
+      offen++;
+      if (isOverdue(t.due_date)) ueberfaellig++;
+    }
+  }
+  return { offen, erledigt, ueberfaellig };
+}
+
 async function attachRowMeta(rows: Task[]): Promise<TaskRow[]> {
-  const ids = Array.from(new Set(rows.flatMap((r) => [r.created_by, r.assigned_to])));
+  const ids = Array.from(
+    new Set(rows.flatMap((r) => [r.created_by, r.assigned_to]).filter((id): id is string => Boolean(id))),
+  );
   const nameById = new Map<string, string>();
   if (ids.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +82,7 @@ async function attachRowMeta(rows: Task[]): Promise<TaskRow[]> {
 
   return rows.map((r) => ({
     ...r,
-    creatorName: nameById.get(r.created_by) ?? 'Unbekannt',
+    creatorName: r.created_by ? (nameById.get(r.created_by) ?? 'Unbekannt') : 'Gelöschter Benutzer',
     assigneeName: nameById.get(r.assigned_to) ?? 'Unbekannt',
     attachmentUrl: r.attachment_path ? (urlByPath.get(r.attachment_path) ?? null) : null,
   }));
