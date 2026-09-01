@@ -6,6 +6,7 @@ import type {
   ChecklistItemCompletion,
 } from '../../types/database';
 import { jsPDF } from 'jspdf';
+import { sanitizeForStorageKey } from '../../lib/storagePath';
 
 export interface ChecklistRow extends Checklist {
   items: ChecklistItem[];
@@ -446,7 +447,7 @@ export async function uploadChecklistItemAttachment(
   itemId: string,
   file: File,
 ): Promise<string> {
-  const fileName = `${Date.now()}_${file.name}`;
+  const fileName = `${Date.now()}_${sanitizeForStorageKey(file.name, 150) || 'datei'}`;
   const filePath = `checklist-attachments/${itemId}/${fileName}`;
 
   const { error: uploadError } = await supabase.storage

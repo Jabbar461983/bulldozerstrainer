@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import type { Exercise, ExerciseFocus, ExerciseMedia } from '../../types/database';
+import { sanitizeForStorageKey } from '../../lib/storagePath';
 
 export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
   'Offensivverhalten',
@@ -114,14 +115,10 @@ export async function fetchExerciseMediaByIds(ids: string[]): Promise<Map<string
 }
 
 // Speichernamen sollen den Übungstitel enthalten, damit Dateien im Storage-
-// Bucket auch ohne Datenbankzugriff erkennbar sind. Zeichen, die in
-// Speicherpfaden problematisch sind, werden entfernt; Umlaute bleiben erhalten.
+// Bucket auch ohne Datenbankzugriff erkennbar sind. Supabase Storage lehnt
+// Object-Keys mit Umlauten ab ("Invalid key"), daher ASCII-Transliteration.
 function sanitizeForFilename(title: string): string {
-  const cleaned = title
-    .replace(/[/\\:*?"<>|#%«»]/g, '')
-    .trim()
-    .replace(/\s+/g, ' ');
-  return cleaned.slice(0, 80) || 'uebung';
+  return sanitizeForStorageKey(title) || 'uebung';
 }
 
 export async function uploadExerciseMedia(exerciseId: string, title: string, files: File[]): Promise<ExerciseMedia[]> {

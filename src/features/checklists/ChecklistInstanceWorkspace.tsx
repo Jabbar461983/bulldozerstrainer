@@ -5,6 +5,7 @@ import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, 
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
 import { ChecklistItemAttachments } from './ChecklistItemAttachments';
 import { supabase } from '../../lib/supabase';
+import { sanitizeForStorageKey } from '../../lib/storagePath';
 
 interface ChecklistInstanceWorkspaceProps {
   checklist: ChecklistRow;
@@ -129,7 +130,7 @@ export function ChecklistInstanceWorkspace({
     try {
       // Create a temporary item for completion photos
       const tempItemId = `completion-${selectedInstance.id}`;
-      const fileName = `Abschluss_${selectedInstance.id}_${Date.now()}_${file.name}`;
+      const fileName = `Abschluss_${selectedInstance.id}_${Date.now()}_${sanitizeForStorageKey(file.name, 150) || 'datei'}`;
       const filePath = `checklist-completion/${selectedInstance.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
