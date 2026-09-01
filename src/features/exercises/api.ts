@@ -8,7 +8,7 @@ export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
   'Schuss',
   'Passen',
   'Aufbau',
-  'Ballabdecken',
+  'Ballführung-/abdecken',
   'Lösen vom Gegner',
   'Zweikampf',
   'Bullys',

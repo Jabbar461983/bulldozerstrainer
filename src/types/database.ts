@@ -101,7 +101,7 @@ export type ExerciseFocus =
   | 'Schuss'
   | 'Passen'
   | 'Aufbau'
-  | 'Ballabdecken'
+  | 'Ballführung-/abdecken'
   | 'Lösen vom Gegner'
   | 'Zweikampf'
   | 'Bullys'

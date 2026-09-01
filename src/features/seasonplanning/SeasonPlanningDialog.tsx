@@ -19,7 +19,7 @@ const CATEGORY_OPTIONS: { value: SeasonPlanningCategory; label: string }[] = [
 const TECHNIQUE_SUBCATEGORIES = [
   'Passen',
   'Schiessen',
-  'Ballabdecken',
+  'Ballführung-/abdecken',
   'Lösen vom Gegner',
   'Railabdecken',
   'Bullys',
