@@ -3,6 +3,7 @@ import type { Exercise, ExerciseFocus, ExerciseMedia } from '../../types/databas
 import { sanitizeForStorageKey } from '../../lib/storagePath';
 
 export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
+  'Aufwärmen',
   'Offensivverhalten',
   'Schuss',
   'Passen',
@@ -19,6 +20,7 @@ export const ON_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
 ];
 
 export const OFF_FIELD_FOCUS_OPTIONS: ExerciseFocus[] = [
+  'Aufwärmen',
   'Kraft',
   'Ausdauer',
   'Koordination',

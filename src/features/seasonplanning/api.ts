@@ -232,8 +232,9 @@ export async function computeTrainingSeasonCoverage(
   let totalMinutes = 0;
   let matchedMinutes = 0;
   for (const row of rows) {
-    totalMinutes += row.duration_minutes;
     const focusAreas = focusById.get(row.exercise_id) ?? [];
+    if (focusAreas.includes('Aufwärmen')) continue;
+    totalMinutes += row.duration_minutes;
     if (exerciseMatchesAnyTarget(focusAreas, categoryTargets)) matchedMinutes += row.duration_minutes;
   }
 
@@ -292,8 +293,9 @@ export async function computeSeasonCoverageForTrainings(
     let totalMinutes = 0;
     let matchedMinutes = 0;
     for (const row of trainingRows) {
-      totalMinutes += row.duration_minutes;
       const focusAreas = focusById.get(row.exercise_id) ?? [];
+      if (focusAreas.includes('Aufwärmen')) continue;
+      totalMinutes += row.duration_minutes;
       if (exerciseMatchesAnyTarget(focusAreas, categoryTargets)) matchedMinutes += row.duration_minutes;
     }
     result[t.id] = totalMinutes > 0 ? Math.round((matchedMinutes / totalMinutes) * 100) : 0;

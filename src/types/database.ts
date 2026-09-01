@@ -94,6 +94,8 @@ export interface PlayerGoal {
 }
 
 export type ExerciseFocus =
+  // On Field und Off Field (zählt nicht zur Saisonplanungs-Abdeckung)
+  | 'Aufwärmen'
   // On Field
   | 'Offensivverhalten'
   | 'Schuss'
