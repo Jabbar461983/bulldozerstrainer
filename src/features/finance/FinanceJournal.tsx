@@ -155,6 +155,7 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
         <ReceiptViewDialog
           receipt={viewingReceipt}
           bookingNumber={rows.find((r) => r.id === viewingReceipt.id)?.bookingNumber ?? 0}
+          teamName={teamName}
           onClose={() => setViewingReceipt(null)}
         />
       )}

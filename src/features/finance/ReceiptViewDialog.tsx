@@ -7,10 +7,11 @@ import { exportReceiptPdf } from './receiptPdf';
 interface ReceiptViewDialogProps {
   receipt: ReceiptRow;
   bookingNumber: number;
+  teamName: string;
   onClose: () => void;
 }
 
-export function ReceiptViewDialog({ receipt, bookingNumber, onClose }: ReceiptViewDialogProps) {
+export function ReceiptViewDialog({ receipt, bookingNumber, teamName, onClose }: ReceiptViewDialogProps) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +19,7 @@ export function ReceiptViewDialog({ receipt, bookingNumber, onClose }: ReceiptVi
     setExporting(true);
     setError(null);
     try {
-      await exportReceiptPdf(receipt, bookingNumber);
+      await exportReceiptPdf(receipt, bookingNumber, teamName);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF konnte nicht erstellt werden.');
     } finally {

@@ -33,11 +33,23 @@ async function loadImage(url: string): Promise<LoadedImage | null> {
   }
 }
 
-function addReceiptPage(doc: jsPDF, receipt: ReceiptRow, bookingNumber: number, isFirstPage: boolean, image: LoadedImage | null) {
+function addReceiptPage(
+  doc: jsPDF,
+  receipt: ReceiptRow,
+  bookingNumber: number,
+  teamName: string,
+  isFirstPage: boolean,
+  image: LoadedImage | null,
+) {
   if (!isFirstPage) doc.addPage();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   let y = 20;
+
+  doc.setFontSize(11);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`${receipt.season} - ${teamName}`, pageWidth - 14, y, { align: 'right' });
+  doc.setTextColor(0, 0, 0);
 
   doc.setFontSize(16);
   doc.text(`Beleg Nr. ${bookingNumber}`, 14, y);
@@ -85,11 +97,11 @@ function safeFileName(name: string): string {
   return name.replace(/[\s/\\]+/g, '_');
 }
 
-export async function exportReceiptPdf(receipt: ReceiptRow, bookingNumber: number) {
+export async function exportReceiptPdf(receipt: ReceiptRow, bookingNumber: number, teamName: string) {
   const { default: JsPDF } = await import('jspdf');
   const doc = new JsPDF();
   const image = receipt.photoUrl ? await loadImage(receipt.photoUrl) : null;
-  addReceiptPage(doc, receipt, bookingNumber, true, image);
+  addReceiptPage(doc, receipt, bookingNumber, teamName, true, image);
   doc.save(`${safeFileName(`beleg-${bookingNumber}-${receipt.recipient_name}`)}.pdf`);
 }
 
@@ -103,7 +115,7 @@ export async function exportAllReceiptsPdf(
   for (let i = 0; i < rows.length; i++) {
     const receipt = rows[i];
     const image = receipt.photoUrl ? await loadImage(receipt.photoUrl) : null;
-    addReceiptPage(doc, receipt, receipt.bookingNumber, i === 0, image);
+    addReceiptPage(doc, receipt, receipt.bookingNumber, teamName, i === 0, image);
   }
   doc.save(`${safeFileName(`belege-${teamName}-${season}`)}.pdf`);
 }
