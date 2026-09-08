@@ -8,30 +8,26 @@ interface LoadedImage {
   height: number;
 }
 
-function mimeToFormat(mime: string): string {
-  if (mime.includes('png')) return 'PNG';
-  if (mime.includes('webp')) return 'WEBP';
-  return 'JPEG';
-}
-
+// Handyfotos speichern die Hochformat-Ausrichtung oft nur als EXIF-Orientation-
+// Flag, die rohen Pixel liegen im Querformat vor. jsPDF liest die Bilddaten
+// direkt und ignoriert dieses Flag, wodurch das Foto quer/verdreht im PDF
+// landet. Über createImageBitmap mit imageOrientation "from-image" wird das
+// Bild korrekt gedreht decodiert und anschliessend über ein Canvas als neues,
+// bereits richtig ausgerichtetes JPEG re-encodiert.
 async function loadImage(url: string): Promise<LoadedImage | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
     const blob = await response.blob();
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
-    const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => reject(new Error('Bild konnte nicht geladen werden.'));
-      img.src = dataUrl;
-    });
-    return { dataUrl, format: mimeToFormat(blob.type), width, height };
+    const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    return { dataUrl, format: 'JPEG', width: canvas.width, height: canvas.height };
   } catch {
     return null;
   }
