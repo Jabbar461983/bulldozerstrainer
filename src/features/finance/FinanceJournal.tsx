@@ -114,17 +114,17 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
             }}
             className="flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-2 text-sm hover:bg-surface-alt"
           >
-            <div>
-              <p className="font-medium text-text">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-text break-words">
                 <span className="text-text-muted">Nr. {r.bookingNumber} · </span>
                 {r.recipient_name}{' '}
                 <span className="text-text-muted">
                   · {new Date(`${r.date}T00:00:00`).toLocaleDateString('de-CH')}
                 </span>
               </p>
-              {r.notes && <p className="text-text-muted">{r.notes}</p>}
+              {r.notes && <p className="break-words text-text-muted">{r.notes}</p>}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
               <span className={r.type === 'income' ? 'text-success' : 'text-danger'}>
                 {r.type === 'income' ? '+' : '-'}CHF {r.amount.toFixed(2)}
               </span>
