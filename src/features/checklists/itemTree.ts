@@ -26,7 +26,11 @@ export function buildChecklistItemTree(items: ChecklistItem[]): ChecklistItemNod
   function walk(parentId: string | null, depth: number) {
     for (const item of byParent.get(parentId) ?? []) {
       result.push({ item, depth });
-      if (item.is_section) walk(item.id, depth + 1);
+      // In Kinder absteigen, sobald welche existieren - unabhängig vom
+      // is_section-Flag. So bleiben Unterpunkte auch dann sichtbar, wenn ihr
+      // Elternitem (durch einen älteren Anlege-Bug) fälschlich nicht als
+      // Überschrift markiert wurde.
+      if (byParent.has(item.id)) walk(item.id, depth + 1);
     }
   }
   walk(null, 0);
