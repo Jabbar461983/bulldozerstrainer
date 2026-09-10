@@ -13,7 +13,7 @@ export default defineConfig({
       includeAssets: ['favicon-32.png', 'favicon-48.png', 'logo-bulldozers_farbig.png', 'icons/*.png'],
       manifest: {
         id: '/',
-        name: 'Bulldozers Junioren Manager',
+        name: 'Bulldozers Trainer Manager',
         short_name: 'Bulldozers',
         description: 'App zur Strukturierung der Juniorenabteilung des Streethockeyclub Bulldozers Kernenried-Zauggenried',
         theme_color: '#007057',

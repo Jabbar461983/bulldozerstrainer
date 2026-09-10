@@ -52,7 +52,7 @@ export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUser
   }
 
   async function handleCopy() {
-    const text = `Bulldozers Junioren Manager\nE-Mail: ${email}\nPasswort: ${password}`;
+    const text = `Bulldozers Trainer Manager\nE-Mail: ${email}\nPasswort: ${password}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);

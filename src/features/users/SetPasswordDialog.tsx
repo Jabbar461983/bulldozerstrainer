@@ -32,7 +32,7 @@ export function SetPasswordDialog({ user, onClose }: SetPasswordDialogProps) {
   }
 
   async function handleCopy() {
-    const text = `Bulldozers Junioren Manager\nE-Mail: ${user.email}\nPasswort: ${password}`;
+    const text = `Bulldozers Trainer Manager\nE-Mail: ${user.email}\nPasswort: ${password}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);

@@ -1,4 +1,4 @@
-# Bulldozers Junioren Manager
+# Bulldozers Trainer Manager
 
 PWA zur Strukturierung der Juniorenabteilung des Streethockeyclub Bulldozers
 Kernenried-Zauggenried: Teamverwaltung, Finanzen, Training, Spiele sowie

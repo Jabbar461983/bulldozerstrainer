@@ -42,7 +42,7 @@ export function LoginPage() {
             alt="Streethockeyclub Bulldozers Kernenried-Zauggenried"
             className="h-24 w-auto"
           />
-          <h1 className="text-lg font-semibold text-text">Bulldozers Junioren Manager</h1>
+          <h1 className="text-lg font-semibold text-text">Bulldozers Trainer Manager</h1>
           <p className="text-sm text-text-muted">Anmeldung für Trainer &amp; Admin</p>
         </div>
 
