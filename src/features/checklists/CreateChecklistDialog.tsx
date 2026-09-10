@@ -87,25 +87,32 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
 
       // Create items
       const headingMap = new Map<string, string>();
+      let headingSortOrder = 0;
       for (const item of items) {
         if (item.isHeading) {
           const itemId = await createChecklistItem({
             checklist_id: id,
             title: item.title,
             parent_id: null,
+            is_section: true,
+            sort_order: headingSortOrder++,
           });
           headingMap.set(item.title, itemId);
         }
       }
 
+      const stepSortOrderByParent = new Map<string, number>();
       for (const item of items) {
         if (!item.isHeading && item.parentId) {
           const parentId = headingMap.get(item.parentId);
           if (parentId) {
+            const sortOrder = stepSortOrderByParent.get(parentId) ?? 0;
+            stepSortOrderByParent.set(parentId, sortOrder + 1);
             await createChecklistItem({
               checklist_id: id,
               title: item.title,
               parent_id: parentId,
+              sort_order: sortOrder,
             });
           }
         }

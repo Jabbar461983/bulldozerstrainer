@@ -7,6 +7,7 @@ import type {
 } from '../../types/database';
 import { jsPDF } from 'jspdf';
 import { sanitizeForStorageKey } from '../../lib/storagePath';
+import { buildChecklistItemTree } from './itemTree';
 
 export interface ChecklistRow extends Checklist {
   items: ChecklistItem[];
@@ -105,16 +106,26 @@ export async function duplicateChecklist(id: string): Promise<string> {
     auto_create_for_home_games: original.auto_create_for_home_games,
   });
 
-  const { error: itemsError } = await (supabase.from('checklist_items') as any).insert(
-    original.items.map((item: any) => ({
-      checklist_id: newChecklistId,
-      title: item.title,
-      section_title: item.section_title,
-      sort_order: item.sort_order,
-      is_heading: item.is_heading,
-    }))
-  );
-  if (itemsError) throw itemsError;
+  // Ebene für Ebene kopieren (erst Items ohne Eltern, dann deren Kinder usw.),
+  // damit parent_id in der Kopie auf die neu erzeugte ID zeigt statt auf die
+  // ID des Originals - sonst wären die Eltern-Beziehungen der Kopie kaputt.
+  const idMap = new Map<string | null, string | null>([[null, null]]);
+  const remaining = [...original.items];
+  while (remaining.length > 0) {
+    const ready = remaining.filter((item) => idMap.has(item.parent_id));
+    if (ready.length === 0) break;
+    for (const item of ready) {
+      const newId = await createChecklistItem({
+        checklist_id: newChecklistId,
+        title: item.title,
+        parent_id: idMap.get(item.parent_id) ?? null,
+        is_section: item.is_section,
+        sort_order: item.sort_order,
+      });
+      idMap.set(item.id, newId);
+      remaining.splice(remaining.indexOf(item), 1);
+    }
+  }
 
   if (original.teamIds.length > 0) {
     await updateChecklistTeamAssignments(newChecklistId, original.teamIds);
@@ -139,11 +150,13 @@ export async function createChecklistItem(payload: {
   title: string;
   parent_id?: string | null;
   is_section?: boolean;
+  sort_order?: number;
 }): Promise<string> {
   const { data, error } = await (supabase.from('checklist_items') as any)
     .insert({
       ...payload,
       is_section: payload.is_section ?? false,
+      sort_order: payload.sort_order ?? 0,
     })
     .select('id')
     .single();
@@ -192,6 +205,10 @@ export async function fetchChecklistInstances(checklistId: string): Promise<Chec
 
   const teamById = new Map((teams ?? []).map((t: any) => [t.id, t.name]));
 
+  // Überschriften/Subüberschriften sind reine Gliederungspunkte, keine
+  // abhakbaren Aufgaben - sie zählen nicht zum Fortschritt.
+  const stepIds = new Set((items ?? []).filter((i: any) => !i.is_section).map((i: any) => i.id));
+
   return (instances ?? []).map((instance: any) => {
     const itemsByInstance = (completions ?? [])
       .filter((c: any) => c.checklist_instance_id === instance.id)
@@ -200,8 +217,8 @@ export async function fetchChecklistInstances(checklistId: string): Promise<Chec
         return acc;
       }, {});
 
-    const completed = Object.keys(itemsByInstance).length;
-    const total = (items ?? []).length;
+    const completed = Object.keys(itemsByInstance).filter((itemId) => stepIds.has(itemId)).length;
+    const total = stepIds.size;
 
     return {
       ...instance,
@@ -236,6 +253,7 @@ export async function fetchArchivedChecklistInstances(checklistId: string): Prom
   if (teamsError) throw teamsError;
 
   const teamById = new Map((teams ?? []).map((t: any) => [t.id, t.name]));
+  const stepIds = new Set((items ?? []).filter((i: any) => !i.is_section).map((i: any) => i.id));
 
   return (instances ?? []).map((instance: any) => {
     const itemsByInstance = (completions ?? [])
@@ -245,8 +263,8 @@ export async function fetchArchivedChecklistInstances(checklistId: string): Prom
         return acc;
       }, {});
 
-    const completed = Object.keys(itemsByInstance).length;
-    const total = (items ?? []).length;
+    const completed = Object.keys(itemsByInstance).filter((itemId) => stepIds.has(itemId)).length;
+    const total = stepIds.size;
 
     return {
       ...instance,
@@ -554,8 +572,9 @@ export async function exportChecklistToPDF(checklist: ChecklistRow): Promise<voi
   if (checklist.has_reporting) {
     metaInfo.push('Mit Reporting');
   }
-  if (checklist.items.length > 0) {
-    metaInfo.push(`${checklist.items.length} Punkte`);
+  const stepCount = checklist.items.filter((i) => !i.is_section).length;
+  if (stepCount > 0) {
+    metaInfo.push(`${stepCount} Punkte`);
   }
   if (metaInfo.length > 0) {
     doc.text(metaInfo.join(' • '), margin, yPos);
@@ -567,49 +586,29 @@ export async function exportChecklistToPDF(checklist: ChecklistRow): Promise<voi
   doc.line(margin, yPos, doc.internal.pageSize.getWidth() - margin, yPos);
   yPos += 10;
 
-  // Items grouped by parent
+  // Items in hierarchischer Reihenfolge (Überschrift, direkt gefolgt von
+  // ihren Unterpunkten, über beliebig viele Ebenen).
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0);
 
-  const itemsByParent = new Map<string | null, ChecklistItem[]>();
-  for (const item of checklist.items) {
-    const key = item.parent_id || null;
-    if (!itemsByParent.has(key)) {
-      itemsByParent.set(key, []);
-    }
-    itemsByParent.get(key)!.push(item);
-  }
-
-  // First, render items without parent (headings)
-  const parentlessItems = itemsByParent.get(null) || [];
-  for (const parentItem of parentlessItems) {
-    if (yPos > pageHeight - 20) {
+  for (const { item, depth } of buildChecklistItemTree(checklist.items)) {
+    const lineHeight = item.is_section ? 7 : 5;
+    if (yPos > pageHeight - (item.is_section ? 20 : 15)) {
       doc.addPage();
       yPos = 20;
     }
-
-    // Heading
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(`☐ ${parentItem.title}`, margin, yPos);
-    yPos += 7;
-
-    // Sub-items
-    const subItems = itemsByParent.get(parentItem.id) || [];
-    if (subItems.length > 0) {
+    const indent = margin + depth * 5;
+    if (item.is_section) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(depth === 0 ? 11 : 10);
+      doc.text(item.title, indent, yPos);
+      if (depth === 0) yPos += 2;
+    } else {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      for (const subItem of subItems) {
-        if (yPos > pageHeight - 15) {
-          doc.addPage();
-          yPos = 20;
-        }
-        doc.text(`  ☐ ${subItem.title}`, margin + 5, yPos);
-        yPos += 5;
-      }
+      doc.text(`☐ ${item.title}`, indent, yPos);
     }
-
-    yPos += 2;
+    yPos += lineHeight;
   }
 
   // Generate PDF

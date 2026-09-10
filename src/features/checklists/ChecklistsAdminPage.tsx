@@ -97,7 +97,7 @@ export function ChecklistsAdminPage() {
                     <p className="text-sm text-text-muted">{checklist.description}</p>
                   )}
                   <div className="mt-2 flex gap-4 text-xs text-text-muted">
-                    <span>{checklist.items.length} Punkte</span>
+                    <span>{checklist.items.filter((i) => !i.is_section).length} Punkte</span>
                     <span>{checklist.is_global ? 'Global' : `${checklist.teamIds.length} Teams`}</span>
                     {checklist.has_reporting && <span className="font-medium text-accent">mit Reporting</span>}
                   </div>

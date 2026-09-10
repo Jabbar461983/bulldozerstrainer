@@ -6,6 +6,7 @@ import type { ChecklistRow, ChecklistInstanceRow } from './api';
 import { ChecklistItemAttachments } from './ChecklistItemAttachments';
 import { supabase } from '../../lib/supabase';
 import { sanitizeForStorageKey } from '../../lib/storagePath';
+import { buildChecklistItemTree } from './itemTree';
 
 interface ChecklistInstanceWorkspaceProps {
   checklist: ChecklistRow;
@@ -297,11 +298,21 @@ export function ChecklistInstanceWorkspace({
       </Card>
 
       <div className="space-y-2 max-h-[calc(100vh-500px)] overflow-y-auto">
-        {selectedInstance.items.map((item) => {
+        {buildChecklistItemTree(selectedInstance.items).map(({ item, depth }) => {
+          if (item.is_section) {
+            return (
+              <p
+                key={item.id}
+                className={depth === 0 ? 'font-semibold text-text pt-2' : 'font-medium text-text-muted pt-1'}
+                style={{ marginLeft: depth * 20 }}
+              >
+                {item.title}
+              </p>
+            );
+          }
           const isCompleted = !!selectedInstance.completions[item.id];
-          const indent = item.parent_id ? 'ml-6' : 'ml-0';
           return (
-            <Card key={item.id} className={`space-y-2 ${indent}`}>
+            <Card key={item.id} className="space-y-2" style={{ marginLeft: depth * 20 }}>
               <label className="flex items-center gap-3 cursor-pointer p-0 hover:bg-surface-alt rounded transition">
                 <input
                   type="checkbox"

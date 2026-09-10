@@ -8,11 +8,13 @@ import {
   updateChecklistTeamAssignments,
   createChecklistItem,
   deleteChecklistItem,
+  reorderChecklistItems,
 } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
 import type { ChecklistRow } from './api';
 import type { ChecklistItem } from '../../types/database';
+import { buildChecklistItemTree, siblingsOf, nextSortOrder } from './itemTree';
 
 interface EditChecklistDialogProps {
   checklist: ChecklistRow;
@@ -34,6 +36,8 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragItemId, setDragItemId] = useState<string | null>(null);
+  const itemTree = buildChecklistItemTree(items);
 
   useEffect(() => {
     fetchTeamOptions()
@@ -76,11 +80,13 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     if (!newItemTitle.trim()) return;
     try {
       const isSection = newItemType !== 'step';
+      const sortOrder = nextSortOrder(items, newItemParentId);
       const itemId = await createChecklistItem({
         checklist_id: checklist.id,
         title: newItemTitle.trim(),
         parent_id: newItemParentId,
         is_section: isSection,
+        sort_order: sortOrder,
       });
       setNewItemTitle('');
       setNewItemType('step');
@@ -91,7 +97,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
           id: itemId,
           checklist_id: checklist.id,
           title: newItemTitle.trim(),
-          sort_order: items.length,
+          sort_order: sortOrder,
           parent_id: newItemParentId,
           is_section: isSection,
           created_at: new Date().toISOString(),
@@ -102,14 +108,54 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     }
   }
 
-  async function handleReorderItems(newItems: ChecklistItem[]) {
+  // Reihenfolge wird ausschliesslich innerhalb der Geschwistergruppe (gleicher
+  // parent_id) verändert - Überschrift, Subüberschrift und Schritt bleiben
+  // dabei immer an ihrem Platz in der Hierarchie.
+  async function moveItem(itemId: string, direction: 'up' | 'down') {
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return;
+    const siblings = siblingsOf(items, item.parent_id);
+    const idx = siblings.findIndex((s) => s.id === itemId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= siblings.length) return;
+    const other = siblings[swapIdx];
     try {
-      const { reorderChecklistItems } = await import('./api');
-      await reorderChecklistItems(
-        checklist.id,
-        newItems.map((item, idx) => ({ id: item.id, sort_order: idx })),
+      await reorderChecklistItems(checklist.id, [
+        { id: item.id, sort_order: other.sort_order },
+        { id: other.id, sort_order: item.sort_order },
+      ]);
+      setItems((prev) =>
+        prev.map((i) => {
+          if (i.id === item.id) return { ...i, sort_order: other.sort_order };
+          if (i.id === other.id) return { ...i, sort_order: item.sort_order };
+          return i;
+        }),
       );
-      setItems(newItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Reihenfolge konnte nicht geändert werden.');
+    }
+  }
+
+  async function handleDropItem(draggedId: string, targetId: string) {
+    if (draggedId === targetId) return;
+    const dragged = items.find((i) => i.id === draggedId);
+    const target = items.find((i) => i.id === targetId);
+    // Drag & Drop verändert nur die Reihenfolge innerhalb derselben
+    // Geschwistergruppe - ein Element über eine andere Überschrift ziehen
+    // verschiebt es nicht dorthin.
+    if (!dragged || !target || dragged.parent_id !== target.parent_id) return;
+    const siblings = siblingsOf(items, dragged.parent_id).filter((s) => s.id !== draggedId);
+    const targetIdx = siblings.findIndex((s) => s.id === targetId);
+    siblings.splice(targetIdx, 0, dragged);
+    const updates = siblings.map((s, idx) => ({ id: s.id, sort_order: idx }));
+    try {
+      await reorderChecklistItems(checklist.id, updates);
+      setItems((prev) =>
+        prev.map((i) => {
+          const update = updates.find((u) => u.id === i.id);
+          return update ? { ...i, sort_order: update.sort_order } : i;
+        }),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reihenfolge konnte nicht geändert werden.');
     }
@@ -256,43 +302,48 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
 
         <div className="space-y-3 border-t border-border pt-4">
           <Label>Punkte ({items.length})</Label>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {items.length === 0 ? (
               <p className="text-xs text-text-muted">Noch keine Punkte</p>
             ) : (
-              items.map((item, idx) => {
-                const indent = item.parent_id ? 'ml-6' : 'ml-0';
-                const typeLabel = item.is_section
-                  ? (item.parent_id ? '📋 Subüberschrift' : '📌 Überschrift')
-                  : '✓ Schritt';
+              itemTree.map(({ item, depth }) => {
+                const typeLabel = item.is_section ? (depth === 0 ? '📌 Überschrift' : '📋 Subüberschrift') : '✓ Schritt';
+                const siblings = siblingsOf(items, item.parent_id);
+                const siblingIdx = siblings.findIndex((s) => s.id === item.id);
                 return (
-                  <div key={item.id} className={`rounded-lg bg-surface-alt p-2 space-y-2 ${indent}`}>
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={() => setDragItemId(item.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (dragItemId) void handleDropItem(dragItemId, item.id);
+                      setDragItemId(null);
+                    }}
+                    onDragEnd={() => setDragItemId(null)}
+                    className="rounded-lg bg-surface-alt p-2 space-y-2"
+                    style={{ marginLeft: depth * 20, cursor: 'grab' }}
+                  >
                     <div className="flex items-center gap-2">
+                      <span className="text-text-muted select-none" aria-hidden="true">⠿</span>
                       <span className="text-xs text-text-muted whitespace-nowrap">{typeLabel}</span>
                       <span className="flex-1 text-sm font-medium">{item.title}</span>
                       <div className="flex gap-1">
-                        {idx > 0 && (
+                        {siblingIdx > 0 && (
                           <button
                             type="button"
-                            onClick={() => {
-                              const newItems = [...items];
-                              [newItems[idx - 1], newItems[idx]] = [newItems[idx], newItems[idx - 1]];
-                              void handleReorderItems(newItems);
-                            }}
+                            onClick={() => void moveItem(item.id, 'up')}
                             className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
                             title="Nach oben"
                           >
                             ↑
                           </button>
                         )}
-                        {idx < items.length - 1 && (
+                        {siblingIdx < siblings.length - 1 && (
                           <button
                             type="button"
-                            onClick={() => {
-                              const newItems = [...items];
-                              [newItems[idx], newItems[idx + 1]] = [newItems[idx + 1], newItems[idx]];
-                              void handleReorderItems(newItems);
-                            }}
+                            onClick={() => void moveItem(item.id, 'down')}
                             className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
                             title="Nach unten"
                           >
@@ -314,6 +365,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
               })
             )}
           </div>
+          <p className="text-xs text-text-muted">Punkte ziehen (⠿), um die Reihenfolge innerhalb derselben Ebene zu ändern.</p>
 
           <div className="space-y-2 border-t border-border pt-3">
             <Label>Neuer Punkt</Label>
@@ -351,18 +403,21 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
               )}
               {newItemType === 'step' && (
                 <div>
-                  <Label className="text-xs">Unter Subüberschrift (optional):</Label>
+                  <Label className="text-xs">Unter Überschrift/Subüberschrift (optional):</Label>
                   <select
                     value={newItemParentId || ''}
                     onChange={(e) => setNewItemParentId(e.target.value || null)}
                     className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm"
                   >
-                    <option value="">-- Alle Schritte --</option>
-                    {items.filter((i) => i.is_section && i.parent_id).map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.title}
-                      </option>
-                    ))}
+                    <option value="">-- Oberste Ebene (keine Überschrift) --</option>
+                    {itemTree
+                      .filter(({ item }) => item.is_section)
+                      .map(({ item, depth }) => (
+                        <option key={item.id} value={item.id}>
+                          {'  '.repeat(depth)}
+                          {item.title}
+                        </option>
+                      ))}
                   </select>
                 </div>
               )}

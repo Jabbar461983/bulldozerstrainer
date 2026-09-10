@@ -51,9 +51,10 @@ export function ChecklistsCoachPage() {
           const instances = await fetchChecklistInstances(checklist.id);
           const archivedInstances = await fetchArchivedChecklistInstances(checklist.id);
 
-          // Calculate total progress across all active instances
+          // Calculate total progress across all active instances (Überschriften
+          // zählen nicht mit, nur abhakbare Schritte).
           let totalCompleted = 0;
-          let totalItems = checklist.items.length;
+          const totalItems = checklist.items.filter((i) => !i.is_section).length;
 
           for (const instance of instances) {
             totalCompleted += instance.progress.completed;
@@ -135,9 +136,10 @@ export function ChecklistsCoachPage() {
         <div className="space-y-4">
           <div className="space-y-2">
             {filteredChecklists.map((checklist) => {
+              const stepCount = checklist.items.filter((i) => !i.is_section).length;
               const progressDisplay = checklist.activeProgress
-                ? `${checklist.activeProgress.completed} von ${checklist.items.length}`
-                : `0 von ${checklist.items.length}`;
+                ? `${checklist.activeProgress.completed} von ${stepCount}`
+                : `0 von ${stepCount}`;
               return (
                 <Card
                   key={checklist.id}
