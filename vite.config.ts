@@ -15,7 +15,7 @@ export default defineConfig({
         id: '/',
         name: 'Bulldozers Trainer Manager',
         short_name: 'Bulldozers',
-        description: 'App zur Strukturierung der Juniorenabteilung des Streethockeyclub Bulldozers Kernenried-Zauggenried',
+        description: 'App zur Strukturierung des Streethockeyclub Bulldozers Kernenried-Zauggenried',
         theme_color: '#007057',
         background_color: '#007057',
         display: 'standalone',

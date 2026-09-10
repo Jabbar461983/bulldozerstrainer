@@ -1,6 +1,6 @@
 export type SketchFieldType = 'full' | 'half';
 
-export type SketchMarkerKind = 'ball' | 'cone' | 'player_offense' | 'player_defense' | 'goal';
+export type SketchMarkerKind = 'ball' | 'ball_single' | 'cone' | 'player_offense' | 'player_defense' | 'goal';
 
 export interface SketchPoint {
   x: number;
@@ -14,6 +14,8 @@ export interface SketchMarker {
   y: number;
   label?: string;
   rotation?: number;
+  /** Nur für Hütchen: Farbe (Gelb/Rot/Blau). Ohne Wert Fallback auf die alte Standardfarbe. */
+  color?: string;
 }
 
 export type SketchArrowKind = 'path_with_ball' | 'path_without_ball' | 'pass' | 'shot';
@@ -30,6 +32,7 @@ export interface SketchFreehandStroke {
   id: string;
   points: SketchPoint[];
   color: string;
+  dashed?: boolean;
 }
 
 export interface SketchComment {
@@ -78,6 +81,7 @@ export function createEmptyDrawing(fieldType: SketchFieldType = 'full'): SketchD
 export type SketchTool =
   | 'select'
   | 'ball'
+  | 'ball_single'
   | 'cone'
   | 'player_offense'
   | 'player_defense'
@@ -90,5 +94,5 @@ export type SketchTool =
   | 'comment'
   | 'eraser';
 
-export const MARKER_TOOLS: SketchTool[] = ['ball', 'cone', 'player_offense', 'player_defense', 'goal'];
+export const MARKER_TOOLS: SketchTool[] = ['ball', 'ball_single', 'cone', 'player_offense', 'player_defense', 'goal'];
 export const ARROW_TOOLS: SketchTool[] = ['path_with_ball', 'path_without_ball', 'pass', 'shot'];

@@ -5,6 +5,7 @@ import type {
   SketchFreehandStroke,
   SketchMarker,
   SketchMarkerKind,
+  SketchPoint,
 } from './types';
 
 export const MARKER_RADIUS = 14;
@@ -18,6 +19,18 @@ const DEFENSE_COLOR = '#d81e28';
 const BALL_COLOR = '#e08a2b';
 const CONE_COLOR = '#c9971a';
 
+export interface ConeColorOption {
+  value: string;
+  label: string;
+  stroke: string;
+}
+
+export const CONE_COLOR_OPTIONS: ConeColorOption[] = [
+  { value: '#f2c230', label: 'Gelb', stroke: '#8a6a10' },
+  { value: '#e0342e', label: 'Rot', stroke: '#8a1c17' },
+  { value: '#2f6fed', label: 'Blau', stroke: '#1a3f8a' },
+];
+
 export function SketchDefs() {
   return (
     <defs>
@@ -27,6 +40,12 @@ export function SketchDefs() {
       <marker id="sketch-arrow-red" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
         <path d="M0,0 L9,4.5 L0,9 Z" fill="#c81e1e" />
       </marker>
+      {/* Netz-Raute fürs Tor: ein orthogonales Liniengitter, um 45° gedreht ergibt
+          das typische Diamant-Netzmuster. */}
+      <pattern id="sketch-goal-mesh" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="6" y2="0" stroke="#111111" strokeWidth="0.9" />
+        <line x1="0" y1="0" x2="0" y2="6" stroke="#111111" strokeWidth="0.9" />
+      </pattern>
     </defs>
   );
 }
@@ -65,7 +84,18 @@ export function MarkerShape({ marker, selected }: { marker: SketchMarker; select
     );
   }
 
+  if (kind === 'ball_single') {
+    return (
+      <g>
+        {selected && <SelectionRing x={x} y={y} r={BALL_R * 1.6} />}
+        <circle cx={x} cy={y} r={BALL_R} fill={BALL_COLOR} stroke="#8a5410" strokeWidth={0.8} />
+      </g>
+    );
+  }
+
   if (kind === 'cone') {
+    const fill = marker.color ?? CONE_COLOR;
+    const stroke = CONE_COLOR_OPTIONS.find((c) => c.value === fill)?.stroke ?? '#8a6a10';
     const points = Array.from({ length: 8 }, (_, i) => {
       const angle = (Math.PI / 4) * i;
       const r = i % 2 === 0 ? CONE_SIZE : CONE_SIZE * 0.42;
@@ -74,39 +104,29 @@ export function MarkerShape({ marker, selected }: { marker: SketchMarker; select
     return (
       <g>
         {selected && <SelectionRing x={x} y={y} r={CONE_SIZE} />}
-        <polygon points={points} fill={CONE_COLOR} stroke="#8a6a10" strokeWidth={1} />
+        <polygon points={points} fill={fill} stroke={stroke} strokeWidth={1} />
       </g>
     );
   }
 
   if (kind === 'goal') {
+    const rotation = marker.rotation ?? 0;
+    const ringR = Math.max(GOAL_W, GOAL_H) / 2 + 4;
+    const rx = Math.min(GOAL_W, GOAL_H) * 0.32;
+    const inset = 3;
     return (
       <g>
-        {selected && <SelectionRing x={x} y={y} r={GOAL_W / 2} />}
-        <g transform={`translate(${x - GOAL_W / 2}, ${y - GOAL_H / 2})`}>
-          <rect width={GOAL_W} height={GOAL_H} fill="none" stroke="#c9971a" strokeWidth={2} rx={2} />
-          {Array.from({ length: 5 }, (_, i) => (
-            <line
-              key={`v${i}`}
-              x1={(GOAL_W / 4) * i}
-              y1={0}
-              x2={(GOAL_W / 4) * i}
-              y2={GOAL_H}
-              stroke="#c9971a"
-              strokeWidth={0.6}
-            />
-          ))}
-          {Array.from({ length: 4 }, (_, i) => (
-            <line
-              key={`h${i}`}
-              x1={0}
-              y1={(GOAL_H / 3) * i}
-              x2={GOAL_W}
-              y2={(GOAL_H / 3) * i}
-              stroke="#c9971a"
-              strokeWidth={0.6}
-            />
-          ))}
+        {selected && <SelectionRing x={x} y={y} r={ringR} />}
+        <g transform={`translate(${x}, ${y}) rotate(${rotation})`}>
+          <rect x={-GOAL_W / 2} y={-GOAL_H / 2} width={GOAL_W} height={GOAL_H} rx={rx} fill="none" stroke="#111111" strokeWidth={3} />
+          <rect
+            x={-GOAL_W / 2 + inset}
+            y={-GOAL_H / 2 + inset}
+            width={GOAL_W - inset * 2}
+            height={GOAL_H - inset * 2}
+            rx={Math.max(0, rx - inset)}
+            fill="url(#sketch-goal-mesh)"
+          />
         </g>
       </g>
     );
@@ -192,26 +212,49 @@ export function ArrowShape({ arrow, selected }: { arrow: SketchArrow; selected?:
   );
 }
 
+// Wandelt die rohen Zeigerpunkte in einen weichen Kurvenzug um: jeder
+// Zwischenpunkt wird zum Kontrollpunkt einer quadratischen Bezierkurve, deren
+// Endpunkt der Mittelpunkt zum nächsten Punkt ist. Das glättet die vom
+// Zeichnen naturgemäss eckige Polylinie zu einer geschwungenen Linie, ohne
+// die tatsächliche Zeichenbewegung zu verfälschen.
+function smoothFreehandPathD(points: SketchPoint[]): string {
+  if (points.length === 0) return '';
+  if (points.length < 3) {
+    return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ');
+  }
+  let d = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const midX = (points[i].x + points[i + 1].x) / 2;
+    const midY = (points[i].y + points[i + 1].y) / 2;
+    d += ` Q ${points[i].x},${points[i].y} ${midX},${midY}`;
+  }
+  const last = points[points.length - 1];
+  d += ` L ${last.x},${last.y}`;
+  return d;
+}
+
 export function FreehandShape({ stroke, selected }: { stroke: SketchFreehandStroke; selected?: boolean }) {
-  const pointsAttr = stroke.points.map((p) => `${p.x},${p.y}`).join(' ');
+  const d = smoothFreehandPathD(stroke.points);
   return (
     <g>
       {selected && (
-        <polyline
-          points={pointsAttr}
+        <path
+          d={d}
           fill="none"
           stroke="#2563eb"
           strokeWidth={8}
           strokeLinecap="round"
+          strokeLinejoin="round"
           opacity={0.35}
           data-sketch-ui="true"
         />
       )}
-      <polyline
-        points={pointsAttr}
+      <path
+        d={d}
         fill="none"
         stroke={stroke.color}
         strokeWidth={2.2}
+        strokeDasharray={stroke.dashed ? '6 5' : undefined}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -337,6 +380,7 @@ export function UtilityToolIcon({ tool }: { tool: 'select' | 'pen' | 'eraser' | 
 
 export const MARKER_LABELS: Record<SketchMarkerKind, string> = {
   ball: 'Bälle',
+  ball_single: 'Ball',
   cone: 'Hütchen',
   player_offense: 'Offensiv',
   player_defense: 'Defensiv',

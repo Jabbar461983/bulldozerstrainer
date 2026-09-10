@@ -15,6 +15,7 @@ import {
   UtilityToolIcon,
   MARKER_LABELS,
   ARROW_LABELS,
+  CONE_COLOR_OPTIONS,
   getArrowControlPoint,
 } from './elements';
 import { SketchPlayback } from './SketchPlayback';
@@ -36,7 +37,7 @@ interface ExerciseSketchEditorProps {
   onSave: (jpegBlob: Blob, drawing: SketchDrawing) => Promise<void> | void;
 }
 
-const MARKER_TOOL_ORDER: SketchMarkerKind[] = ['player_offense', 'player_defense', 'ball', 'cone', 'goal'];
+const MARKER_TOOL_ORDER: SketchMarkerKind[] = ['player_offense', 'player_defense', 'ball_single', 'ball', 'cone', 'goal'];
 const ARROW_TOOL_ORDER: SketchArrowKind[] = ['path_with_ball', 'path_without_ball', 'pass', 'shot'];
 
 function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number): SketchPoint {
@@ -55,6 +56,9 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
   const [tool, setTool] = useState<SketchTool>('player_offense');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draftPoints, setDraftPoints] = useState<SketchPoint[] | null>(null);
+  const [penDashed, setPenDashed] = useState(false);
+  const [coneColor, setConeColor] = useState(CONE_COLOR_OPTIONS[0].value);
+  const [goalRotation, setGoalRotation] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -169,7 +173,9 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
           kind === 'player_offense' || kind === 'player_defense'
             ? String(s.markers.filter((m) => m.kind === kind).length + 1)
             : undefined;
-        return { ...s, markers: [...s.markers, { id, kind, x: pt.x, y: pt.y, label }] };
+        const color = kind === 'cone' ? coneColor : undefined;
+        const rotation = kind === 'goal' ? goalRotation : undefined;
+        return { ...s, markers: [...s.markers, { id, kind, x: pt.x, y: pt.y, label, color, rotation }] };
       });
       setSelectedId(id);
       return;
@@ -225,7 +231,10 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
     if (draftPoints && draftPoints.length >= 2) {
       const id = crypto.randomUUID();
       if (finishedTool === 'pen') {
-        updateCurrentStep((s) => ({ ...s, freehand: [...s.freehand, { id, points: draftPoints, color: '#111111' }] }));
+        updateCurrentStep((s) => ({
+          ...s,
+          freehand: [...s.freehand, { id, points: draftPoints, color: '#111111', dashed: penDashed }],
+        }));
       } else if (finishedTool) {
         updateCurrentStep((s) => ({
           ...s,
@@ -398,6 +407,51 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
               </div>
             </div>
 
+            {tool === 'pen' && (
+              <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface-alt p-2.5">
+                <span className="text-xs font-medium text-text-muted">Linienart</span>
+                <ToolButton active={!penDashed} onClick={() => setPenDashed(false)}>
+                  Durchgehend
+                </ToolButton>
+                <ToolButton active={penDashed} onClick={() => setPenDashed(true)}>
+                  Gestrichelt
+                </ToolButton>
+              </div>
+            )}
+
+            {tool === 'cone' && (
+              <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface-alt p-2.5">
+                <span className="text-xs font-medium text-text-muted">Farbe</span>
+                {CONE_COLOR_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setConeColor(option.value)}
+                    aria-label={option.label}
+                    aria-pressed={coneColor === option.value}
+                    title={option.label}
+                    className={clsx(
+                      'size-7 rounded-full border-2 transition',
+                      coneColor === option.value ? 'border-accent' : 'border-transparent',
+                    )}
+                    style={{ backgroundColor: option.value }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {tool === 'goal' && (
+              <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface-alt p-2.5">
+                <span className="text-xs font-medium text-text-muted">Ausrichtung</span>
+                <ToolButton active={goalRotation === 0} onClick={() => setGoalRotation(0)}>
+                  Querformat
+                </ToolButton>
+                <ToolButton active={goalRotation === 90} onClick={() => setGoalRotation(90)}>
+                  Hochformat
+                </ToolButton>
+              </div>
+            )}
+
             <div className="overflow-hidden rounded-xl border border-border">
               <RinkField
                 fieldType={drawing.fieldType}
@@ -435,7 +489,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
                   <ArrowShape arrow={{ id: 'draft', kind: draftToolRef.current as SketchArrowKind, points: draftPoints }} />
                 )}
                 {draftPoints && draftToolRef.current === 'pen' && (
-                  <FreehandShape stroke={{ id: 'draft', points: draftPoints, color: '#111111' }} />
+                  <FreehandShape stroke={{ id: 'draft', points: draftPoints, color: '#111111', dashed: penDashed }} />
                 )}
                 {currentStep.markers.map((m) => (
                   <g key={m.id} onPointerDown={(e) => handleShapePointerDown(e, m.id)} style={{ cursor: 'pointer' }}>
