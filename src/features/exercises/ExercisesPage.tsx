@@ -160,7 +160,7 @@ export function ExercisesPage() {
 
       <div className="flex flex-col gap-3">
         {filteredExercises?.map((exercise) => {
-          const canEdit = isAdmin || exercise.author_id === profile?.id;
+          const canEdit = isAdmin || exercise.author_id === profile?.id || Boolean(profile?.can_edit_exercises);
           return (
             <Card key={exercise.id} className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">

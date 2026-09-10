@@ -52,6 +52,7 @@ interface CreateUserBody {
   last_name: string;
   phone?: string | null;
   is_admin?: boolean;
+  can_edit_exercises?: boolean;
   team_roles?: { team_id: string; role: 'headcoach' | 'assistant_coach' | 'finance'; finance_access?: boolean }[];
 }
 
@@ -94,6 +95,7 @@ Deno.serve(async (req) => {
       last_name: body.last_name,
       phone: body.phone ?? null,
       is_admin: body.is_admin ?? false,
+      can_edit_exercises: body.can_edit_exercises ?? false,
     },
   });
 

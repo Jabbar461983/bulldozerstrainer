@@ -11,6 +11,7 @@ export interface Profile {
   email: string;
   phone: string | null;
   is_admin: boolean;
+  can_edit_exercises: boolean;
   created_at: string;
 }
 

@@ -61,6 +61,7 @@ export async function createUser(payload: {
   last_name: string;
   phone: string | null;
   is_admin: boolean;
+  can_edit_exercises: boolean;
   team_roles: TeamRoleInput[];
 }) {
   const { data, error } = await supabase.functions.invoke('admin-create-user', { body: payload });
@@ -89,7 +90,7 @@ export async function deleteUser(userId: string) {
 
 export async function updateProfile(
   id: string,
-  updates: Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'is_admin'>>,
+  updates: Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'is_admin' | 'can_edit_exercises'>>,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('profiles') as any).update(updates).eq('id', id);

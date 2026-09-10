@@ -21,6 +21,7 @@ export function EditUserDialog({ user, teamOptions, onClose, onSaved }: EditUser
   const [lastName, setLastName] = useState(user.last_name);
   const [phone, setPhone] = useState(user.phone ?? '');
   const [isAdmin, setIsAdmin] = useState(user.is_admin);
+  const [canEditExercises, setCanEditExercises] = useState(user.can_edit_exercises);
   const [teamRoles, setTeamRoles] = useState<TeamRoleInput[]>(
     user.teamRoles.map((tr) => ({ team_id: tr.teamId, role: tr.role, finance_access: tr.financeAccess })),
   );
@@ -39,6 +40,7 @@ export function EditUserDialog({ user, teamOptions, onClose, onSaved }: EditUser
         last_name: lastName,
         phone: phone || null,
         is_admin: isAdmin,
+        can_edit_exercises: canEditExercises,
       });
       await replaceTeamRoles(user.id, isAdmin ? [] : teamRoles);
       onSaved();
@@ -98,6 +100,18 @@ export function EditUserDialog({ user, teamOptions, onClose, onSaved }: EditUser
           <p className="-mt-2 text-xs text-text-muted">
             Du kannst deinen eigenen Admin-Status nicht selbst entziehen.
           </p>
+        )}
+
+        {!isAdmin && (
+          <label className="flex items-center gap-2 text-sm text-text">
+            <input
+              type="checkbox"
+              className="size-5"
+              checked={canEditExercises}
+              onChange={(e) => setCanEditExercises(e.target.checked)}
+            />
+            Kann alle Übungen in der Übungsdatenbank bearbeiten
+          </label>
         )}
 
         {!isAdmin && (
