@@ -186,16 +186,27 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     }
   }
 
+  /** Ist candidateId identisch mit ancestorId oder irgendwo in dessen Unterbaum? */
+  function isDescendantOrSelf(candidateId: string, ancestorId: string): boolean {
+    let current: string | null = candidateId;
+    while (current !== null) {
+      if (current === ancestorId) return true;
+      current = items.find((i) => i.id === current)?.parent_id ?? null;
+    }
+    return false;
+  }
+
   async function handleDropItem(draggedId: string, targetId: string) {
     if (draggedId === targetId) return;
     const dragged = items.find((i) => i.id === draggedId);
     const target = items.find((i) => i.id === targetId);
     if (!dragged || !target) return;
+    // Verhindert, einen Block (Überschrift/Subüberschrift) in seinen eigenen
+    // Unterbaum zu verschieben - das würde einen Zyklus erzeugen.
+    if (dragged.is_section && isDescendantOrSelf(target.id, dragged.id)) return;
 
-    if (dragged.is_section) {
-      // Überschriften/Subüberschriften: wie bisher nur innerhalb derselben
-      // Geschwistergruppe umsortieren, kein Verschieben auf eine andere Ebene.
-      if (dragged.parent_id !== target.parent_id) return;
+    if (dragged.parent_id === target.parent_id) {
+      // Gleiche Ebene: nur die Reihenfolge der Geschwister ändern.
       const siblings = siblingsOf(items, dragged.parent_id).filter((s) => s.id !== draggedId);
       const targetIdx = siblings.findIndex((s) => s.id === targetId);
       siblings.splice(targetIdx, 0, dragged);
@@ -203,10 +214,11 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
       return;
     }
 
-    // Schritte können auch unter einer anderen Überschrift/Subüberschrift
-    // abgelegt werden: direkt auf die Überschrift gezogen wird der Schritt ans
-    // Ende ihrer Kinder angehängt, auf einen ihrer bestehenden Schritte
-    // gezogen wird er direkt davor eingefügt.
+    // Unterschiedliche Ebene: der Block/Schritt wechselt die Gruppe. Direkt
+    // auf eine Überschrift/Subüberschrift gezogen wird er ans Ende ihrer
+    // Kinder angehängt (samt allen eigenen Unterpunkten, falls es selbst eine
+    // Überschrift ist), auf einen bestehenden Punkt einer anderen Gruppe
+    // gezogen wird er direkt davor in diese Gruppe eingefügt.
     const newParentId = target.is_section ? target.id : target.parent_id;
     const newSiblings = siblingsOf(items, newParentId).filter((s) => s.id !== draggedId);
     if (target.is_section) {
@@ -215,7 +227,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
       const targetIdx = newSiblings.findIndex((s) => s.id === targetId);
       newSiblings.splice(targetIdx, 0, dragged);
     }
-    await persistReorder(newSiblings, newParentId !== dragged.parent_id ? { id: draggedId, parentId: newParentId } : undefined);
+    await persistReorder(newSiblings, { id: draggedId, parentId: newParentId });
   }
 
   function startEditItem(item: ChecklistItem) {
