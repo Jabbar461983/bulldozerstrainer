@@ -37,7 +37,35 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragItemId, setDragItemId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'details' | 'items'>('details');
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const itemTree = buildChecklistItemTree(items);
+
+  function toggleCollapsed(id: string) {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Blendet alle Nachkommen eingeklappter Überschriften aus. itemTree ist per
+  // Tiefensuche geordnet - Nachkommen eines Knotens stehen also lückenlos
+  // direkt danach, mit grösserer depth, bis wieder eine depth <= der des
+  // eingeklappten Knotens folgt.
+  const visibleItemTree: typeof itemTree = [];
+  let skipUntilDepth: number | null = null;
+  for (const node of itemTree) {
+    if (skipUntilDepth !== null) {
+      if (node.depth > skipUntilDepth) continue;
+      skipUntilDepth = null;
+    }
+    visibleItemTree.push(node);
+    if (node.item.is_section && collapsedIds.has(node.item.id)) {
+      skipUntilDepth = node.depth;
+    }
+  }
 
   useEffect(() => {
     fetchTeamOptions()
@@ -210,9 +238,31 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
         </div>
       }
     >
-      <form id="edit-checklist-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="edit-checklist-form" onSubmit={handleSubmit} className="flex h-full flex-col space-y-4">
         {error && <div className="rounded-lg bg-error/10 p-3 text-sm text-error">{error}</div>}
 
+        <div className="flex gap-1 border-b border-border">
+          <button
+            type="button"
+            onClick={() => setActiveTab('details')}
+            className={`border-b-2 px-3 py-2 text-sm font-medium transition ${
+              activeTab === 'details' ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-text'
+            }`}
+          >
+            Details
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('items')}
+            className={`border-b-2 px-3 py-2 text-sm font-medium transition ${
+              activeTab === 'items' ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-text'
+            }`}
+          >
+            Punkte ({items.length})
+          </button>
+        </div>
+
+        <div className={activeTab === 'details' ? 'space-y-4' : 'hidden'}>
         <div>
           <Label htmlFor="edit-title">Titel *</Label>
           <Input
@@ -301,16 +351,20 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
           </div>
         )}
 
-        <div className="space-y-3 border-t border-border pt-4">
+        </div>
+
+        <div className={activeTab === 'items' ? 'space-y-3' : 'hidden'}>
           <Label>Punkte ({items.length})</Label>
           <div className="space-y-1.5 max-h-[45vh] overflow-y-auto">
             {items.length === 0 ? (
               <p className="text-xs text-text-muted">Noch keine Punkte</p>
             ) : (
-              itemTree.map(({ item, depth }) => {
+              visibleItemTree.map(({ item, depth }) => {
                 const typeLabel = item.is_section ? (depth === 0 ? '📌 Überschrift' : '📋 Subüberschrift') : '✓ Schritt';
                 const siblings = siblingsOf(items, item.parent_id);
                 const siblingIdx = siblings.findIndex((s) => s.id === item.id);
+                const hasChildren = item.is_section && items.some((i) => i.parent_id === item.id);
+                const isCollapsed = collapsedIds.has(item.id);
                 return (
                   <div
                     key={item.id}
@@ -328,6 +382,19 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-text-muted select-none" aria-hidden="true">⠿</span>
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleCollapsed(item.id)}
+                          className="text-text-muted"
+                          aria-label={isCollapsed ? 'Aufklappen' : 'Zuklappen'}
+                          title={isCollapsed ? 'Aufklappen' : 'Zuklappen'}
+                        >
+                          {isCollapsed ? '▸' : '▾'}
+                        </button>
+                      ) : (
+                        <span className="w-3" />
+                      )}
                       <span className="text-xs text-text-muted whitespace-nowrap">{typeLabel}</span>
                       <span className="flex-1 text-sm font-medium">{item.title}</span>
                       <div className="flex gap-1">
