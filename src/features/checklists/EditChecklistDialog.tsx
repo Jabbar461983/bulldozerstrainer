@@ -189,6 +189,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     <Modal
       title="Checkliste bearbeiten"
       onClose={onClose}
+      fullscreen
       footer={
         <div className="flex gap-2">
           <Button
@@ -209,7 +210,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
         </div>
       }
     >
-      <form id="edit-checklist-form" onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto">
+      <form id="edit-checklist-form" onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="rounded-lg bg-error/10 p-3 text-sm text-error">{error}</div>}
 
         <div>
@@ -302,7 +303,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
 
         <div className="space-y-3 border-t border-border pt-4">
           <Label>Punkte ({items.length})</Label>
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          <div className="space-y-1.5 max-h-[45vh] overflow-y-auto">
             {items.length === 0 ? (
               <p className="text-xs text-text-muted">Noch keine Punkte</p>
             ) : (

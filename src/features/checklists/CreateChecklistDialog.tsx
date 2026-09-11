@@ -135,6 +135,7 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
     <Modal
       title="Neue Checkliste"
       onClose={onClose}
+      fullscreen
       footer={
         <div className="flex gap-2">
           <Button variant="secondary" onClick={onClose} disabled={loading}>
@@ -257,7 +258,7 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
           <Label>Punkte ({items.length})</Label>
 
           {items.length > 0 && (
-            <div className="space-y-1 max-h-40 overflow-y-auto">
+            <div className="space-y-1 max-h-[45vh] overflow-y-auto">
               {items.map((item, idx) => (
                 <div key={idx} className={`rounded-lg p-2 ${item.isHeading ? 'bg-accent/10 font-semibold' : 'bg-surface-alt ml-4'}`}>
                   <div className="flex items-center gap-2">
