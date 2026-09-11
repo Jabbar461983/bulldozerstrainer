@@ -164,6 +164,14 @@ export async function createChecklistItem(payload: {
   return data.id;
 }
 
+export async function updateChecklistItem(
+  id: string,
+  updates: Partial<Pick<ChecklistItem, 'title' | 'parent_id'>>,
+) {
+  const { error } = await (supabase.from('checklist_items') as any).update(updates).eq('id', id);
+  if (error) throw error;
+}
+
 export async function deleteChecklistItem(id: string) {
   const { error } = await supabase.from('checklist_items').delete().eq('id', id);
   if (error) throw error;

@@ -7,6 +7,7 @@ import {
   updateChecklist,
   updateChecklistTeamAssignments,
   createChecklistItem,
+  updateChecklistItem,
   deleteChecklistItem,
   reorderChecklistItems,
 } from './api';
@@ -39,6 +40,8 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   const [dragItemId, setDragItemId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'items'>('details');
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const itemTree = buildChecklistItemTree(items);
 
   function toggleCollapsed(id: string) {
@@ -164,28 +167,72 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     }
   }
 
-  async function handleDropItem(draggedId: string, targetId: string) {
-    if (draggedId === targetId) return;
-    const dragged = items.find((i) => i.id === draggedId);
-    const target = items.find((i) => i.id === targetId);
-    // Drag & Drop verändert nur die Reihenfolge innerhalb derselben
-    // Geschwistergruppe - ein Element über eine andere Überschrift ziehen
-    // verschiebt es nicht dorthin.
-    if (!dragged || !target || dragged.parent_id !== target.parent_id) return;
-    const siblings = siblingsOf(items, dragged.parent_id).filter((s) => s.id !== draggedId);
-    const targetIdx = siblings.findIndex((s) => s.id === targetId);
-    siblings.splice(targetIdx, 0, dragged);
-    const updates = siblings.map((s, idx) => ({ id: s.id, sort_order: idx }));
+  async function persistReorder(orderedSiblings: ChecklistItem[], reparent?: { id: string; parentId: string | null }) {
+    const updates = orderedSiblings.map((s, idx) => ({ id: s.id, sort_order: idx }));
     try {
+      if (reparent) await updateChecklistItem(reparent.id, { parent_id: reparent.parentId });
       await reorderChecklistItems(checklist.id, updates);
       setItems((prev) =>
         prev.map((i) => {
           const update = updates.find((u) => u.id === i.id);
+          if (reparent && i.id === reparent.id) {
+            return { ...i, parent_id: reparent.parentId, sort_order: update?.sort_order ?? i.sort_order };
+          }
           return update ? { ...i, sort_order: update.sort_order } : i;
         }),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reihenfolge konnte nicht geändert werden.');
+    }
+  }
+
+  async function handleDropItem(draggedId: string, targetId: string) {
+    if (draggedId === targetId) return;
+    const dragged = items.find((i) => i.id === draggedId);
+    const target = items.find((i) => i.id === targetId);
+    if (!dragged || !target) return;
+
+    if (dragged.is_section) {
+      // Überschriften/Subüberschriften: wie bisher nur innerhalb derselben
+      // Geschwistergruppe umsortieren, kein Verschieben auf eine andere Ebene.
+      if (dragged.parent_id !== target.parent_id) return;
+      const siblings = siblingsOf(items, dragged.parent_id).filter((s) => s.id !== draggedId);
+      const targetIdx = siblings.findIndex((s) => s.id === targetId);
+      siblings.splice(targetIdx, 0, dragged);
+      await persistReorder(siblings);
+      return;
+    }
+
+    // Schritte können auch unter einer anderen Überschrift/Subüberschrift
+    // abgelegt werden: direkt auf die Überschrift gezogen wird der Schritt ans
+    // Ende ihrer Kinder angehängt, auf einen ihrer bestehenden Schritte
+    // gezogen wird er direkt davor eingefügt.
+    const newParentId = target.is_section ? target.id : target.parent_id;
+    const newSiblings = siblingsOf(items, newParentId).filter((s) => s.id !== draggedId);
+    if (target.is_section) {
+      newSiblings.push(dragged);
+    } else {
+      const targetIdx = newSiblings.findIndex((s) => s.id === targetId);
+      newSiblings.splice(targetIdx, 0, dragged);
+    }
+    await persistReorder(newSiblings, newParentId !== dragged.parent_id ? { id: draggedId, parentId: newParentId } : undefined);
+  }
+
+  function startEditItem(item: ChecklistItem) {
+    setEditingItemId(item.id);
+    setEditingTitle(item.title);
+  }
+
+  async function saveEditItem() {
+    const id = editingItemId;
+    const trimmed = editingTitle.trim();
+    setEditingItemId(null);
+    if (!id || !trimmed) return;
+    try {
+      await updateChecklistItem(id, { title: trimmed });
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, title: trimmed } : i)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Titel konnte nicht gespeichert werden.');
     }
   }
 
@@ -365,10 +412,11 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                 const siblingIdx = siblings.findIndex((s) => s.id === item.id);
                 const hasChildren = item.is_section && items.some((i) => i.parent_id === item.id);
                 const isCollapsed = collapsedIds.has(item.id);
+                const isEditing = editingItemId === item.id;
                 return (
                   <div
                     key={item.id}
-                    draggable
+                    draggable={!isEditing}
                     onDragStart={() => setDragItemId(item.id)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
@@ -378,7 +426,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                     }}
                     onDragEnd={() => setDragItemId(null)}
                     className="rounded-lg bg-surface-alt p-2 space-y-2"
-                    style={{ marginLeft: depth * 20, cursor: 'grab' }}
+                    style={{ marginLeft: depth * 20, cursor: isEditing ? 'default' : 'grab' }}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-text-muted select-none" aria-hidden="true">⠿</span>
@@ -396,7 +444,32 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                         <span className="w-3" />
                       )}
                       <span className="text-xs text-text-muted whitespace-nowrap">{typeLabel}</span>
-                      <span className="flex-1 text-sm font-medium">{item.title}</span>
+                      {isEditing ? (
+                        <Input
+                          autoFocus
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onBlur={() => void saveEditItem()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              void saveEditItem();
+                            } else if (e.key === 'Escape') {
+                              setEditingItemId(null);
+                            }
+                          }}
+                          className="flex-1"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startEditItem(item)}
+                          className="flex-1 text-left text-sm font-medium hover:underline"
+                          title="Titel bearbeiten"
+                        >
+                          {item.title}
+                        </button>
+                      )}
                       <div className="flex gap-1">
                         {siblingIdx > 0 && (
                           <button
