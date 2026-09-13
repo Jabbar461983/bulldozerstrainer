@@ -42,6 +42,9 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
+  const [typeDraft, setTypeDraft] = useState<'heading' | 'subheading' | 'step'>('step');
+  const [typeDraftParentId, setTypeDraftParentId] = useState<string | null>(null);
   const itemTree = buildChecklistItemTree(items);
 
   function toggleCollapsed(id: string) {
@@ -248,6 +251,48 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
     }
   }
 
+  function typeOf(item: ChecklistItem): 'heading' | 'subheading' | 'step' {
+    if (!item.is_section) return 'step';
+    return item.parent_id ? 'subheading' : 'heading';
+  }
+
+  // Überschriften, unter denen ein Punkt als Subüberschrift hängen könnte -
+  // er selbst und alle seine eigenen Nachkommen scheiden aus (sonst Zyklus).
+  function availableParentHeadings(itemId: string): ChecklistItem[] {
+    return items.filter((i) => i.is_section && !i.parent_id && !isDescendantOrSelf(i.id, itemId));
+  }
+
+  function startEditType(item: ChecklistItem) {
+    const current = typeOf(item);
+    setEditingTypeId(item.id);
+    setTypeDraft(current);
+    const headings = availableParentHeadings(item.id);
+    const currentParentIsHeading = current === 'subheading' && headings.some((h) => h.id === item.parent_id);
+    setTypeDraftParentId(currentParentIsHeading ? item.parent_id : (headings[0]?.id ?? null));
+  }
+
+  async function saveTypeChange(item: ChecklistItem) {
+    setEditingTypeId(null);
+    let updates: Partial<Pick<ChecklistItem, 'is_section' | 'parent_id'>>;
+    if (typeDraft === 'heading') {
+      updates = { is_section: true, parent_id: null };
+    } else if (typeDraft === 'step') {
+      updates = { is_section: false };
+    } else {
+      if (!typeDraftParentId) {
+        setError('Es muss zuerst eine Überschrift angelegt werden, unter der eine Subüberschrift hängen kann.');
+        return;
+      }
+      updates = { is_section: true, parent_id: typeDraftParentId };
+    }
+    try {
+      await updateChecklistItem(item.id, updates);
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, ...updates } : i)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Typ konnte nicht geändert werden.');
+    }
+  }
+
   async function handleDeleteItem(itemId: string) {
     if (!confirm('Item wirklich löschen?')) return;
     try {
@@ -422,13 +467,15 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                 const typeLabel = item.is_section ? (depth === 0 ? '📌 Überschrift' : '📋 Subüberschrift') : '✓ Schritt';
                 const siblings = siblingsOf(items, item.parent_id);
                 const siblingIdx = siblings.findIndex((s) => s.id === item.id);
-                const hasChildren = item.is_section && items.some((i) => i.parent_id === item.id);
+                const anyChildren = items.some((i) => i.parent_id === item.id);
+                const hasChildren = item.is_section && anyChildren;
                 const isCollapsed = collapsedIds.has(item.id);
                 const isEditing = editingItemId === item.id;
+                const isEditingType = editingTypeId === item.id;
                 return (
                   <div
                     key={item.id}
-                    draggable={!isEditing}
+                    draggable={!isEditing && !isEditingType}
                     onDragStart={() => setDragItemId(item.id)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
@@ -438,9 +485,9 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                     }}
                     onDragEnd={() => setDragItemId(null)}
                     className="rounded-lg bg-surface-alt p-2 space-y-2"
-                    style={{ marginLeft: depth * 20, cursor: isEditing ? 'default' : 'grab' }}
+                    style={{ marginLeft: depth * 20, cursor: isEditing || isEditingType ? 'default' : 'grab' }}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-text-muted select-none" aria-hidden="true">⠿</span>
                       {hasChildren ? (
                         <button
@@ -455,7 +502,69 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                       ) : (
                         <span className="w-3" />
                       )}
-                      <span className="text-xs text-text-muted whitespace-nowrap">{typeLabel}</span>
+                      {isEditingType ? (
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={typeDraft}
+                            onChange={(e) => {
+                              const value = e.target.value as 'heading' | 'subheading' | 'step';
+                              setTypeDraft(value);
+                              if (value === 'subheading' && typeDraftParentId === null) {
+                                setTypeDraftParentId(availableParentHeadings(item.id)[0]?.id ?? null);
+                              }
+                            }}
+                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+                          >
+                            <option value="heading">Überschrift</option>
+                            <option value="subheading">Subüberschrift</option>
+                            <option value="step" disabled={anyChildren}>
+                              Schritt{anyChildren ? ' (hat noch Unterpunkte)' : ''}
+                            </option>
+                          </select>
+                          {typeDraft === 'subheading' && (
+                            <select
+                              value={typeDraftParentId ?? ''}
+                              onChange={(e) => setTypeDraftParentId(e.target.value || null)}
+                              className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+                            >
+                              {availableParentHeadings(item.id).length === 0 ? (
+                                <option value="">-- keine Überschrift vorhanden --</option>
+                              ) : (
+                                availableParentHeadings(item.id).map((h) => (
+                                  <option key={h.id} value={h.id}>
+                                    {h.title}
+                                  </option>
+                                ))
+                              )}
+                            </select>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => void saveTypeChange(item)}
+                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            title="Übernehmen"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingTypeId(null)}
+                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            title="Abbrechen"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startEditType(item)}
+                          className="text-xs text-text-muted whitespace-nowrap hover:underline"
+                          title="Typ ändern"
+                        >
+                          {typeLabel}
+                        </button>
+                      )}
                       {isEditing ? (
                         <Input
                           autoFocus
