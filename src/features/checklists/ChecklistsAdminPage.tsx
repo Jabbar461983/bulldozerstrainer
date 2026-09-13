@@ -7,6 +7,7 @@ import { fetchChecklists, deleteChecklist, duplicateChecklist, exportChecklistTo
 import type { ChecklistRow } from './api';
 import { CreateChecklistDialog } from './CreateChecklistDialog';
 import { EditChecklistDialog } from './EditChecklistDialog';
+import { ChecklistInstancesManagerDialog } from './ChecklistInstancesManagerDialog';
 
 export function ChecklistsAdminPage() {
   const [checklists, setChecklists] = useState<ChecklistRow[] | null>(null);
@@ -15,6 +16,7 @@ export function ChecklistsAdminPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedChecklist, setSelectedChecklist] = useState<ChecklistRow | null>(null);
   const [showEdit, setShowEdit] = useState(false);
+  const [instancesChecklist, setInstancesChecklist] = useState<ChecklistRow | null>(null);
 
   async function load() {
     setError(null);
@@ -126,6 +128,15 @@ export function ChecklistsAdminPage() {
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
+                      setInstancesChecklist(checklist);
+                    }}
+                  >
+                    🗂 Instanzen
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       void handleDuplicate(checklist.id);
                     }}
                   >
@@ -170,6 +181,13 @@ export function ChecklistsAdminPage() {
             setSelectedChecklist(null);
             void load();
           }}
+        />
+      )}
+
+      {instancesChecklist && (
+        <ChecklistInstancesManagerDialog
+          checklist={instancesChecklist}
+          onClose={() => setInstancesChecklist(null)}
         />
       )}
     </div>
