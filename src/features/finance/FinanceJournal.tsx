@@ -85,7 +85,7 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium text-text">Journal</p>
+        <h2 className="text-base font-semibold text-text">Journal</h2>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={handleExportCsv} disabled={rows.length === 0}>
             CSV-Export
@@ -103,44 +103,105 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
         </Card>
       )}
 
-      <div className="flex flex-col gap-2">
-        {rows.map((r) => (
-          <div
-            key={r.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => setViewingReceipt(r)}
-            onKeyDown={(e) => {
-              if (e.target === e.currentTarget && e.key === 'Enter') setViewingReceipt(r);
-            }}
-            className="flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-2 text-sm hover:bg-surface-alt"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-text break-words">
-                <span className="text-text-muted">Nr. {r.bookingNumber} · </span>
-                {r.recipient_name}{' '}
-                <span className="text-text-muted">
-                  · {new Date(`${r.date}T00:00:00`).toLocaleDateString('de-CH')}
-                </span>
-              </p>
-              {r.notes && <p className="break-words text-text-muted">{r.notes}</p>}
-              {r.paid_by && <p className="break-words text-xs text-text-muted">{paidByLabel(r.type)} {r.paid_by}</p>}
-            </div>
-            <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
-              <span className={r.type === 'income' ? 'text-success' : 'text-danger'}>
-                {r.type === 'income' ? '+' : '-'}CHF {r.amount.toFixed(2)}
-              </span>
-              <span className="text-text-muted">Saldo: CHF {r.balance.toFixed(2)}</span>
-              <Button variant="secondary" onClick={(e) => handleEdit(r, e)}>
-                Bearbeiten
-              </Button>
-              <Button variant="danger" disabled={busyId === r.id} onClick={(e) => void handleDelete(r, e)}>
-                Löschen
-              </Button>
-            </div>
+      {rows.length > 0 && (
+        <>
+          {/* Computer: Tabelle */}
+          <div className="hidden overflow-x-auto rounded-md border border-border bg-surface sm:block">
+            <table className="ui-table">
+              <thead>
+                <tr>
+                  <th>Nr.</th>
+                  <th>Datum</th>
+                  <th>Gekauft bei / Erhalten von</th>
+                  <th className="text-right">Betrag</th>
+                  <th className="text-right">Saldo</th>
+                  <th aria-label="Aktionen" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr
+                    key={r.id}
+                    tabIndex={0}
+                    onClick={() => setViewingReceipt(r)}
+                    onKeyDown={(e) => {
+                      if (e.target === e.currentTarget && e.key === 'Enter') setViewingReceipt(r);
+                    }}
+                    className="is-clickable"
+                  >
+                    <td className="whitespace-nowrap text-text-muted">{r.bookingNumber}</td>
+                    <td className="whitespace-nowrap">{new Date(`${r.date}T00:00:00`).toLocaleDateString('de-CH')}</td>
+                    <td className="min-w-48">
+                      <p className="break-words font-semibold text-text">{r.recipient_name}</p>
+                      {r.notes && <p className="break-words text-text-muted">{r.notes}</p>}
+                      {r.paid_by && (
+                        <p className="break-words text-xs text-text-muted">
+                          {paidByLabel(r.type)} {r.paid_by}
+                        </p>
+                      )}
+                    </td>
+                    <td className={`whitespace-nowrap text-right font-semibold ${r.type === 'income' ? 'text-success' : 'text-danger'}`}>
+                      {r.type === 'income' ? '+' : '-'}CHF {r.amount.toFixed(2)}
+                    </td>
+                    <td className="whitespace-nowrap text-right text-text-muted">CHF {r.balance.toFixed(2)}</td>
+                    <td>
+                      <div className="flex justify-end gap-1.5">
+                        <Button variant="secondary" size="sm" onClick={(e) => handleEdit(r, e)}>
+                          Bearbeiten
+                        </Button>
+                        <Button variant="danger" size="sm" disabled={busyId === r.id} onClick={(e) => void handleDelete(r, e)}>
+                          Löschen
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
+
+          {/* Handy: kompakte Zeilen */}
+          <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface sm:hidden">
+            {rows.map((r) => (
+              <div
+                key={r.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setViewingReceipt(r)}
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && e.key === 'Enter') setViewingReceipt(r);
+                }}
+                className="flex cursor-pointer flex-col gap-1 px-3.5 py-3 text-sm hover:bg-surface-alt"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 break-words font-semibold text-text">{r.recipient_name}</p>
+                  <span className={`shrink-0 font-semibold tabular-nums ${r.type === 'income' ? 'text-success' : 'text-danger'}`}>
+                    {r.type === 'income' ? '+' : '-'}CHF {r.amount.toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-xs text-text-muted">
+                  Nr. {r.bookingNumber} · {new Date(`${r.date}T00:00:00`).toLocaleDateString('de-CH')} · Saldo: CHF{' '}
+                  {r.balance.toFixed(2)}
+                </p>
+                {r.notes && <p className="break-words text-text-muted">{r.notes}</p>}
+                {r.paid_by && (
+                  <p className="break-words text-xs text-text-muted">
+                    {paidByLabel(r.type)} {r.paid_by}
+                  </p>
+                )}
+                <div className="mt-1 flex gap-1.5">
+                  <Button variant="secondary" size="sm" onClick={(e) => handleEdit(r, e)}>
+                    Bearbeiten
+                  </Button>
+                  <Button variant="danger" size="sm" disabled={busyId === r.id} onClick={(e) => void handleDelete(r, e)}>
+                    Löschen
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {editingReceipt && (
         <EditReceiptDialog

@@ -51,8 +51,62 @@ export function FinanceOverviewPage() {
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
       {rows === null && !error && <p className="text-sm text-text-muted">Lädt…</p>}
 
+      {rows !== null && rows.length === 0 && (
+        <Card>
+          <p className="text-sm text-text-muted">Für diese Saison ist noch bei keinem Team ein Budget hinterlegt.</p>
+        </Card>
+      )}
+
+      {rows !== null && rows.length > 0 && (
+        <div className="hidden overflow-x-auto rounded-md border border-border bg-surface sm:block">
+          <table className="ui-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th className="text-right">Budget</th>
+                <th className="text-right">Einnahmen</th>
+                <th className="text-right">Ausgaben</th>
+                <th className="text-right">Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr
+                  key={r.teamId ?? 'club'}
+                  tabIndex={0}
+                  onClick={() => openTeam(r.teamId)}
+                  onKeyDown={(e) => e.key === 'Enter' && openTeam(r.teamId)}
+                  className="is-clickable"
+                >
+                  <td className="font-semibold text-text">
+                    {r.categoryName ? `${r.categoryName} · ${r.teamName}` : r.teamName}
+                  </td>
+                  <td className="whitespace-nowrap text-right">CHF {r.budget.toFixed(2)}</td>
+                  <td className="whitespace-nowrap text-right text-success">CHF {r.income.toFixed(2)}</td>
+                  <td className="whitespace-nowrap text-right text-danger">CHF {r.expense.toFixed(2)}</td>
+                  <td className={`whitespace-nowrap text-right font-semibold ${r.saldo >= 0 ? 'text-success' : 'text-danger'}`}>
+                    Saldo: CHF {r.saldo.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-gold bg-surface-alt">
+                <td className="px-3.5 py-3 font-bold text-text">Total</td>
+                <td className="whitespace-nowrap px-3.5 py-3 text-right font-semibold">CHF {totals.budget.toFixed(2)}</td>
+                <td className="whitespace-nowrap px-3.5 py-3 text-right font-semibold text-success">CHF {totals.income.toFixed(2)}</td>
+                <td className="whitespace-nowrap px-3.5 py-3 text-right font-semibold text-danger">CHF {totals.expense.toFixed(2)}</td>
+                <td className={`whitespace-nowrap px-3.5 py-3 text-right font-bold ${totals.saldo >= 0 ? 'text-success' : 'text-danger'}`}>
+                  Saldo: CHF {totals.saldo.toFixed(2)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
       {rows !== null && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:hidden">
           {rows.map((r) => (
             <Card
               key={r.teamId ?? 'club'}
@@ -86,12 +140,6 @@ export function FinanceOverviewPage() {
               </div>
             </Card>
           ))}
-
-          {rows.length === 0 && (
-            <Card>
-              <p className="text-sm text-text-muted">Für diese Saison ist noch bei keinem Team ein Budget hinterlegt.</p>
-            </Card>
-          )}
 
           {rows.length > 0 && (
             <Card className="border-accent/40 bg-accent/5">

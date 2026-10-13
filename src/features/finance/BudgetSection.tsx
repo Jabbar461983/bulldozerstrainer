@@ -35,11 +35,14 @@ export function BudgetSection({ teamId, season, budget, onSaved }: BudgetSection
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface px-4 py-3.5 shadow-[0_1px_2px_rgba(16,24,20,0.05)]">
       <div>
         <p className="text-xs text-text-muted">Budget {season}</p>
         {!editing ? (
-          <p className="text-lg font-semibold text-text">CHF {(budget?.amount ?? 0).toFixed(2)}</p>
+          <p className="text-2xl font-bold tracking-tight text-text tabular-nums">
+            <span className="mr-1.5 text-sm font-semibold tracking-wide text-gold-text">CHF</span>
+            {(budget?.amount ?? 0).toFixed(2)}
+          </p>
         ) : (
           <Input
             type="number"

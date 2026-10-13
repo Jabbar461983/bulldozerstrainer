@@ -183,6 +183,39 @@ body {
 }
 
 @layer components {
+  /* Einheitliche Tabellen: klare Linien, ruhiger Kopf, Zeilen-Hover. */
+  .ui-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .ui-table th {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--club-text-muted);
+    background: var(--club-surface-alt);
+    border-bottom: 1px solid var(--club-border);
+    padding: 0.625rem 0.875rem;
+    white-space: nowrap;
+  }
+  .ui-table td {
+    padding: 0.75rem 0.875rem;
+    border-bottom: 1px solid var(--club-border);
+    vertical-align: top;
+  }
+  .ui-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .ui-table tbody tr.is-clickable {
+    cursor: pointer;
+  }
+  .ui-table tbody tr.is-clickable:hover {
+    background: var(--club-surface-alt);
+  }
+
   /* Einheitlicher Pfeil für Auswahlfelder (statt Browser-Standard). */
   .ui-select {
     appearance: none;
