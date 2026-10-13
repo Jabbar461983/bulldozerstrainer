@@ -131,6 +131,12 @@ body,
   height: 100%;
 }
 
+/* Hintergrund hinter der App (iPhone: Bereich unter der Fussleiste und beim
+   Über-den-Rand-Ziehen) in Navigationsschwarz statt hell. */
+html {
+  background: var(--club-nav);
+}
+
 body {
   margin: 0;
   background: var(--club-bg);
