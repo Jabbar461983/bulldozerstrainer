@@ -141,21 +141,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Touch-optimierte Tap-Targets (Bedienung direkt am Spielfeldrand) */
-button,
-[role='button'],
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button {
-  touch-action: manipulation;
-}
 
 /* In @layer base, damit Tailwind-Klassen (z.B. max-w-*, outline-*) weiterhin gewinnen. */
 @layer base {
+  /* Touch-optimierte Tap-Targets (Bedienung direkt am Spielfeldrand) */
+  button,
+  [role='button'],
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+
   /* Auswahlfelder und Eingaben dürfen nie breiter als ihr Platz werden
      (lange Teamnamen ragten auf dem Handy über den Rand). */
   select,

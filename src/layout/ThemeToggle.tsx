@@ -8,7 +8,7 @@ function getInitialTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
@@ -21,7 +21,10 @@ export function ThemeToggle() {
       type="button"
       onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
       aria-label="Farbmodus wechseln"
-      className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-surface-alt text-text transition hover:brightness-95"
+      className={
+        className ??
+        'flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border-strong bg-surface text-text transition hover:border-text'
+      }
     >
       {theme === 'light' ? (
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.7}>
