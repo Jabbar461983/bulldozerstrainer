@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { withCache } from '../../lib/withCache';
 import { fetchChecklists, deleteChecklist, duplicateChecklist, exportChecklistToPDF } from './api';
@@ -74,22 +75,13 @@ export function ChecklistsAdminPage() {
           <p className="text-center text-text-muted">Noch keine Checklisten erstellt.</p>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <List>
           {checklists.map((checklist) => (
-            <Card
+            <ListRow
               key={checklist.id}
-              className="cursor-pointer hover:bg-surface-alt"
-              role="button"
-              tabIndex={0}
               onClick={() => {
                 setSelectedChecklist(checklist);
                 setShowEdit(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  setSelectedChecklist(checklist);
-                  setShowEdit(true);
-                }
               }}
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -104,8 +96,9 @@ export function ChecklistsAdminPage() {
                     {checklist.has_reporting && <span className="font-medium text-accent">mit Reporting</span>}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   <Button
+                    size="sm"
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -115,6 +108,7 @@ export function ChecklistsAdminPage() {
                     📄 PDF
                   </Button>
                   <Button
+                    size="sm"
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -125,6 +119,7 @@ export function ChecklistsAdminPage() {
                     Bearbeiten
                   </Button>
                   <Button
+                    size="sm"
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -134,6 +129,7 @@ export function ChecklistsAdminPage() {
                     🗂 Instanzen
                   </Button>
                   <Button
+                    size="sm"
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -143,8 +139,8 @@ export function ChecklistsAdminPage() {
                     📋 Duplizieren
                   </Button>
                   <Button
-                    variant="secondary"
-                    className="text-danger"
+                    size="sm"
+                    variant="danger"
                     onClick={(e) => {
                       e.stopPropagation();
                       void handleDelete(checklist.id);
@@ -154,9 +150,9 @@ export function ChecklistsAdminPage() {
                   </Button>
                 </div>
               </div>
-            </Card>
+            </ListRow>
           ))}
-        </div>
+        </List>
       )}
 
       {showCreate && (

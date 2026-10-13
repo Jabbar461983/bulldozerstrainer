@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
+import { Label } from '../../components/Input';
+import { Select } from '../../components/Select';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { withCache } from '../../lib/withCache';
 import { fetchTeamOptions } from '../../lib/teams';
@@ -111,18 +114,14 @@ export function ChecklistsCoachPage() {
 
       {teamOptions && teamOptions.length > 1 && (
         <div>
-          <label className="block text-sm font-medium mb-2">Mein Team</label>
-          <select
-            value={teamId}
-            onChange={(e) => setTeamId(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
-          >
+          <Label htmlFor="checklist-team">Mein Team</Label>
+          <Select id="checklist-team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
             {teamOptions.map((team) => (
               <option key={team.teamId} value={team.teamId}>
                 {team.teamName}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 
@@ -134,22 +133,15 @@ export function ChecklistsCoachPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className="space-y-2">
+          <List>
             {filteredChecklists.map((checklist) => {
               const stepCount = checklist.items.filter((i) => !i.is_section).length;
               const progressDisplay = checklist.activeProgress
                 ? `${checklist.activeProgress.completed} von ${stepCount}`
                 : `0 von ${stepCount}`;
               return (
-                <Card
-                  key={checklist.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedChecklistId(checklist.id)}
-                  onKeyDown={(e) => e.key === 'Enter' && setSelectedChecklistId(checklist.id)}
-                  className="cursor-pointer hover:bg-surface-alt"
-                >
-                  <div className="flex items-center justify-between">
+                <ListRow key={checklist.id} onClick={() => setSelectedChecklistId(checklist.id)}>
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold text-text">{checklist.title}</p>
                       {checklist.description && (
@@ -157,24 +149,21 @@ export function ChecklistsCoachPage() {
                       )}
                       <p className="text-xs text-text-muted mt-1">{progressDisplay} erledigt</p>
                     </div>
-                    <Button variant="secondary">Abhaken →</Button>
+                    <Button variant="secondary" size="sm">Abhaken →</Button>
                   </div>
-                </Card>
+                </ListRow>
               );
             })}
-          </div>
+          </List>
 
           {filteredChecklists.some((c) => c.archivedCount && c.archivedCount > 0) && (
             <div className="pt-4 border-t border-border">
               <h2 className="text-lg font-semibold mb-3">📋 Archiv - Erledigte Checklisten</h2>
-              <div className="space-y-2">
+              <List>
                 {filteredChecklists.map((checklist) => {
                   if (!checklist.archivedCount || checklist.archivedCount === 0) return null;
                   return (
-                    <Card
-                      key={`archived-${checklist.id}`}
-                      className="opacity-75"
-                    >
+                    <ListRow key={`archived-${checklist.id}`} className="opacity-75">
                       <div>
                         <p className="font-semibold text-text">{checklist.title}</p>
                         {checklist.description && (
@@ -184,10 +173,10 @@ export function ChecklistsCoachPage() {
                           {checklist.archivedCount} {checklist.archivedCount === 1 ? 'Eintrag' : 'Einträge'} archiviert
                         </p>
                       </div>
-                    </Card>
+                    </ListRow>
                   );
                 })}
-              </div>
+              </List>
             </div>
           )}
         </div>

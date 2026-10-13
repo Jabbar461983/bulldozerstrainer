@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
 import { Input } from '../../components/Input';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchPlayers, deletePlayer, fetchPlayerGoalSeasons, fetchPlayerGoals, fetchPlayerNotes } from './api';
@@ -133,11 +134,11 @@ export function PlayersPage() {
         />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <List>
         {players
           ?.filter((p) => p.last_name.toLowerCase().includes(filterName.toLowerCase()))
           .map((player) => (
-          <Card key={player.id} className="flex flex-col gap-3">
+          <ListRow key={player.id} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="flex-1">
                 <p className="font-medium text-text">
@@ -190,19 +191,19 @@ export function PlayersPage() {
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => setViewingPlayer(player)}>
+              <Button size="sm" variant="secondary" onClick={() => setViewingPlayer(player)}>
                 Ansehen
               </Button>
-              <Button variant="secondary" onClick={() => setEditingPlayer(player)}>
+              <Button size="sm" variant="secondary" onClick={() => setEditingPlayer(player)}>
                 Bearbeiten
               </Button>
-              <Button variant="danger" disabled={busyId === player.id} onClick={() => void handleDelete(player)}>
+              <Button size="sm" variant="danger" disabled={busyId === player.id} onClick={() => void handleDelete(player)}>
                 Löschen
               </Button>
             </div>
-          </Card>
+          </ListRow>
         ))}
-      </div>
+      </List>
 
       {showCreate && (
         <CreatePlayerDialog

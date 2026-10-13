@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, LinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
 import { useAuth } from '../../auth/AuthContext';
 import { deriveTaskStatus, fetchMyTasks, fetchTasksCreatedByMe, TASK_STATUS_LABELS } from './api';
 import type { TaskRow } from './api';
@@ -103,20 +104,14 @@ export function TasksPage() {
               <p className="text-sm text-text-muted">Dir sind keine Aufgaben zugeteilt.</p>
             </Card>
           )}
+          <List>
           {myTasks?.map((t) => {
             const status = deriveTaskStatus(t);
             return (
-              <Card
-                key={t.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelectedTask(t)}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedTask(t)}
-                className="cursor-pointer"
-              >
+              <ListRow key={t.id} onClick={() => setSelectedTask(t)}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="font-medium text-text">{t.title}</p>
+                    <p className="font-semibold text-text">{t.title}</p>
                     <p className="text-sm text-text-muted">
                       Fällig: {formatDate(t.due_date)} · von {t.creatorName}
                     </p>
@@ -128,9 +123,10 @@ export function TasksPage() {
                   </div>
                   <StatusBadge status={status} />
                 </div>
-              </Card>
+              </ListRow>
             );
           })}
+          </List>
         </div>
       )}
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { DateChip, List, ListRow } from '../../components/List';
 import { Select } from '../../components/Select';
 import { StarRating } from '../../components/StarRating';
 import { OfflineNotice } from '../../components/OfflineNotice';
@@ -146,19 +147,13 @@ export function TrainingsPage() {
   function renderTraining(training: Training) {
     const info = overview[training.id];
     return (
-      <Card
-        key={training.id}
-        role="button"
-        tabIndex={0}
-        onClick={() => setSelectedTraining(training)}
-        onKeyDown={(e) => e.key === 'Enter' && setSelectedTraining(training)}
-        className="cursor-pointer"
-      >
-        <div className="flex items-start justify-between gap-2">
+      <ListRow key={training.id} onClick={() => setSelectedTraining(training)}>
+        <div className="flex items-center gap-3">
+          <DateChip date={training.date} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="font-medium text-text">
+                <p className="font-semibold text-text">
                   {new Date(`${training.date}T00:00:00`).toLocaleDateString('de-CH', {
                     weekday: 'short',
                     day: '2-digit',
@@ -174,7 +169,11 @@ export function TrainingsPage() {
               </div>
               <div className="flex items-center gap-2">
                 {info?.ratingStars && <StarRating value={info.ratingStars} readOnly size="sm" />}
-                <span className="rounded bg-accent/10 px-2.5 py-1 text-xs text-accent">
+                <span
+                  className={`rounded px-2.5 py-1 text-xs font-semibold ${
+                    training.field_type === 'off_field' ? 'bg-gold/15 text-gold-text' : 'bg-accent/10 text-accent'
+                  }`}
+                >
                   {training.field_type === 'off_field' ? 'Off Field' : 'On Field'}
                 </span>
               </div>
@@ -199,14 +198,14 @@ export function TrainingsPage() {
               setPresentingTraining(training);
             }}
             aria-label="Training abspielen"
-            className="flex size-11 shrink-0 items-center justify-center rounded-full text-accent hover:bg-accent/10"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-accent transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground"
           >
-            <svg viewBox="0 0 24 24" className="size-6" fill="currentColor">
+            <svg viewBox="0 0 24 24" className="size-4" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
           </button>
         </div>
-      </Card>
+      </ListRow>
     );
   }
 
@@ -264,7 +263,7 @@ export function TrainingsPage() {
                 <p className="text-sm text-text-muted">Keine kommenden Trainings geplant.</p>
               </Card>
             ) : (
-              <div className="flex flex-col gap-2">{upcoming.map(renderTraining)}</div>
+              <List>{upcoming.map(renderTraining)}</List>
             )}
           </CollapsibleSection>
 
@@ -279,7 +278,7 @@ export function TrainingsPage() {
                 <p className="text-sm text-text-muted">Noch keine vergangenen Trainings.</p>
               </Card>
             ) : (
-              <div className="flex flex-col gap-2">{past.map(renderTraining)}</div>
+              <List>{past.map(renderTraining)}</List>
             )}
           </CollapsibleSection>
         </div>

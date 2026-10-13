@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BackLinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
 import { Label } from '../../components/Input';
 import { Select } from '../../components/Select';
 import {
@@ -110,7 +111,7 @@ export function TasksOverviewPage() {
         </Card>
       )}
 
-      <div className="flex flex-col gap-2">
+      <List>
         {filteredTasks.map((t) => {
           const status = deriveTaskStatus(t);
           const styles: Record<string, string> = {
@@ -119,7 +120,7 @@ export function TasksOverviewPage() {
             erledigt: 'bg-success/10 text-success',
           };
           return (
-            <Card key={t.id} className="flex flex-wrap items-center justify-between gap-2">
+            <ListRow key={t.id} className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <button
                   type="button"
@@ -136,10 +137,10 @@ export function TasksOverviewPage() {
               <span className={`rounded px-2.5 py-1 text-xs font-medium ${styles[status]}`}>
                 {TASK_STATUS_LABELS[status]}
               </span>
-            </Card>
+            </ListRow>
           );
         })}
-      </div>
+      </List>
 
       {selectedTask && (
         <TaskDetailDialog

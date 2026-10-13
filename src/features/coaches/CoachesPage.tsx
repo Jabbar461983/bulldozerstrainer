@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTrainers, deleteTrainer } from './api';
 import type { TrainerRow } from './api';
@@ -79,9 +80,9 @@ export function CoachesPage() {
         </Card>
       )}
 
-      <div className="flex flex-col gap-3">
+      <List>
         {trainers?.map((trainer) => (
-          <Card key={trainer.id} className="flex flex-col gap-3">
+          <ListRow key={trainer.id} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="font-medium text-text">
@@ -107,16 +108,16 @@ export function CoachesPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => setEditingTrainer(trainer)}>
+              <Button size="sm" variant="secondary" onClick={() => setEditingTrainer(trainer)}>
                 Bearbeiten
               </Button>
-              <Button variant="danger" disabled={busyId === trainer.id} onClick={() => void handleDelete(trainer)}>
+              <Button size="sm" variant="danger" disabled={busyId === trainer.id} onClick={() => void handleDelete(trainer)}>
                 Löschen
               </Button>
             </div>
-          </Card>
+          </ListRow>
         ))}
-      </div>
+      </List>
 
       {showCreate && (
         <CreateTrainerDialog

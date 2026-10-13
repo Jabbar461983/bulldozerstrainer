@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
 import { useAuth } from '../../auth/AuthContext';
 import { fetchUsers, fetchTeamOptions, deleteUser } from './api';
 import type { UserRow, TeamOption } from './api';
@@ -70,9 +71,9 @@ export function UsersPage() {
         </Card>
       )}
 
-      <div className="flex flex-col gap-3">
+      <List>
         {users?.map((user) => (
-          <Card key={user.id} className="flex flex-col gap-3">
+          <ListRow key={user.id} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="font-medium text-text">
@@ -110,14 +111,14 @@ export function UsersPage() {
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => setEditingUser(user)}>
+              <Button size="sm" variant="secondary" onClick={() => setEditingUser(user)}>
                 Bearbeiten
               </Button>
-              <Button variant="secondary" onClick={() => setPasswordUser(user)}>
+              <Button size="sm" variant="secondary" onClick={() => setPasswordUser(user)}>
                 Neues Passwort setzen
               </Button>
               {user.id !== currentProfile?.id && (
-                <Button
+                <Button size="sm"
                   variant="danger"
                   disabled={busyUserId === user.id}
                   onClick={() => void handleDelete(user)}
@@ -126,9 +127,9 @@ export function UsersPage() {
                 </Button>
               )}
             </div>
-          </Card>
+          </ListRow>
         ))}
-      </div>
+      </List>
 
       {showCreate && (
         <CreateUserDialog

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card } from '../../components/Card';
+import { List, ListRow } from '../../components/List';
 import { fetchMyDueTasks } from './api';
 import type { TaskRow } from './api';
 import { TaskDetailDialog } from './TaskDetailDialog';
@@ -37,26 +37,19 @@ export function DueTasksWidget() {
   return (
     <div className="flex flex-col gap-2">
       <h2 className="text-sm font-semibold text-text-muted">Fällige Aufgaben</h2>
-      <div className="flex flex-col gap-2">
+      <List>
         {tasks.map((t) => {
           const overdue = t.due_date < todayIso;
           return (
-            <Card
-              key={t.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedTask(t)}
-              onKeyDown={(e) => e.key === 'Enter' && setSelectedTask(t)}
-              className="flex cursor-pointer items-center justify-between gap-2 py-3"
-            >
-              <p className="font-medium text-text">{t.title}</p>
+            <ListRow key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center justify-between gap-2">
+              <p className="min-w-0 font-medium text-text">{t.title}</p>
               <span className={`text-sm ${overdue ? 'font-medium text-danger' : 'text-text-muted'}`}>
                 {formatDate(t.due_date)}
               </span>
-            </Card>
+            </ListRow>
           );
         })}
-      </div>
+      </List>
 
       {selectedTask && (
         <TaskDetailDialog

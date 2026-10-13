@@ -171,7 +171,7 @@ export function ExercisesPage() {
                   onClick={() => void handleToggleFavorite(exercise.id)}
                   aria-label={favoriteIds.has(exercise.id) ? 'Von Favoriten entfernen' : 'Als Favorit markieren'}
                   aria-pressed={favoriteIds.has(exercise.id)}
-                  className="shrink-0 text-xl leading-none text-accent transition disabled:opacity-50"
+                  className="shrink-0 text-xl leading-none text-gold transition disabled:opacity-50"
                 >
                   {favoriteIds.has(exercise.id) ? '★' : '☆'}
                 </button>

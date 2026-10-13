@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { DateChip, List, ListRow } from '../../components/List';
 import { Select } from '../../components/Select';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTeamOptions } from '../../lib/teams';
@@ -60,17 +61,11 @@ export function GamesPage() {
   function renderGame(game: Game) {
     const hasResult = game.result_us != null && game.result_them != null;
     return (
-      <Card
-        key={game.id}
-        role="button"
-        tabIndex={0}
-        onClick={() => setSelectedGame(game)}
-        onKeyDown={(e) => e.key === 'Enter' && setSelectedGame(game)}
-        className="cursor-pointer"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="font-medium text-text">
+      <ListRow key={game.id} onClick={() => setSelectedGame(game)}>
+        <div className="flex items-center gap-3">
+          <DateChip date={game.date} />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-text">
               {game.home_team} – {game.away_team}
             </p>
             <p className="text-sm text-text-muted">
@@ -85,12 +80,12 @@ export function GamesPage() {
             </p>
           </div>
           {hasResult && (
-            <span className="rounded bg-accent/10 px-2.5 py-1 text-sm font-medium text-accent">
+            <span className="shrink-0 rounded bg-accent/10 px-2.5 py-1 text-sm font-bold text-accent tabular-nums">
               {game.result_us}:{game.result_them}
             </span>
           )}
         </div>
-      </Card>
+      </ListRow>
     );
   }
 
@@ -140,13 +135,13 @@ export function GamesPage() {
                 <p className="text-sm text-text-muted">Keine kommenden Spiele geplant.</p>
               </Card>
             )}
-            <div className="flex flex-col gap-2">{upcoming.map(renderGame)}</div>
+            <List>{upcoming.map(renderGame)}</List>
           </div>
 
           {past.length > 0 && (
             <div className="flex flex-col gap-2">
               <h2 className="text-sm font-semibold text-text-muted">Vergangene Spiele</h2>
-              <div className="flex flex-col gap-2">{past.map(renderGame)}</div>
+              <List>{past.map(renderGame)}</List>
             </div>
           )}
         </div>
