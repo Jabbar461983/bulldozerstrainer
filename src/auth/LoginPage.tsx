@@ -34,7 +34,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-bg px-4 py-10">
+    <div className="flex min-h-full items-center justify-center bg-nav px-4 py-10">
       <Card className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <img

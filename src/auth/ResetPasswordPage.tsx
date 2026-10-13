@@ -35,7 +35,7 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-bg px-4 py-10">
+    <div className="flex min-h-full items-center justify-center bg-nav px-4 py-10">
       <Card className="w-full max-w-sm">
         <h1 className="mb-1 text-lg font-semibold text-text">Neues Passwort setzen</h1>
         <p className="mb-6 text-sm text-text-muted">
