@@ -6,7 +6,7 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={clsx(
-        'min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30',
+        'ui-select min-h-11 w-full min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15',
         props.className,
       )}
     />

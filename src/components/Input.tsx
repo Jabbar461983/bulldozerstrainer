@@ -6,7 +6,7 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={clsx(
-        'min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30',
+        'min-h-11 w-full min-w-0 rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition placeholder:text-text-muted/70 focus:border-accent focus:ring-3 focus:ring-accent/15',
         props.className,
       )}
     />
@@ -17,7 +17,7 @@ export function Label(props: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
       {...props}
-      className={clsx('mb-1.5 block text-sm font-medium text-text-muted', props.className)}
+      className={clsx('mb-1.5 block text-xs font-semibold tracking-wide text-text-muted', props.className)}
     />
   );
 }
