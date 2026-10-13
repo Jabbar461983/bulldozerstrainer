@@ -28,9 +28,10 @@ export function AppLayout() {
     return true;
   });
 
-  const showOverflow = items.length > 5;
-  const mobileMainItems = showOverflow ? items.slice(0, 4) : items;
-  const mobileOverflowItems = showOverflow ? items.slice(4) : [];
+  // "Mehr" ist auf dem Handy immer da (enthält mindestens "Abmelden"),
+  // daher passen daneben höchstens 4 Menüpunkte in die Fussleiste.
+  const mobileMainItems = items.slice(0, 4);
+  const mobileOverflowItems = items.slice(4);
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     clsx(
@@ -120,16 +121,14 @@ export function AppLayout() {
             <span className="max-w-full truncate px-0.5">{item.label}</span>
           </NavLink>
         ))}
-        {showOverflow && (
-          <button
-            type="button"
-            onClick={() => setShowMore(true)}
-            className="flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-nav-text"
-          >
-            <MoreIcon />
-            Mehr
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setShowMore(true)}
+          className="flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-nav-text"
+        >
+          <MoreIcon />
+          Mehr
+        </button>
       </nav>
 
       {showMore && (
@@ -154,6 +153,21 @@ export function AppLayout() {
                 </NavLink>
               </li>
             ))}
+            <li className={mobileOverflowItems.length > 0 ? 'mt-1 border-t border-border pt-1' : undefined}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMore(false);
+                  void signOut();
+                }}
+                className="flex w-full items-center gap-3 rounded px-3 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
+              >
+                <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
+                </svg>
+                Abmelden
+              </button>
+            </li>
           </ul>
         </Modal>
       )}
