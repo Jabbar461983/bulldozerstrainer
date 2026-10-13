@@ -22,6 +22,7 @@ export function CreateReceiptDialog({ teamId, season, onClose, onCreated }: Crea
   const [recipientType, setRecipientType] = useState<'company' | 'person'>('company');
   const [recipientName, setRecipientName] = useState('');
   const [date, setDate] = useState(todayIso());
+  const [paidBy, setPaidBy] = useState(profile ? `${profile.first_name} ${profile.last_name}`.trim() : '');
   const [notes, setNotes] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,7 @@ export function CreateReceiptDialog({ teamId, season, onClose, onCreated }: Crea
         amount: Number(amount),
         recipient_type: recipientType,
         recipient_name: recipientName,
+        paid_by: paidBy.trim() || null,
         notes: notes || null,
         date,
         created_by: profile?.id ?? null,
@@ -93,34 +95,41 @@ export function CreateReceiptDialog({ teamId, season, onClose, onCreated }: Crea
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="recipientType">Empfänger-Typ</Label>
-            <Select
-              id="recipientType"
-              value={recipientType}
-              onChange={(e) => setRecipientType(e.target.value as 'company' | 'person')}
-            >
-              <option value="company">Firma</option>
-              <option value="person">Person</option>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="recipientName">Empfänger</Label>
-            <Input
-              id="recipientName"
-              required
-              value={recipientName}
-              onChange={(e) => setRecipientName(e.target.value)}
-            />
-          </div>
-        </div>
         <div>
           <Label htmlFor="date">Datum</Label>
           <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
+        <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
+          <p className="text-sm font-semibold text-text">Gekauft bei / Erhalten von</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="recipientType">Empfänger-Typ</Label>
+              <Select
+                id="recipientType"
+                value={recipientType}
+                onChange={(e) => setRecipientType(e.target.value as 'company' | 'person')}
+              >
+                <option value="company">Firma</option>
+                <option value="person">Person</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="recipientName">Empfänger</Label>
+              <Input
+                id="recipientName"
+                required
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
         <div>
-          <Label htmlFor="notes">Notizen (optional)</Label>
+          <Label htmlFor="paidBy">Bezahlt durch</Label>
+          <Input id="paidBy" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="notes">Notizen (Zweck)</Label>
           <textarea
             id="notes"
             rows={2}

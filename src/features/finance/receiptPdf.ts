@@ -63,13 +63,17 @@ function addReceiptPage(
   doc.text(`Betrag: ${receipt.type === 'income' ? '+' : '-'}CHF ${receipt.amount.toFixed(2)}`, 14, y);
   y += 7;
   doc.text(
-    `Empfänger: ${receipt.recipient_name} (${receipt.recipient_type === 'company' ? 'Firma' : 'Person'})`,
+    `Gekauft bei / Erhalten von: ${receipt.recipient_name} (${receipt.recipient_type === 'company' ? 'Firma' : 'Person'})`,
     14,
     y,
   );
   y += 7;
+  if (receipt.paid_by) {
+    doc.text(`Bezahlt durch: ${receipt.paid_by}`, 14, y);
+    y += 7;
+  }
   if (receipt.notes) {
-    const lines = doc.splitTextToSize(`Notizen: ${receipt.notes}`, pageWidth - 28);
+    const lines = doc.splitTextToSize(`Notizen (Zweck): ${receipt.notes}`, pageWidth - 28);
     doc.text(lines, 14, y);
     y += lines.length * 6;
   }

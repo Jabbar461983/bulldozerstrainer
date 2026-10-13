@@ -53,7 +53,7 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
   }
 
   function handleExportCsv() {
-    const header = ['Buchungsnummer', 'Datum', 'Typ', 'Betrag', 'Empfänger-Typ', 'Empfänger', 'Notizen', 'Saldo'];
+    const header = ['Buchungsnummer', 'Datum', 'Typ', 'Betrag', 'Empfänger-Typ', 'Gekauft bei / Erhalten von', 'Bezahlt durch', 'Notizen (Zweck)', 'Saldo'];
     const csvRows = rows.map((r) => [
       r.bookingNumber,
       r.date,
@@ -61,6 +61,7 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
       r.amount.toFixed(2),
       r.recipient_type === 'company' ? 'Firma' : 'Person',
       r.recipient_name,
+      r.paid_by ?? '',
       r.notes ?? '',
       r.balance.toFixed(2),
     ]);
@@ -123,6 +124,7 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
                 </span>
               </p>
               {r.notes && <p className="break-words text-text-muted">{r.notes}</p>}
+              {r.paid_by && <p className="break-words text-xs text-text-muted">Bezahlt durch {r.paid_by}</p>}
             </div>
             <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
               <span className={r.type === 'income' ? 'text-success' : 'text-danger'}>

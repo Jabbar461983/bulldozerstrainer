@@ -312,6 +312,7 @@ export interface Receipt {
   amount: number;
   recipient_type: 'company' | 'person';
   recipient_name: string;
+  paid_by: string | null;
   notes: string | null;
   photo_path: string | null;
   date: string;

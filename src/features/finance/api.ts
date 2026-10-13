@@ -136,6 +136,7 @@ export async function createReceipt(payload: {
   amount: number;
   recipient_type: 'company' | 'person';
   recipient_name: string;
+  paid_by: string | null;
   notes: string | null;
   date: string;
   created_by: string | null;
@@ -150,7 +151,7 @@ export async function createReceipt(payload: {
 
 export async function updateReceipt(
   id: string,
-  updates: Partial<Pick<Receipt, 'type' | 'amount' | 'recipient_type' | 'recipient_name' | 'notes' | 'date'>>,
+  updates: Partial<Pick<Receipt, 'type' | 'amount' | 'recipient_type' | 'recipient_name' | 'paid_by' | 'notes' | 'date'>>,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('receipts') as any).update(updates).eq('id', id);

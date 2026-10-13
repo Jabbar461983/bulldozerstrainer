@@ -59,16 +59,23 @@ export function ReceiptViewDialog({ receipt, bookingNumber, teamName, onClose }:
             </p>
           </div>
           <div>
-            <p className="text-xs text-text-muted">Empfänger</p>
+            <p className="text-xs text-text-muted">Gekauft bei / Erhalten von</p>
             <p className="text-text">
               {receipt.recipient_name} ({receipt.recipient_type === 'company' ? 'Firma' : 'Person'})
             </p>
           </div>
         </div>
 
+        {receipt.paid_by && (
+          <div>
+            <p className="text-xs text-text-muted">Bezahlt durch</p>
+            <p className="text-text">{receipt.paid_by}</p>
+          </div>
+        )}
+
         {receipt.notes && (
           <div>
-            <p className="text-xs text-text-muted">Notizen</p>
+            <p className="text-xs text-text-muted">Notizen (Zweck)</p>
             <p className="text-text">{receipt.notes}</p>
           </div>
         )}
