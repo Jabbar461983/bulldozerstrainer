@@ -1,18 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
+import { Select } from '../../components/Select';
 import { useAuth } from '../../auth/AuthContext';
 import {
   deleteTaskGroup,
   deriveTaskStatus,
+  fetchTaskRecipientOptions,
+  forwardTask,
   TASK_STATUS_LABELS,
   updateTaskCompletion,
   updateTaskGroupContent,
   uploadTaskAttachment,
 } from './api';
-import type { TaskRow } from './api';
+import type { TaskRow, UserOptionForTask } from './api';
 
 interface TaskDetailDialogProps {
   task: TaskRow;
@@ -39,6 +42,39 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
 
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const canForward = !task.completed && (isOwnRow || canEditContent);
+  const [showForward, setShowForward] = useState(false);
+  const [forwardOptions, setForwardOptions] = useState<UserOptionForTask[] | null>(null);
+  const [forwardTo, setForwardTo] = useState('');
+  const [forwarding, setForwarding] = useState(false);
+
+  useEffect(() => {
+    if (!showForward || forwardOptions !== null) return;
+    fetchTaskRecipientOptions('all_users')
+      .then((users) => setForwardOptions(users.filter((u) => u.userId !== task.assigned_to)))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Benutzer konnten nicht geladen werden.'));
+  }, [showForward, forwardOptions, task.assigned_to]);
+
+  async function handleForward() {
+    if (!forwardTo) return;
+    const target = forwardOptions?.find((u) => u.userId === forwardTo);
+    const confirmed = window.confirm(
+      `Aufgabe an ${target ? `${target.firstName} ${target.lastName}` : 'diese Person'} weiterleiten?` +
+        (isOwnRow ? ' Sie verschwindet danach aus deiner Liste.' : ''),
+    );
+    if (!confirmed) return;
+    setError(null);
+    setForwarding(true);
+    try {
+      await forwardTask(task.id, forwardTo);
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Aufgabe konnte nicht weitergeleitet werden.');
+    } finally {
+      setForwarding(false);
+    }
+  }
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     setNewFile(e.target.files?.[0] ?? null);
@@ -216,6 +252,19 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
               <p className="text-text">{task.assigneeName}</p>
             </div>
           </div>
+
+          {task.forwards.length > 0 && (
+            <div className="flex flex-col gap-1 rounded-xl bg-surface-alt p-3 text-sm">
+              {task.forwards.map((f, i) => (
+                <p key={i} className="text-text-muted">
+                  ↪ Von <span className="font-medium text-text">{f.fromName}</span> weitergeleitet an{' '}
+                  <span className="font-medium text-text">{f.toName}</span>
+                  {' · '}
+                  {new Date(f.createdAt).toLocaleDateString('de-CH')}
+                </p>
+              ))}
+            </div>
+          )}
         </form>
 
         <div className="border-t border-border pt-4">
@@ -250,6 +299,40 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
             task.remark && <p className="mt-1 text-sm text-text-muted">{task.remark}</p>
           )}
         </div>
+
+        {canForward && (
+          <div className="border-t border-border pt-4">
+            {!showForward ? (
+              <Button type="button" variant="secondary" onClick={() => setShowForward(true)}>
+                Weiterleiten
+              </Button>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <Label htmlFor="forward-to">Weiterleiten an</Label>
+                {forwardOptions === null ? (
+                  <p className="text-sm text-text-muted">Lädt…</p>
+                ) : (
+                  <Select id="forward-to" value={forwardTo} onChange={(e) => setForwardTo(e.target.value)}>
+                    <option value="">– Person wählen –</option>
+                    {forwardOptions.map((u) => (
+                      <option key={u.userId} value={u.userId}>
+                        {u.firstName} {u.lastName}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" onClick={() => setShowForward(false)}>
+                    Abbrechen
+                  </Button>
+                  <Button type="button" disabled={!forwardTo || forwarding} onClick={() => void handleForward()}>
+                    {forwarding ? 'Weiterleiten…' : 'Weiterleiten'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>

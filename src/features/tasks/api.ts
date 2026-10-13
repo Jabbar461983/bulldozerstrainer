@@ -5,10 +5,18 @@ const ATTACHMENTS_BUCKET = 'task-attachments';
 const SIGNED_URL_TTL_SECONDS = 3600;
 export const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
 
+export interface TaskForwardInfo {
+  fromName: string;
+  toName: string;
+  createdAt: string;
+}
+
 export interface TaskRow extends Task {
   creatorName: string;
   assigneeName: string;
   attachmentUrl: string | null;
+  /** Weiterleitungen, älteste zuerst. */
+  forwards: TaskForwardInfo[];
 }
 
 export type TaskStatus = 'offen' | 'in_arbeit' | 'erledigt';
@@ -27,7 +35,7 @@ export function deriveTaskStatus(task: Pick<Task, 'completed' | 'remark'>): Task
 
 const OVERDUE_THRESHOLD_DAYS = 5;
 
-function isOverdue(dueDate: string): boolean {
+export function isOverdue(dueDate: string): boolean {
   const due = new Date(`${dueDate}T00:00:00`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -57,9 +65,34 @@ export function computeTaskStats(tasks: Pick<Task, 'completed' | 'due_date'>[]):
   return { offen, erledigt, ueberfaellig };
 }
 
+interface TaskForwardDbRow {
+  task_id: string;
+  from_user: string | null;
+  to_user: string | null;
+  created_at: string;
+}
+
+async function fetchForwards(taskIds: string[]): Promise<TaskForwardDbRow[]> {
+  if (taskIds.length === 0) return [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)('task_forwards')
+    .select('task_id, from_user, to_user, created_at')
+    .in('task_id', taskIds)
+    .order('created_at', { ascending: true });
+  // Migration 0092 evtl. noch nicht ausgeführt - Aufgaben trotzdem anzeigen.
+  if (error) return [];
+  return (data ?? []) as TaskForwardDbRow[];
+}
+
 async function attachRowMeta(rows: Task[]): Promise<TaskRow[]> {
+  const forwardRows = await fetchForwards(rows.map((r) => r.id));
   const ids = Array.from(
-    new Set(rows.flatMap((r) => [r.created_by, r.assigned_to]).filter((id): id is string => Boolean(id))),
+    new Set(
+      [
+        ...rows.flatMap((r) => [r.created_by, r.assigned_to]),
+        ...forwardRows.flatMap((f) => [f.from_user, f.to_user]),
+      ].filter((id): id is string => Boolean(id)),
+    ),
   );
   const nameById = new Map<string, string>();
   if (ids.length > 0) {
@@ -80,8 +113,17 @@ async function attachRowMeta(rows: Task[]): Promise<TaskRow[]> {
     }
   }
 
+  const nameOf = (id: string | null) => (id ? (nameById.get(id) ?? 'Unbekannt') : 'Gelöschter Benutzer');
+  const forwardsByTask = new Map<string, TaskForwardInfo[]>();
+  for (const f of forwardRows) {
+    const list = forwardsByTask.get(f.task_id) ?? [];
+    list.push({ fromName: nameOf(f.from_user), toName: nameOf(f.to_user), createdAt: f.created_at });
+    forwardsByTask.set(f.task_id, list);
+  }
+
   return rows.map((r) => ({
     ...r,
+    forwards: forwardsByTask.get(r.id) ?? [],
     creatorName: r.created_by ? (nameById.get(r.created_by) ?? 'Unbekannt') : 'Gelöschter Benutzer',
     assigneeName: nameById.get(r.assigned_to) ?? 'Unbekannt',
     attachmentUrl: r.attachment_path ? (urlByPath.get(r.attachment_path) ?? null) : null,
@@ -249,5 +291,12 @@ export async function updateTaskCompletion(id: string, completed: boolean, remar
 
 export async function deleteTaskGroup(taskGroupId: string) {
   const { error } = await supabase.from('tasks').delete().eq('task_group_id', taskGroupId);
+  if (error) throw error;
+}
+
+/** Empfänger (oder Ersteller/Admin): Aufgabe an eine andere Person weiterleiten. */
+export async function forwardTask(taskId: string, toUserId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.rpc as any)('forward_task', { p_task_id: taskId, p_to_user: toUserId });
   if (error) throw error;
 }

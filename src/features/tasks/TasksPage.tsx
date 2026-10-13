@@ -125,6 +125,11 @@ export function TasksPage() {
                     <p className="text-sm text-text-muted">
                       Fällig: {formatDate(t.due_date)} · von {t.creatorName}
                     </p>
+                    {t.forwards.length > 0 && (
+                      <p className="text-xs text-text-muted">
+                        ↪ weitergeleitet von {t.forwards[t.forwards.length - 1].fromName}
+                      </p>
+                    )}
                   </div>
                   <StatusBadge status={status} />
                 </div>

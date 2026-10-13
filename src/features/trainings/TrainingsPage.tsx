@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Select } from '../../components/Select';
@@ -17,7 +18,72 @@ import { TrainingDetailDialog } from './TrainingDetailDialog';
 import { TrainingPresentation } from './TrainingPresentation';
 import { computeSeasonCoverageForTrainings } from '../seasonplanning/api';
 
+const SECTION_STORAGE_KEY = 'trainings-open-sections';
+
+function readOpenSections(): { upcoming: boolean; past: boolean } {
+  try {
+    const raw = localStorage.getItem(SECTION_STORAGE_KEY);
+    if (raw) return { upcoming: false, past: false, ...JSON.parse(raw) };
+  } catch {
+    // ignorieren - Standard verwenden
+  }
+  return { upcoming: false, past: false };
+}
+
+function CollapsibleSection({
+  title,
+  count,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-left hover:bg-surface-alt"
+      >
+        <span className="font-semibold text-text">
+          {title} <span className="font-normal text-text-muted">({count})</span>
+        </span>
+        <svg
+          viewBox="0 0 24 24"
+          className={`size-5 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 export function TrainingsPage() {
+  const [openSections, setOpenSections] = useState(readOpenSections);
+
+  function toggleSection(section: 'upcoming' | 'past') {
+    setOpenSections((prev) => {
+      const next = { ...prev, [section]: !prev[section] };
+      try {
+        localStorage.setItem(SECTION_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignorieren
+      }
+      return next;
+    });
+  }
+
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
   const [teamId, setTeamId] = useState('');
   const [trainings, setTrainings] = useState<Training[] | null>(null);
@@ -73,7 +139,7 @@ export function TrainingsPage() {
     const upcoming = (trainings ?? []).filter((t) => t.date >= today).sort((a, b) => a.date.localeCompare(b.date));
     const past = (trainings ?? [])
       .filter((t) => t.date < today)
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => b.date.localeCompare(a.date));
     return { upcoming, past };
   }, [trainings]);
 
@@ -186,23 +252,36 @@ export function TrainingsPage() {
       {trainings === null && teamId && <p className="text-sm text-text-muted">Lädt…</p>}
 
       {trainings !== null && (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-text-muted">Kommende Trainings</h2>
-            {upcoming.length === 0 && (
+        <div className="flex flex-col gap-3">
+          <CollapsibleSection
+            title="Kommende Trainings"
+            count={upcoming.length}
+            open={openSections.upcoming}
+            onToggle={() => toggleSection('upcoming')}
+          >
+            {upcoming.length === 0 ? (
               <Card>
                 <p className="text-sm text-text-muted">Keine kommenden Trainings geplant.</p>
               </Card>
+            ) : (
+              <div className="flex flex-col gap-2">{upcoming.map(renderTraining)}</div>
             )}
-            <div className="flex flex-col gap-2">{upcoming.map(renderTraining)}</div>
-          </div>
+          </CollapsibleSection>
 
-          {past.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold text-text-muted">Vergangene Trainings</h2>
+          <CollapsibleSection
+            title="Vergangene Trainings"
+            count={past.length}
+            open={openSections.past}
+            onToggle={() => toggleSection('past')}
+          >
+            {past.length === 0 ? (
+              <Card>
+                <p className="text-sm text-text-muted">Noch keine vergangenen Trainings.</p>
+              </Card>
+            ) : (
               <div className="flex flex-col gap-2">{past.map(renderTraining)}</div>
-            </div>
-          )}
+            )}
+          </CollapsibleSection>
         </div>
       )}
 
