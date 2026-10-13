@@ -91,7 +91,7 @@ export function ChecklistItemEditor({ item, index, onUpdate, onDelete }: Checkli
         type="button"
         variant="secondary"
         onClick={() => onDelete(index)}
-        className="text-error"
+        className="text-danger"
       >
         ✕
       </Button>

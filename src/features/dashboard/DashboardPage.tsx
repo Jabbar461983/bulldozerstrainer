@@ -17,7 +17,7 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold text-text">
+        <h1 className="text-2xl font-bold tracking-tight text-text">
           Willkommen{profile ? `, ${profile.first_name}` : ''}
         </h1>
         <p className="text-sm text-text-muted">

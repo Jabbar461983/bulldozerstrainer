@@ -77,7 +77,7 @@ export function GameAbsencesEditor({ gameId, teamId }: GameAbsencesEditorProps) 
             {players.map((p) => (
               <label
                 key={p.playerId}
-                className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-text"
+                className="flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-sm text-text"
               >
                 <input
                   type="checkbox"
@@ -98,7 +98,7 @@ export function GameAbsencesEditor({ gameId, teamId }: GameAbsencesEditorProps) 
             {trainers.map((t) => (
               <label
                 key={t.trainerId}
-                className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-text"
+                className="flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-sm text-text"
               >
                 <input
                   type="checkbox"

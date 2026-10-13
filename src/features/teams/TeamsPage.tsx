@@ -81,8 +81,8 @@ export function TeamsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Teamverwaltung</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Teamverwaltung</h1>
         <Button onClick={() => setShowCreateCategory(true)}>+ Neue Kategorie</Button>
       </div>
 
@@ -108,7 +108,7 @@ export function TeamsPage() {
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-text">{category.name}</p>
                   {category.is_default && (
-                    <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
+                    <span className="rounded bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
                       Standard
                     </span>
                   )}
@@ -152,7 +152,7 @@ export function TeamsPage() {
                       {team.coachAssignments.map((a) => (
                         <span
                           key={a.userId + a.role}
-                          className="rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
+                          className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                         >
                           {a.firstName} {a.lastName} – {ROLE_LABELS[a.role]}
                           {a.role !== 'finance' && a.financeAccess && ' · Finanzen'}

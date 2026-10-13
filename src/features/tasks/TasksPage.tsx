@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '../../components/Button';
+import { Button, LinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { useAuth } from '../../auth/AuthContext';
 import { deriveTaskStatus, fetchMyTasks, fetchTasksCreatedByMe, TASK_STATUS_LABELS } from './api';
@@ -25,7 +24,7 @@ function StatusBadge({ status }: { status: ReturnType<typeof deriveTaskStatus> }
     erledigt: 'bg-success/10 text-success',
   };
   return (
-    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles[status]}`}>
+    <span className={`rounded px-2.5 py-1 text-xs font-medium ${styles[status]}`}>
       {TASK_STATUS_LABELS[status]}
     </span>
   );
@@ -72,17 +71,13 @@ export function TasksPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Aufgaben</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben</h1>
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
             <>
-              <Link to="/aufgaben/statistik">
-                <Button variant="secondary">Übersicht Team/Person</Button>
-              </Link>
-              <Link to="/aufgaben/uebersicht">
-                <Button variant="secondary">Gesamtübersicht</Button>
-              </Link>
+              <LinkButton to="/aufgaben/statistik">Übersicht Team/Person</LinkButton>
+              <LinkButton to="/aufgaben/uebersicht">Gesamtübersicht</LinkButton>
             </>
           )}
           <Button onClick={() => setShowCreate(true)}>+ Neue Aufgabe</Button>
@@ -168,7 +163,7 @@ export function TasksPage() {
                       key={t.id}
                       type="button"
                       onClick={() => setSelectedTask(t)}
-                      className="flex items-center gap-1.5 rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted hover:bg-surface"
+                      className="flex items-center gap-1.5 rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted hover:bg-surface"
                     >
                       {t.assigneeName}
                       <StatusBadge status={deriveTaskStatus(t)} />

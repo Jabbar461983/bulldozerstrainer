@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Modal } from '../../components/Modal';
-import { Button } from '../../components/Button';
+import { Button, buttonClasses } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import {
   updateChecklist,
@@ -326,7 +326,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            className="text-error hover:bg-error/10"
+            className="text-danger hover:bg-danger/10"
             onClick={handleDelete}
             disabled={loading || deleting}
           >
@@ -343,7 +343,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
       }
     >
       <form id="edit-checklist-form" onSubmit={handleSubmit} className="flex h-full flex-col space-y-4">
-        {error && <div className="rounded-lg bg-error/10 p-3 text-sm text-error">{error}</div>}
+        {error && <div className="rounded-lg bg-danger/10 p-3 text-sm text-danger">{error}</div>}
 
         <div className="flex gap-1 border-b border-border">
           <button
@@ -513,7 +513,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                                 setTypeDraftParentId(availableParentHeadings(item.id)[0]?.id ?? null);
                               }
                             }}
-                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+                            className="ui-select min-h-8 rounded-md border border-border-strong bg-surface py-1 pl-2 pr-7 text-xs"
                           >
                             <option value="heading">Überschrift</option>
                             <option value="subheading">Subüberschrift</option>
@@ -525,7 +525,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                             <select
                               value={typeDraftParentId ?? ''}
                               onChange={(e) => setTypeDraftParentId(e.target.value || null)}
-                              className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+                              className="ui-select min-h-8 rounded-md border border-border-strong bg-surface py-1 pl-2 pr-7 text-xs"
                             >
                               {availableParentHeadings(item.id).length === 0 ? (
                                 <option value="">-- keine Überschrift vorhanden --</option>
@@ -541,7 +541,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                           <button
                             type="button"
                             onClick={() => void saveTypeChange(item)}
-                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            className={buttonClasses('secondary', 'sm', 'px-2.5')}
                             title="Übernehmen"
                           >
                             ✓
@@ -549,7 +549,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                           <button
                             type="button"
                             onClick={() => setEditingTypeId(null)}
-                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            className={buttonClasses('secondary', 'sm', 'px-2.5')}
                             title="Abbrechen"
                           >
                             ✕
@@ -596,7 +596,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                           <button
                             type="button"
                             onClick={() => void moveItem(item.id, 'up')}
-                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            className={buttonClasses('secondary', 'sm', 'px-2.5')}
                             title="Nach oben"
                           >
                             ↑
@@ -606,7 +606,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                           <button
                             type="button"
                             onClick={() => void moveItem(item.id, 'down')}
-                            className="text-xs px-2 py-1 bg-surface hover:bg-surface-alt rounded"
+                            className={buttonClasses('secondary', 'sm', 'px-2.5')}
                             title="Nach unten"
                           >
                             ↓
@@ -617,7 +617,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                         type="button"
                         variant="secondary"
                         onClick={() => handleDeleteItem(item.id)}
-                        className="text-error"
+                        className="text-danger"
                       >
                         ✕
                       </Button>

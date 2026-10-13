@@ -134,7 +134,7 @@ export function TrainingAbsencesEditor({ trainingId, teamId }: TrainingAbsencesE
             return (
               <span
                 key={a.id}
-                className="flex items-center gap-1.5 rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
+                className="flex items-center gap-1.5 rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
               >
                 {option?.label ?? 'Unbekannt'}
                 <button

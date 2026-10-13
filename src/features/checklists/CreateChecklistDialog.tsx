@@ -148,7 +148,7 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
       }
     >
       <form id="create-checklist-form" onSubmit={handleSubmit} className="space-y-4">
-        {error && <div className="rounded-lg bg-error/10 p-3 text-sm text-error">{error}</div>}
+        {error && <div className="rounded-lg bg-danger/10 p-3 text-sm text-danger">{error}</div>}
 
         <div>
           <Label htmlFor="title">Titel *</Label>
@@ -267,7 +267,7 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
                       type="button"
                       variant="secondary"
                       onClick={() => handleDeleteItem(idx)}
-                      className="text-error text-xs"
+                      className="text-danger text-xs"
                       disabled={loading}
                     >
                       ✕

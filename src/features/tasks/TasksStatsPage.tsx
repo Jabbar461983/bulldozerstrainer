@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { Link } from 'react-router-dom';
+import { BackLinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
 import {
   computeTaskStats,
@@ -57,7 +57,7 @@ function StatsBadges({
         onSelect(filter);
       }}
       className={clsx(
-        'rounded-full px-2.5 py-1 transition enabled:hover:ring-2 enabled:hover:ring-current/30 disabled:cursor-default',
+        'rounded px-2.5 py-1 transition enabled:hover:ring-2 enabled:hover:ring-current/30 disabled:cursor-default',
         style,
         active === filter && 'ring-2 ring-current/50',
       )}
@@ -240,11 +240,9 @@ export function TasksStatsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Aufgaben · Übersicht Team/Person</h1>
-        <Link to="/aufgaben" className="text-sm font-medium text-accent hover:underline">
-          Zurück zu Aufgaben
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben · Übersicht Team/Person</h1>
+        <BackLinkButton to="/aufgaben">Zurück zu Aufgaben</BackLinkButton>
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../../components/Modal';
-import { Button } from '../../components/Button';
+import { BackButton, Button } from '../../components/Button';
 import {
   fetchExerciseOptions,
   fetchExerciseMediaByIds,
@@ -161,9 +161,9 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
 
         {!loading && selection && !previewExercise && (
           <>
-            <Button type="button" variant="ghost" onClick={() => setSelection(null)} className="self-start">
-              ← Inhalt wechseln
-            </Button>
+            <BackButton type="button" onClick={() => setSelection(null)} className="self-start">
+              Inhalt wechseln
+            </BackButton>
 
             {filteredExercises.length === 0 && (
               <p className="text-sm text-text-muted">Keine Übungen für diese Auswahl vorhanden.</p>
@@ -220,9 +220,7 @@ export function AddTrainingExerciseDialog({ fieldType, categoryId, onClose, onAd
 
         {!loading && previewExercise && (
           <div className="flex flex-col gap-3">
-            <Button type="button" variant="ghost" onClick={() => setPreviewId(null)} className="self-start">
-              ← Zurück
-            </Button>
+            <BackButton type="button" onClick={() => setPreviewId(null)} className="self-start" />
 
             {(mediaByExercise.get(previewExercise.id) ?? [])
               .filter((m) => m.type === 'image' && m.url)

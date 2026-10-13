@@ -112,9 +112,9 @@ export function ExercisesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Übungsdatenbank</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Übungsdatenbank</h1>
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={() => setShowImport(true)}>
             CSV-Import
           </Button>
@@ -205,12 +205,12 @@ export function ExercisesPage() {
 
               <div className="flex flex-wrap gap-1.5">
                 {exercise.focus_areas.map((f) => (
-                  <span key={f} className="rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted">
+                  <span key={f} className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted">
                     {f}
                   </span>
                 ))}
                 {exercise.age_category_ids.map((id) => (
-                  <span key={id} className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
+                  <span key={id} className="rounded bg-accent/10 px-2.5 py-1 text-xs text-accent">
                     {categoryById.get(id)?.name ?? '?'}
                   </span>
                 ))}

@@ -54,8 +54,8 @@ export function UsersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Benutzerverwaltung</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Benutzerverwaltung</h1>
         <Button onClick={() => setShowCreate(true)}>+ Neuer Benutzer</Button>
       </div>
 
@@ -85,7 +85,7 @@ export function UsersPage() {
                 {user.phone && <p className="text-sm text-text-muted">{user.phone}</p>}
               </div>
               {user.is_admin && (
-                <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
+                <span className="rounded bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent">
                   Admin
                 </span>
               )}
@@ -99,7 +99,7 @@ export function UsersPage() {
                 {user.teamRoles.map((tr) => (
                   <span
                     key={tr.teamId}
-                    className="rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
+                    className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                   >
                     {tr.categoryName} · {tr.teamName} –{' '}
                     {ROLE_LABELS[tr.role]}

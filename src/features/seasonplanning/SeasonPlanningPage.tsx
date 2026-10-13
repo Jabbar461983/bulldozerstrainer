@@ -97,9 +97,9 @@ export function SeasonPlanningPage({ teamId, season, teamName }: SeasonPlanningP
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Saisonplanung {season}</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Saisonplanung {season}</h1>
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
             <Button onClick={handleImportGames} disabled={importingGames} variant="secondary">
               {importingGames ? 'Importiert...' : '🎮 Spiele importieren'}

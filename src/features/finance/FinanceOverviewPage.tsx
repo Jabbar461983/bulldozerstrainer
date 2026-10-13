@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { BackLinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Input, Label } from '../../components/Input';
 import { currentSeason } from '../../lib/dates';
@@ -37,11 +38,9 @@ export function FinanceOverviewPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Finanzen · Gesamtübersicht</h1>
-        <Link to="/finanzen" className="text-sm font-medium text-accent hover:underline">
-          Zurück zu Finanzen
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Finanzen · Gesamtübersicht</h1>
+        <BackLinkButton to="/finanzen">Zurück zu Finanzen</BackLinkButton>
       </div>
 
       <div className="max-w-xs">

@@ -54,15 +54,15 @@ export function ChecklistsAdminPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Checklisten-Verwaltung</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Checklisten-Verwaltung</h1>
         <Button onClick={() => setShowCreate(true)}>+ Neue Checkliste</Button>
       </div>
 
       {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       {error && (
-        <div className="rounded-lg bg-error/10 p-4 text-error">
+        <div className="rounded-lg bg-danger/10 p-4 text-danger">
           {error}
         </div>
       )}
@@ -144,7 +144,7 @@ export function ChecklistsAdminPage() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="text-error"
+                    className="text-danger"
                     onClick={(e) => {
                       e.stopPropagation();
                       void handleDelete(checklist.id);

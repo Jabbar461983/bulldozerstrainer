@@ -99,12 +99,12 @@ export function ChecklistsCoachPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Checklisten</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-text">Checklisten</h1>
 
       {offlineCachedAt && <OfflineNotice cachedAt={offlineCachedAt} />}
 
       {error && (
-        <div className="rounded-lg bg-error/10 p-4 text-error">
+        <div className="rounded-lg bg-danger/10 p-4 text-danger">
           {error}
         </div>
       )}

@@ -97,7 +97,7 @@ export function ChecklistInstancesManagerDialog({ checklist, onClose }: Checklis
       }
     >
       <div className="space-y-3">
-        {error && <div className="rounded-lg bg-error/10 p-3 text-sm text-error">{error}</div>}
+        {error && <div className="rounded-lg bg-danger/10 p-3 text-sm text-danger">{error}</div>}
 
         {instances === null ? (
           <p className="text-sm text-text-muted">Lädt…</p>
@@ -118,7 +118,7 @@ export function ChecklistInstancesManagerDialog({ checklist, onClose }: Checklis
               </label>
               <Button
                 variant="secondary"
-                className="text-error"
+                className="text-danger"
                 disabled={selectedIds.size === 0 || deleting}
                 onClick={() => void handleDeleteSelected()}
               >
@@ -150,7 +150,7 @@ export function ChecklistInstancesManagerDialog({ checklist, onClose }: Checklis
                       </p>
                     </div>
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      className={`rounded px-2.5 py-1 text-xs font-medium ${
                         isArchived ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'
                       }`}
                     >
@@ -158,7 +158,7 @@ export function ChecklistInstancesManagerDialog({ checklist, onClose }: Checklis
                     </span>
                     <Button
                       variant="secondary"
-                      className="text-error"
+                      className="text-danger"
                       disabled={isArchived || deleting}
                       title={isArchived ? 'Abgeschlossene Checklisten können nicht gelöscht werden.' : undefined}
                       onClick={() => void handleDeleteSingle(instance.id)}

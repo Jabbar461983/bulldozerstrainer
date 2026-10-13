@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button } from '../../components/Button';
+import { BackButton, Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, saveChecklistProgress, createChecklistInstance, deleteChecklistInstance } from './api';
 import { useAuth } from '../../auth/AuthContext';
@@ -230,9 +230,7 @@ export function ChecklistInstanceWorkspace({
   if (instances.length > 1 && !selectedInstance) {
     return (
       <div className="space-y-4">
-        <Button onClick={onClose} variant="secondary">
-          ← Zurück
-        </Button>
+        <BackButton onClick={onClose} />
         <h2 className="text-xl font-bold">Instanz auswählen</h2>
         {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
         <div className="space-y-2">
@@ -296,9 +294,7 @@ export function ChecklistInstanceWorkspace({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <Button onClick={onClose} variant="secondary">
-            ← Zurück
-          </Button>
+          <BackButton onClick={onClose} />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-center">{selectedInstance.checklistTitle}</h1>
@@ -316,7 +312,7 @@ export function ChecklistInstanceWorkspace({
       </div>
 
       {error && (
-        <div className="rounded-lg bg-error/10 p-4 text-error text-sm">
+        <div className="rounded-lg bg-danger/10 p-4 text-danger text-sm">
           {error}
         </div>
       )}
@@ -435,7 +431,7 @@ export function ChecklistInstanceWorkspace({
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(photo.id)}
-                      className="text-error hover:font-bold"
+                      className="text-danger hover:font-bold"
                     >
                       ✕
                     </button>

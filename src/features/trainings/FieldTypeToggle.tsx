@@ -13,7 +13,7 @@ export function FieldTypeToggle({ value, onChange }: FieldTypeToggleProps) {
         type="button"
         onClick={() => onChange('on_field')}
         className={clsx(
-          'rounded-full px-2.5 py-1 transition',
+          'rounded px-2.5 py-1 transition',
           value === 'on_field' ? 'bg-accent text-accent-foreground' : 'text-text-muted',
         )}
       >
@@ -23,7 +23,7 @@ export function FieldTypeToggle({ value, onChange }: FieldTypeToggleProps) {
         type="button"
         onClick={() => onChange('off_field')}
         className={clsx(
-          'rounded-full px-2.5 py-1 transition',
+          'rounded px-2.5 py-1 transition',
           value === 'off_field' ? 'bg-accent text-accent-foreground' : 'text-text-muted',
         )}
       >

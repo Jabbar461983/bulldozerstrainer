@@ -50,7 +50,7 @@ export function ChecklistItemAttachments({ itemId }: ChecklistItemAttachmentsPro
 
       {showAttachments && (
         <Card className="space-y-2 ml-4 p-3 bg-surface-alt text-sm">
-          {error && <p className="text-xs text-error">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
 
           {attachments.length > 0 && (
             <div className="space-y-1 max-h-32 overflow-y-auto">

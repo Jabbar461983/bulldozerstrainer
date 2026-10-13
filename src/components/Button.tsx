@@ -49,14 +49,30 @@ export function LinkButton({ variant = 'secondary', size = 'md', className, ...p
   );
 }
 
-/** "Zurück"-Button mit Pfeil, überall gleich. */
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
+/** "Zurück"-Link mit Pfeil, überall gleich. */
 export function BackLinkButton({ to, children }: { to: string; children: ReactNode }) {
   return (
     <LinkButton to={to} variant="secondary">
-      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M15 6l-6 6 6 6" />
-      </svg>
+      <BackIcon />
       {children}
     </LinkButton>
+  );
+}
+
+/** "Zurück"-Button mit Pfeil (für Zurück innerhalb einer Ansicht). */
+export function BackButton({ children = 'Zurück', ...props }: Omit<ButtonProps, 'variant'>) {
+  return (
+    <Button variant="secondary" {...props}>
+      <BackIcon />
+      {children}
+    </Button>
   );
 }

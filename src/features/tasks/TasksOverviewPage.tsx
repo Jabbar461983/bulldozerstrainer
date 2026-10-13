@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { BackLinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Label } from '../../components/Input';
 import { Select } from '../../components/Select';
@@ -72,11 +72,9 @@ export function TasksOverviewPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Aufgaben · Gesamtübersicht</h1>
-        <Link to="/aufgaben" className="text-sm font-medium text-accent hover:underline">
-          Zurück zu Aufgaben
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben · Gesamtübersicht</h1>
+        <BackLinkButton to="/aufgaben">Zurück zu Aufgaben</BackLinkButton>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -135,7 +133,7 @@ export function TasksOverviewPage() {
                   {t.is_team_task && ' · Teamaufgabe'}
                 </p>
               </div>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles[status]}`}>
+              <span className={`rounded px-2.5 py-1 text-xs font-medium ${styles[status]}`}>
                 {TASK_STATUS_LABELS[status]}
               </span>
             </Card>

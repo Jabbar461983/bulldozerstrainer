@@ -85,7 +85,7 @@ export function GamesPage() {
             </p>
           </div>
           {hasResult && (
-            <span className="rounded-full bg-accent/10 px-2.5 py-1 text-sm font-medium text-accent">
+            <span className="rounded bg-accent/10 px-2.5 py-1 text-sm font-medium text-accent">
               {game.result_us}:{game.result_them}
             </span>
           )}
@@ -96,9 +96,9 @@ export function GamesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Spiele</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Spiele</h1>
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" disabled={!teamId} onClick={() => setShowImport(true)}>
             CSV-Import
           </Button>

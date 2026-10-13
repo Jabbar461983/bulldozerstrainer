@@ -59,9 +59,9 @@ export function CoachesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Trainer</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Trainer</h1>
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={() => setShowImport(true)}>
             CSV-Import
           </Button>
@@ -100,7 +100,7 @@ export function CoachesPage() {
                 <span className="text-xs text-text-muted">Keinem Team zugewiesen</span>
               )}
               {trainer.teams.map((t) => (
-                <span key={t.teamId} className="rounded-full bg-surface-alt px-2.5 py-1 text-xs text-text-muted">
+                <span key={t.teamId} className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted">
                   {t.categoryName} · {t.teamName}
                 </span>
               ))}

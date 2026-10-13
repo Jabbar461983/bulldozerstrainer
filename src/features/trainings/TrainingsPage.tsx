@@ -174,7 +174,7 @@ export function TrainingsPage() {
               </div>
               <div className="flex items-center gap-2">
                 {info?.ratingStars && <StarRating value={info.ratingStars} readOnly size="sm" />}
-                <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent">
+                <span className="rounded bg-accent/10 px-2.5 py-1 text-xs text-accent">
                   {training.field_type === 'off_field' ? 'Off Field' : 'On Field'}
                 </span>
               </div>
@@ -212,9 +212,9 @@ export function TrainingsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Training</h1>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Training</h1>
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
             disabled={!teamId || !trainings || trainings.length === 0}

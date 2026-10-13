@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Button } from '../../components/Button';
+import { useSearchParams } from 'react-router-dom';
+import { Button, LinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Select } from '../../components/Select';
 import { Input, Label } from '../../components/Input';
@@ -121,13 +121,11 @@ export function FinancePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-text">Finanzen</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-text">Finanzen</h1>
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && (
-            <Link to="/finanzen/uebersicht">
-              <Button variant="secondary">Gesamtübersicht</Button>
-            </Link>
+            <LinkButton to="/finanzen/uebersicht">Gesamtübersicht</LinkButton>
           )}
           <Button disabled={!teamId} onClick={() => setShowCreateReceipt(true)}>
             + Neuer Beleg

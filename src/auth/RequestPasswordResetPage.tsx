@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Button } from '../components/Button';
+import { BackLinkButton, Button } from '../components/Button';
 import { Input, Label } from '../components/Input';
 import { Card } from '../components/Card';
 
@@ -59,9 +58,7 @@ export function RequestPasswordResetPage() {
         )}
 
         <div className="mt-4 text-center">
-          <Link to="/login" className="text-sm text-accent hover:underline">
-            Zurück zur Anmeldung
-          </Link>
+          <BackLinkButton to="/login">Zurück zur Anmeldung</BackLinkButton>
         </div>
       </Card>
     </div>

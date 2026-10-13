@@ -318,7 +318,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
         type="button"
         onClick={onClick}
         className={clsx(
-          'flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition',
+          'flex min-h-9 items-center gap-1.5 rounded border px-3 py-1.5 text-xs font-medium transition',
           active ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-muted hover:bg-surface-alt',
         )}
       >
@@ -547,7 +547,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
                     type="button"
                     onClick={() => goToStep(i)}
                     className={clsx(
-                      'flex min-h-8 items-center rounded-full border px-3 py-1 text-xs font-medium transition',
+                      'flex min-h-8 items-center rounded border px-3 py-1 text-xs font-medium transition',
                       i === stepIndex ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-muted hover:bg-surface-alt',
                     )}
                   >
@@ -568,7 +568,7 @@ export function ExerciseSketchEditor({ initialDrawing, onClose, onSave }: Exerci
               <button
                 type="button"
                 onClick={addStep}
-                className="flex min-h-8 items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-xs font-medium text-text-muted transition hover:bg-surface-alt"
+                className="flex min-h-8 items-center gap-1 rounded border border-dashed border-border px-3 py-1 text-xs font-medium text-text-muted transition hover:bg-surface-alt"
               >
                 + Schritt
               </button>
