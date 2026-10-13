@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/Card';
 import { Input, Label } from '../../components/Input';
 import { currentSeason } from '../../lib/dates';
@@ -7,7 +7,13 @@ import { fetchFinanceOverview } from './api';
 import type { TeamFinanceSummary } from './api';
 
 export function FinanceOverviewPage() {
+  const navigate = useNavigate();
   const [season, setSeason] = useState(currentSeason());
+
+  function openTeam(teamId: string | null) {
+    const params = new URLSearchParams({ team: teamId ?? '__club__', season });
+    navigate(`/finanzen?${params.toString()}`);
+  }
   const [rows, setRows] = useState<TeamFinanceSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +55,14 @@ export function FinanceOverviewPage() {
       {rows !== null && (
         <div className="flex flex-col gap-2">
           {rows.map((r) => (
-            <Card key={r.teamId ?? 'club'}>
+            <Card
+              key={r.teamId ?? 'club'}
+              role="button"
+              tabIndex={0}
+              onClick={() => openTeam(r.teamId)}
+              onKeyDown={(e) => e.key === 'Enter' && openTeam(r.teamId)}
+              className="cursor-pointer hover:bg-surface-alt"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium text-text">
                   {r.categoryName ? `${r.categoryName} · ${r.teamName}` : r.teamName}
@@ -74,6 +87,12 @@ export function FinanceOverviewPage() {
               </div>
             </Card>
           ))}
+
+          {rows.length === 0 && (
+            <Card>
+              <p className="text-sm text-text-muted">Für diese Saison ist noch bei keinem Team ein Budget hinterlegt.</p>
+            </Card>
+          )}
 
           {rows.length > 0 && (
             <Card className="border-accent/40 bg-accent/5">

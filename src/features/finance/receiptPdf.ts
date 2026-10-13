@@ -1,4 +1,5 @@
 import type jsPDF from 'jspdf';
+import { paidByLabel } from './api';
 import type { ReceiptRow } from './api';
 
 interface LoadedImage {
@@ -69,7 +70,7 @@ function addReceiptPage(
   );
   y += 7;
   if (receipt.paid_by) {
-    doc.text(`Bezahlt durch: ${receipt.paid_by}`, 14, y);
+    doc.text(`${paidByLabel(receipt.type)}: ${receipt.paid_by}`, 14, y);
     y += 7;
   }
   if (receipt.notes) {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { deleteReceipt } from './api';
+import { deleteReceipt, paidByLabel } from './api';
 import type { ReceiptRow } from './api';
 import { toCsv } from '../../lib/csv';
 import { downloadTextFile } from '../../lib/downloadFile';
@@ -53,7 +53,7 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
   }
 
   function handleExportCsv() {
-    const header = ['Buchungsnummer', 'Datum', 'Typ', 'Betrag', 'Empfänger-Typ', 'Gekauft bei / Erhalten von', 'Bezahlt durch', 'Notizen (Zweck)', 'Saldo'];
+    const header = ['Buchungsnummer', 'Datum', 'Typ', 'Betrag', 'Empfänger-Typ', 'Gekauft bei / Erhalten von', 'Bezahlt / Eingezahlt durch', 'Notizen (Zweck)', 'Saldo'];
     const csvRows = rows.map((r) => [
       r.bookingNumber,
       r.date,
@@ -124,7 +124,7 @@ export function FinanceJournal({ receipts, startingBalance, teamName, season, on
                 </span>
               </p>
               {r.notes && <p className="break-words text-text-muted">{r.notes}</p>}
-              {r.paid_by && <p className="break-words text-xs text-text-muted">Bezahlt durch {r.paid_by}</p>}
+              {r.paid_by && <p className="break-words text-xs text-text-muted">{paidByLabel(r.type)} {r.paid_by}</p>}
             </div>
             <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
               <span className={r.type === 'income' ? 'text-success' : 'text-danger'}>

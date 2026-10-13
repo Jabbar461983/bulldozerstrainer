@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
+import { paidByLabel } from './api';
 import type { ReceiptRow } from './api';
 import { exportReceiptPdf } from './receiptPdf';
 
@@ -68,7 +69,7 @@ export function ReceiptViewDialog({ receipt, bookingNumber, teamName, onClose }:
 
         {receipt.paid_by && (
           <div>
-            <p className="text-xs text-text-muted">Bezahlt durch</p>
+            <p className="text-xs text-text-muted">{paidByLabel(receipt.type)}</p>
             <p className="text-text">{receipt.paid_by}</p>
           </div>
         )}

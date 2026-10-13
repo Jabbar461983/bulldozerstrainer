@@ -4,7 +4,7 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { Select } from '../../components/Select';
-import { updateReceipt } from './api';
+import { paidByLabel, updateReceipt } from './api';
 import type { ReceiptRow } from './api';
 
 interface EditReceiptDialogProps {
@@ -113,7 +113,7 @@ export function EditReceiptDialog({ receipt, onClose, onSaved }: EditReceiptDial
           </div>
         </div>
         <div>
-          <Label htmlFor="paidBy">Bezahlt durch</Label>
+          <Label htmlFor="paidBy">{paidByLabel(type)}</Label>
           <Input id="paidBy" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} />
         </div>
         <div>

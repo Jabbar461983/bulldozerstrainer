@@ -4,7 +4,7 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { Select } from '../../components/Select';
-import { createReceipt } from './api';
+import { createReceipt, paidByLabel } from './api';
 import { useAuth } from '../../auth/AuthContext';
 import { todayIso } from '../../lib/dates';
 
@@ -125,7 +125,7 @@ export function CreateReceiptDialog({ teamId, season, onClose, onCreated }: Crea
           </div>
         </div>
         <div>
-          <Label htmlFor="paidBy">Bezahlt durch</Label>
+          <Label htmlFor="paidBy">{paidByLabel(type)}</Label>
           <Input id="paidBy" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} />
         </div>
         <div>

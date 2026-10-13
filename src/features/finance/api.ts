@@ -18,6 +18,18 @@ function filterByTeam<T extends { eq: (col: string, val: string) => T; is: (col:
   return teamId === null ? query.is('team_id', null) : query.eq('team_id', teamId);
 }
 
+/** Beschriftung für receipts.paid_by: bei Einnahmen "Eingezahlt durch", sonst "Bezahlt durch". */
+export function paidByLabel(type: 'income' | 'expense'): string {
+  return type === 'income' ? 'Eingezahlt durch' : 'Bezahlt durch';
+}
+
+/** team_ids (null = Verein), für die in der Saison ein Budget hinterlegt ist. */
+export async function fetchBudgetTeamIds(season: string): Promise<(string | null)[]> {
+  const { data, error } = await supabase.from('budgets').select('team_id').eq('season', season);
+  if (error) throw error;
+  return ((data ?? []) as { team_id: string | null }[]).map((b) => b.team_id);
+}
+
 export async function fetchBudget(teamId: string | null, season: string): Promise<Budget | null> {
   const { data, error } = await filterByTeam(supabase.from('budgets').select('*'), teamId).eq('season', season);
   if (error) throw error;
@@ -53,7 +65,7 @@ export interface TeamFinanceSummary {
   saldo: number;
 }
 
-/** Gesamtübersicht für Admin: alle Teams plus der Verein (team_id null), je mit Budget/Einnahmen/Ausgaben/Saldo. */
+/** Gesamtübersicht für Admin: Teams mit Budget plus der Verein (team_id null), je mit Budget/Einnahmen/Ausgaben/Saldo. */
 export async function fetchFinanceOverview(season: string): Promise<TeamFinanceSummary[]> {
   const [teamOptions, { data: budgetRows, error: budgetsError }, { data: receiptRows, error: receiptsError }] =
     await Promise.all([
@@ -89,9 +101,13 @@ export async function fetchFinanceOverview(season: string): Promise<TeamFinanceS
     };
   }
 
+  // Nur Teams mit hinterlegtem Budget; der Verein zusätzlich, sobald er
+  // Belege hat (damit keine Beträge aus dem Total verschwinden).
   return [
-    ...teamOptions.map((t) => buildRow(t.teamId, t.teamName, t.categoryName)),
-    buildRow(null, 'Verein (kein Team)', ''),
+    ...teamOptions
+      .filter((t) => budgetByTeam.has(t.teamId))
+      .map((t) => buildRow(t.teamId, t.teamName, t.categoryName)),
+    ...(budgetByTeam.has(null) || sumsByTeam.has(null) ? [buildRow(null, 'Verein (kein Team)', '')] : []),
   ];
 }
 
