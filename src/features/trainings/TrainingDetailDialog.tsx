@@ -210,8 +210,8 @@ export function TrainingDetailDialog({
     >
       <div className="flex flex-col gap-5">
         <form id="edit-training-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-3 gap-2">
-            <div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="col-span-2 sm:col-span-1">
               <Label htmlFor="date">Datum*</Label>
               <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
@@ -239,7 +239,7 @@ export function TrainingDetailDialog({
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
             />
           </div>
           <div>
@@ -249,7 +249,7 @@ export function TrainingDetailDialog({
               rows={3}
               value={information}
               onChange={(e) => setInformation(e.target.value)}
-              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
             />
           </div>
           {error && <p className="text-sm text-danger">{error}</p>}

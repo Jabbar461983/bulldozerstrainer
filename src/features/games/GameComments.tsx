@@ -85,7 +85,7 @@ export function GameComments({ gameId, teamId }: GameCommentsProps) {
           placeholder="Kommentar zu diesem Spieler…"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="w-full rounded-md border border-border-strong bg-surface px-3.5 py-2.5 text-sm text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
       </div>
       <Button type="button" variant="secondary" disabled={busy || !note.trim()} onClick={() => void handleAdd()} className="self-start">

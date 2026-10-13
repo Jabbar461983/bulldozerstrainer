@@ -195,7 +195,7 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
               rows={3}
               value={preGameNotes}
               onChange={(e) => setPreGameNotes(e.target.value)}
-              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
             />
           </div>
           {error && <p className="text-sm text-danger">{error}</p>}
@@ -210,11 +210,11 @@ export function GameDetailDialog({ game, teamId, categoryName, onClose, onSaved,
             {!season ? (
               <p className="text-sm text-text-muted">Bitte setzen Sie die Saison, um Aufstellungen zu kopieren</p>
             ) : pastGames.length > 0 ? (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <select
                   value={selectedSourceGameId}
                   onChange={(e) => setSelectedSourceGameId(e.target.value)}
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm col-span-2"
+                  className="ui-select min-h-11 w-full truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text sm:col-span-2"
                   disabled={copyingLineup}
                 >
                   <option value="">Wählen Sie ein vergangenes Spiel...</option>

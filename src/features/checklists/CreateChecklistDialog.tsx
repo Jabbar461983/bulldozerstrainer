@@ -169,7 +169,7 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optionale Beschreibung..."
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none"
             rows={3}
           />
         </div>
@@ -306,7 +306,7 @@ export function CreateChecklistDialog({ onClose, onCreated }: CreateChecklistDia
               <select
                 value={expandedHeadingIdx ?? ''}
                 onChange={(e) => setExpandedHeadingIdx(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                className="ui-select min-h-11 w-full min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text"
                 disabled={loading}
               >
                 <option value="">Wählen Sie eine Überschrift...</option>

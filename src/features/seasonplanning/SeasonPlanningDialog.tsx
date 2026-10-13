@@ -168,7 +168,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text placeholder-text-muted"
+                className="mt-1 w-full rounded border border-border bg-surface px-3 py-2 text-text placeholder-text-muted"
                 placeholder="z.B. Meisterschaft"
               />
             </div>
@@ -182,7 +182,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
                 setCategory(e.target.value as SeasonPlanningCategory);
                 setSubcategory('');
               }}
-              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text"
+              className="mt-1 ui-select min-h-11 w-full min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text"
             >
               {CATEGORY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -198,7 +198,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
               <select
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
-                className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text"
+                className="mt-1 ui-select min-h-11 w-full min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text"
               >
                 <option value="">-- Keine Auswahl --</option>
                 {subcategories.map((sub) => (
@@ -217,7 +217,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text"
+                className="mt-1 w-full rounded border border-border bg-surface px-3 py-2 text-text"
               />
             </div>
             <div>
@@ -226,7 +226,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text"
+                className="mt-1 w-full rounded border border-border bg-surface px-3 py-2 text-text"
               />
             </div>
           </div>
@@ -236,7 +236,7 @@ export function SeasonPlanningDialog({ teamId, editingEvent, onClose }: SeasonPl
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-1 w-full rounded border border-border bg-background px-3 py-2 text-text placeholder-text-muted"
+              className="mt-1 w-full rounded border border-border-strong bg-surface px-3 py-2 text-text placeholder-text-muted"
               placeholder="Zusätzliche Notizen..."
               rows={3}
             />

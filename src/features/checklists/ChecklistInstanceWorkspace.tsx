@@ -397,7 +397,7 @@ export function ChecklistInstanceWorkspace({
             value={globalNote}
             onChange={(e) => setGlobalNote(e.target.value)}
             placeholder="Notiz zum Abschluss der Checkliste..."
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none resize-none"
+            className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none resize-none"
             rows={3}
             disabled={loading}
           />
@@ -452,7 +452,7 @@ export function ChecklistInstanceWorkspace({
       </Button>
 
       {showConfirmArchive && (
-        <Card className="bg-warning/10 border border-warning space-y-4 fixed inset-0 m-auto w-96 p-6 rounded-lg shadow-lg">
+        <Card className="bg-warning/10 border border-warning space-y-4 fixed inset-0 z-50 m-auto h-fit w-[min(24rem,calc(100vw-2rem))] p-6 rounded-lg shadow-lg">
           <h3 className="font-semibold text-lg text-text">Bestätigung erforderlich</h3>
           <p className="text-sm text-text">
             Bist du sicher, dass alles erledigt wurde und die Checkliste abgeschlossen werden kann?

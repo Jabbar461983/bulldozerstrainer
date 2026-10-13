@@ -172,7 +172,7 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
                 />
               </div>
               <div>
@@ -279,7 +279,7 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
                   placeholder="z.B. Stand, Verzögerung…"
                   value={remark}
                   onChange={(e) => setRemark(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
                 />
               </div>
               <label className="flex items-center gap-2 text-sm text-text">

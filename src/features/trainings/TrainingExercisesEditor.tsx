@@ -239,10 +239,10 @@ export function TrainingExercisesEditor({
                     <img
                       src={thumbnail.url ?? ''}
                       alt=""
-                      className="h-32 w-48 shrink-0 rounded-lg border border-border object-cover"
+                      className="h-20 w-24 shrink-0 rounded-lg border border-border object-cover sm:h-32 sm:w-48"
                     />
                   ) : (
-                    <div className="h-32 w-48 shrink-0 rounded-lg border border-dashed border-border" />
+                    <div className="h-20 w-24 shrink-0 rounded-lg border border-dashed border-border sm:h-32 sm:w-48" />
                   )}
 
                   <div className="min-w-0 flex-1">
@@ -273,7 +273,7 @@ export function TrainingExercisesEditor({
                         value={notesDraft[row.id] ?? ''}
                         onChange={(e) => setNotesDraft((prev) => ({ ...prev, [row.id]: e.target.value }))}
                         onBlur={() => void handleNotesBlur(row.id)}
-                        className="min-w-0 flex-1 resize-none rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                        className="min-w-0 flex-1 resize-none rounded-md border border-border-strong bg-surface px-2 py-1 text-xs text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                       />
                       <button
                         type="button"

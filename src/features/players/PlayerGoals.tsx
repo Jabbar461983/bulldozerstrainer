@@ -227,7 +227,7 @@ export function PlayerGoals({ playerId, currentUserId, defaultSeason, isAdmin = 
                 id="goal-rating"
                 value={editingGoal.tempRating}
                 onChange={(e) => setEditingGoal({ ...editingGoal, tempRating: parseInt(e.target.value, 10) })}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
+                className="ui-select min-h-11 w-full min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text"
               >
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <option key={i} value={i}>
@@ -244,7 +244,7 @@ export function PlayerGoals({ playerId, currentUserId, defaultSeason, isAdmin = 
                 value={editingGoal.tempNotes}
                 onChange={(e) => setEditingGoal({ ...editingGoal, tempNotes: e.target.value })}
                 placeholder="Notizen hinzufügen…"
-                className="min-h-20 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
+                className="min-h-20 w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm text-text"
               />
             </div>
           </div>

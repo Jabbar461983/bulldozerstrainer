@@ -364,13 +364,13 @@ export function SeasonPlanningCalendar({
             return (
               <div key={category} className="flex border-t border-border">
                 {/* Category label */}
-                <div className="w-24 flex-shrink-0 bg-background px-2 py-4 text-xs font-medium text-text border-r border-border">
+                <div className="w-24 flex-shrink-0 bg-surface px-2 py-4 text-xs font-medium text-text border-r border-border">
                   {categoryNames[category]}
                 </div>
 
                 {/* Timeline container */}
                 <div
-                  className="flex-1 relative bg-background"
+                  className="flex-1 relative bg-surface"
                   style={{ height: `${containerHeight}px` }}
                 >
                   {/* Month separators */}

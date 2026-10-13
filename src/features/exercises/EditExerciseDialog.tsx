@@ -88,7 +88,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
             rows={3}
             value={learningContent}
             onChange={(e) => setLearningContent(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
           />
         </div>
         <div>
@@ -98,7 +98,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
           />
         </div>
         <div>
@@ -109,7 +109,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
             value={coachingQuestions}
             onChange={(e) => setCoachingQuestions(e.target.value)}
             placeholder="Fragen, die den Spielern die richtigen Details der Übung bewusst machen"
-            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
           />
         </div>
         <div>
@@ -119,7 +119,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
             rows={3}
             value={variants}
             onChange={(e) => setVariants(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
           />
         </div>
         <div className="flex flex-col gap-3">

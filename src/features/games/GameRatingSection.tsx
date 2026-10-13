@@ -81,7 +81,7 @@ export function GameRatingSection({ gameId }: GameRatingSectionProps) {
               placeholder="Notizen (optional)"
               value={row.notes}
               onChange={(e) => updateCategory(cat.value, { notes: e.target.value })}
-              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+              className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
             <Button
               type="button"

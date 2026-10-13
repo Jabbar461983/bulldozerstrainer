@@ -384,7 +384,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
             id="edit-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-sm text-text placeholder-text-muted focus:border-accent focus:outline-none"
             rows={2}
           />
         </div>
@@ -639,7 +639,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                     setNewItemType(e.target.value as 'heading' | 'subheading' | 'step');
                     setNewItemParentId(null);
                   }}
-                  className="px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+                  className="ui-select min-h-11 min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text"
                 >
                   <option value="heading">Überschrift</option>
                   <option value="subheading">Subüberschrift</option>
@@ -652,7 +652,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                   <select
                     value={newItemParentId || ''}
                     onChange={(e) => setNewItemParentId(e.target.value || null)}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+                    className="ui-select min-h-11 w-full min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text"
                   >
                     <option value="">-- Wähle Überschrift --</option>
                     {items.filter((i) => i.is_section && !i.parent_id).map((i) => (
@@ -669,7 +669,7 @@ export function EditChecklistDialog({ checklist, onClose, onSaved }: EditCheckli
                   <select
                     value={newItemParentId || ''}
                     onChange={(e) => setNewItemParentId(e.target.value || null)}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm"
+                    className="ui-select min-h-11 w-full min-w-0 truncate rounded-md border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm text-text"
                   >
                     <option value="">-- Oberste Ebene (keine Überschrift) --</option>
                     {itemTree

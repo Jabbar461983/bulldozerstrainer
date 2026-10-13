@@ -100,8 +100,8 @@ export function ImportGamesDialog({ teamId, categoryId, onClose, onImported }: I
         {parseError && <p className="text-sm text-danger">{parseError}</p>}
 
         {rows.length > 0 && (
-          <div className="max-h-64 overflow-y-auto rounded-xl border border-border">
-            <table className="w-full text-sm">
+          <div className="max-h-64 overflow-auto rounded-md border border-border">
+            <table className="ui-table">
               <thead className="sticky top-0 bg-surface-alt text-left text-xs text-text-muted">
                 <tr>
                   <th className="px-2 py-1.5">Datum</th>
