@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, saveChecklistProgress, createChecklistInstance } from './api';
+import { fetchChecklistInstances, toggleChecklistItem, saveChecklistCompletion, saveChecklistProgress, createChecklistInstance, deleteChecklistInstance } from './api';
+import { useAuth } from '../../auth/AuthContext';
 import type { ChecklistRow, ChecklistInstanceRow } from './api';
 import { ChecklistItemAttachments } from './ChecklistItemAttachments';
 import { supabase } from '../../lib/supabase';
@@ -28,6 +29,35 @@ export function ChecklistInstanceWorkspace({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [completionPhotos, setCompletionPhotos] = useState<{ id: string; url: string }[]>([]);
   const [showConfirmArchive, setShowConfirmArchive] = useState(false);
+  const { isAdmin } = useAuth();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDeleteInstance(instance: ChecklistInstanceRow) {
+    const label = instance.event_date
+      ? new Date(`${instance.event_date}T00:00:00`).toLocaleDateString('de-CH')
+      : 'ohne Datum';
+    if (!window.confirm(`Willst du die Instanz vom ${label} wirklich löschen? Der Fortschritt geht dabei verloren.`)) {
+      return;
+    }
+    setDeletingId(instance.id);
+    setError(null);
+    try {
+      await deleteChecklistInstance(instance.id);
+      const remaining = instances.filter((i) => i.id !== instance.id);
+      setInstances(remaining);
+      if (remaining.length === 0) {
+        onClose();
+      } else if (remaining.length === 1) {
+        setSelectedInstance(remaining[0]);
+        setGlobalNote(remaining[0].notes || '');
+        setCompletionPhotos([]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Instanz konnte nicht gelöscht werden.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -204,6 +234,7 @@ export function ChecklistInstanceWorkspace({
           ← Zurück
         </Button>
         <h2 className="text-xl font-bold">Instanz auswählen</h2>
+        {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
         <div className="space-y-2">
           {instances.map((instance) => (
             <Card
@@ -217,6 +248,7 @@ export function ChecklistInstanceWorkspace({
               }}
               className="cursor-pointer hover:bg-surface-alt"
             >
+              <div className="flex items-start justify-between gap-2">
               <div>
                 {instance.event_date && (
                   <p className="font-semibold text-accent">{instance.event_date}</p>
@@ -227,6 +259,23 @@ export function ChecklistInstanceWorkspace({
                 <p className="text-xs text-text-muted mt-1">
                   Fortschritt: {instance.progress.completed} / {instance.progress.total}
                 </p>
+              </div>
+              {isAdmin && (
+                <button
+                  type="button"
+                  aria-label="Instanz löschen"
+                  title="Instanz löschen"
+                  disabled={deletingId === instance.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleDeleteInstance(instance);
+                  }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-text-muted hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                >
+                  ✕
+                </button>
+              )}
               </div>
             </Card>
           ))}
