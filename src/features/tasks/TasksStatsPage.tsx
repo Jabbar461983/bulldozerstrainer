@@ -289,7 +289,7 @@ export function TasksStatsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben · Übersicht</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben · Übersicht Sport/Vorstand</h1>
         <BackLinkButton to="/aufgaben">Zurück zu Aufgaben</BackLinkButton>
       </div>
 

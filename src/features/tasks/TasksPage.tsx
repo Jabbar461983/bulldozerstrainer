@@ -1,5 +1,6 @@
 import { TaskCategoryBadge } from './TaskCategoryBadge';
 import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
 import { Button, LinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { List, ListRow } from '../../components/List';
@@ -10,6 +11,13 @@ import { CreateTaskDialog } from './CreateTaskDialog';
 import { TaskDetailDialog } from './TaskDetailDialog';
 
 type Tab = 'mine' | 'created';
+type CategoryFilter = 'alle' | 'sport' | 'vorstand';
+
+const CATEGORY_FILTERS: { key: CategoryFilter; label: string }[] = [
+  { key: 'alle', label: 'Alle' },
+  { key: 'sport', label: 'Sport' },
+  { key: 'vorstand', label: 'Vorstand' },
+];
 
 function formatDate(dateIso: string): string {
   return new Date(`${dateIso}T00:00:00`).toLocaleDateString('de-CH', {
@@ -36,6 +44,7 @@ export function TasksPage() {
   const { canAccess } = useAuth();
   const canSeeOverviews = canAccess('aufgaben_uebersicht');
   const [tab, setTab] = useState<Tab>('mine');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('alle');
   const [myTasks, setMyTasks] = useState<TaskRow[] | null>(null);
   const [createdTasks, setCreatedTasks] = useState<TaskRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,15 +66,19 @@ export function TasksPage() {
     void load();
   }, []);
 
+  const matchesCategory = (t: TaskRow) => categoryFilter === 'alle' || (t.category ?? 'sport') === categoryFilter;
+  const visibleMyTasks = myTasks?.filter(matchesCategory) ?? null;
+
   const createdGroups = useMemo(() => {
     const groups = new Map<string, TaskRow[]>();
-    for (const t of createdTasks ?? []) {
+    for (const t of (createdTasks ?? []).filter(matchesCategory)) {
       const list = groups.get(t.task_group_id) ?? [];
       list.push(t);
       groups.set(t.task_group_id, list);
     }
     return Array.from(groups.values());
-  }, [createdTasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createdTasks, categoryFilter]);
 
   function handleChanged() {
     setSelectedTask(null);
@@ -79,8 +92,8 @@ export function TasksPage() {
         <div className="flex flex-wrap items-center gap-2">
           {canSeeOverviews && (
             <>
+              <LinkButton to="/aufgaben/statistik">Übersicht Sport/Vorstand</LinkButton>
               <LinkButton to="/aufgaben/roadmap">Roadmap Vorstand</LinkButton>
-              <LinkButton to="/aufgaben/statistik">Übersicht Team/Ressort</LinkButton>
               <LinkButton to="/aufgaben/uebersicht">Gesamtübersicht</LinkButton>
             </>
           )}
@@ -88,13 +101,35 @@ export function TasksPage() {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <Button variant={tab === 'mine' ? 'primary' : 'secondary'} onClick={() => setTab('mine')}>
-          Mir zugewiesen
-        </Button>
-        <Button variant={tab === 'created' ? 'primary' : 'secondary'} onClick={() => setTab('created')}>
-          Von mir erstellt
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          <Button variant={tab === 'mine' ? 'primary' : 'secondary'} onClick={() => setTab('mine')}>
+            Mir zugewiesen
+          </Button>
+          <Button variant={tab === 'created' ? 'primary' : 'secondary'} onClick={() => setTab('created')}>
+            Von mir erstellt
+          </Button>
+        </div>
+        <div
+          role="group"
+          aria-label="Nach Sport oder Vorstand filtern"
+          className="inline-flex gap-1 rounded-md border border-border bg-surface-alt p-1"
+        >
+          {CATEGORY_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              aria-pressed={categoryFilter === f.key}
+              onClick={() => setCategoryFilter(f.key)}
+              className={clsx(
+                'rounded px-3 py-1.5 text-sm font-semibold transition-colors',
+                categoryFilter === f.key ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
@@ -108,7 +143,12 @@ export function TasksPage() {
             </Card>
           )}
           <List>
-          {myTasks?.map((t) => {
+          {myTasks !== null && myTasks.length > 0 && visibleMyTasks?.length === 0 && (
+            <Card>
+              <p className="text-sm text-text-muted">Keine {categoryFilter === 'vorstand' ? 'Vorstands' : 'Sport'}-Aufgaben.</p>
+            </Card>
+          )}
+          {visibleMyTasks?.map((t) => {
             const status = deriveTaskStatus(t);
             return (
               <ListRow key={t.id} onClick={() => setSelectedTask(t)}>
@@ -142,6 +182,11 @@ export function TasksPage() {
           {createdTasks?.length === 0 && (
             <Card>
               <p className="text-sm text-text-muted">Du hast noch keine Aufgaben erstellt.</p>
+            </Card>
+          )}
+          {createdTasks !== null && createdTasks.length > 0 && createdGroups.length === 0 && (
+            <Card>
+              <p className="text-sm text-text-muted">Keine {categoryFilter === 'vorstand' ? 'Vorstands' : 'Sport'}-Aufgaben.</p>
             </Card>
           )}
           {createdGroups.map((group) => {
