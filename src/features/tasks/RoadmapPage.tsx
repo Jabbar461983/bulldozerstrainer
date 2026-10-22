@@ -34,6 +34,8 @@ interface RoadmapRow {
 }
 
 const RANGE_OPTIONS = [3, 6, 12] as const;
+/** Automatischer Zeitraum: bis heute + so viele Monate. */
+const AUTO_MONTHS_AHEAD = 6;
 const NO_RESSORT = '__none__';
 const STATUS_LABELS: Record<MarkerStatus, string> = { offen: 'Offen', erledigt: 'Erledigt', ueberfaellig: 'Überfällig' };
 const STATUS_DOT: Record<MarkerStatus, string> = {
@@ -68,9 +70,8 @@ export function RoadmapPage() {
   const [ressorts, setRessorts] = useState<VorstandRessort[]>([]);
   const [members, setMembers] = useState<{ ressortId: string | null; userId: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [rangeMonths, setRangeMonths] = useState<number>(6);
-  // Standard: ab Vormonat, damit Überfälliges sichtbar bleibt.
-  const [rangeStart, setRangeStart] = useState<Date>(() => addMonths(startOfMonth(new Date()), -1));
+  // null = automatischer Zeitraum (siehe autoRange), sonst manuell gewählt/verschoben.
+  const [manualRange, setManualRange] = useState<{ start: Date; months: number } | null>(null);
   const [visibleRessorts, setVisibleRessorts] = useState<Set<string> | null>(null); // null = alle
   const [hovered, setHovered] = useState<{ marker: RoadmapMarker; rect: DOMRect } | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
@@ -95,6 +96,22 @@ export function RoadmapPage() {
     void load();
   }, [reloadKey]);
 
+  // Automatisch: ab der am längsten fälligen, noch nicht erledigten Vorstands-Aufgabe
+  // (offen oder in Arbeit) bis heute + 6 Monate. Ältere Pendenzen bleiben so sichtbar.
+  const autoRange = useMemo(() => {
+    const thisMonth = startOfMonth(new Date());
+    const oldestOpen = (tasks ?? [])
+      .filter((t) => !t.completed)
+      .reduce<string | null>((min, t) => (min === null || t.due_date < min ? t.due_date : min), null);
+    const start = oldestOpen ? startOfMonth(new Date(`${oldestOpen}T00:00:00`)) : thisMonth;
+    const from = start < thisMonth ? start : thisMonth;
+    const months =
+      (thisMonth.getFullYear() - from.getFullYear()) * 12 + (thisMonth.getMonth() - from.getMonth()) + AUTO_MONTHS_AHEAD + 1;
+    return { start: from, months };
+  }, [tasks]);
+
+  const rangeStart = manualRange?.start ?? autoRange.start;
+  const rangeMonths = manualRange?.months ?? autoRange.months;
   const rangeEnd = useMemo(() => addMonths(rangeStart, rangeMonths), [rangeStart, rangeMonths]);
   const totalDays = Math.max(1, dayDiff(rangeStart, rangeEnd));
 
@@ -105,7 +122,8 @@ export function RoadmapPage() {
         const end = addMonths(rangeStart, i + 1);
         return {
           key: `${start.getFullYear()}-${start.getMonth()}`,
-          label: start.toLocaleDateString('de-CH', { month: rangeMonths > 6 ? 'short' : 'long' }),
+          label: start.toLocaleDateString('de-CH', { month: rangeMonths > 6 ? 'short' : 'long' }).replace('.', ''),
+          compact: rangeMonths > 12,
           year: start.getFullYear(),
           // Jahr nur beim Jahreswechsel (der Zeitraum oben nennt es ohnehin).
           showYear: i > 0 && start.getMonth() === 0,
@@ -183,7 +201,7 @@ export function RoadmapPage() {
   }
 
   function shift(monthsDelta: number) {
-    setRangeStart((prev) => addMonths(prev, monthsDelta));
+    setManualRange({ start: addMonths(rangeStart, monthsDelta), months: rangeMonths });
   }
 
   const rangeLabel = `${rangeStart.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })} – ${addMonths(
@@ -203,24 +221,25 @@ export function RoadmapPage() {
         <Button variant="secondary" size="sm" onClick={() => shift(-1)} aria-label="Einen Monat zurück">
           ‹
         </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setRangeStart(addMonths(startOfMonth(new Date()), -1))}
-        >
-          Heute
+        <Button variant="secondary" size="sm" onClick={() => setManualRange(null)} disabled={manualRange === null}>
+          Standard
         </Button>
         <Button variant="secondary" size="sm" onClick={() => shift(1)} aria-label="Einen Monat vor">
           ›
         </Button>
         <span className="px-1 text-sm font-semibold text-text">{rangeLabel}</span>
-        <div className="ml-auto w-40">
+        <div className="ml-auto w-56">
           <Select
             aria-label="Zeitraum"
-            value={rangeMonths}
-            onChange={(e) => setRangeMonths(Number(e.target.value))}
+            value={manualRange === null ? 'auto' : String(manualRange.months)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === 'auto') setManualRange(null);
+              else setManualRange({ start: addMonths(startOfMonth(new Date()), -1), months: Number(value) });
+            }}
             className="min-h-9 py-1 text-sm"
           >
+            <option value="auto">Automatisch ({autoRange.months} Monate)</option>
             {RANGE_OPTIONS.map((m) => (
               <option key={m} value={m}>
                 {m} Monate
@@ -292,7 +311,8 @@ export function RoadmapPage() {
 
       {tasks !== null && rows.length > 0 && (
         <div className="overflow-x-auto rounded-md border border-border bg-surface">
-          <div className="min-w-[720px]">
+          {/* Bei langen Zeiträumen werden die Monate schmaler, statt dass die Grafik endlos breit wird. */}
+          <div style={{ minWidth: Math.max(640, 128 + rangeMonths * (rangeMonths > 12 ? 40 : 90)) }}>
             {/* Monatskopf */}
             <div className="flex border-b border-border bg-surface-alt">
               <div className="sticky left-0 z-10 w-32 shrink-0 border-r border-border bg-surface-alt px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
@@ -302,12 +322,19 @@ export function RoadmapPage() {
                 {months.map((m) => (
                   <div
                     key={m.key}
-                    className="absolute top-0 bottom-0 flex items-center justify-center border-r border-border px-1 text-xs font-semibold text-text"
+                    className={clsx(
+                      'absolute top-0 bottom-0 flex items-center justify-center border-r border-border px-0.5 font-semibold text-text',
+                      m.compact ? 'text-[10px]' : 'text-xs',
+                    )}
                     style={{ left: `${m.left}%`, width: `${m.width}%` }}
                   >
                     <span className="truncate">
                       {m.label}
-                      {m.showYear && <span className="ml-1 font-normal text-text-muted">{m.year}</span>}
+                      {m.showYear && (
+                        <span className="ml-0.5 font-normal text-text-muted">
+                          {m.compact ? `'${String(m.year).slice(2)}` : m.year}
+                        </span>
+                      )}
                     </span>
                   </div>
                 ))}
