@@ -104,7 +104,7 @@ export function AppLayout() {
       </div>
 
       {/* Mobile Bottom-Nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-nav-border bg-nav pb-[env(safe-area-inset-bottom)] sm:hidden">
+      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-20 flex border-t border-nav-border bg-nav pb-[env(safe-area-inset-bottom)] sm:hidden">
         {mobileMainItems.map((item) => (
           <NavLink
             key={item.to}

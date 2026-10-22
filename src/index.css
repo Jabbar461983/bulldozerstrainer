@@ -231,3 +231,27 @@ body {
     background-size: 1rem;
   }
 }
+
+/*
+ * iPhone-Fix für die installierte App: iOS berechnet die Höhe teils um die
+ * Statusleiste zu kurz, die fixe Fussleiste sitzt dann zu hoch und darunter
+ * bleibt ein Streifen. In der installierten App (keine Browser-Leisten) ist
+ * 100lvh die echte Bildschirmhöhe - die Differenz zur berechneten Höhe (100%)
+ * wird nach unten ausgeglichen (nie nach oben). Zusätzlich verlängert ein
+ * schwarzer Streifen die Leiste nach unten, falls dennoch Platz bleibt.
+ */
+@media (display-mode: standalone) {
+  .mobile-bottom-nav {
+    bottom: min(0px, calc(100% - 100lvh));
+  }
+}
+
+.mobile-bottom-nav::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: var(--club-nav);
+}
