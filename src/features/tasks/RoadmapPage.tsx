@@ -204,10 +204,64 @@ export function RoadmapPage() {
     setManualRange({ start: addMonths(rangeStart, monthsDelta), months: rangeMonths });
   }
 
-  const rangeLabel = `${rangeStart.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })} – ${addMonths(
-    rangeEnd,
-    -1,
-  ).toLocaleDateString('de-CH', { month: 'long', year: 'numeric' })}`;
+  // Auswahl für Von/Bis: Monate von 2 Jahren zurück bis 2 Jahre voraus (bzw. weiter, falls nötig).
+  const monthOptions = useMemo(() => {
+    const thisMonth = startOfMonth(new Date());
+    const candidatesStart = [addMonths(thisMonth, -24), autoRange.start, rangeStart];
+    const candidatesEnd = [addMonths(thisMonth, 24), addMonths(rangeEnd, -1)];
+    const first = new Date(Math.min(...candidatesStart.map((d) => d.getTime())));
+    const last = new Date(Math.max(...candidatesEnd.map((d) => d.getTime())));
+    const options: { value: string; label: string; date: Date }[] = [];
+    for (let d = startOfMonth(first); d <= last; d = addMonths(d, 1)) {
+      options.push({
+        value: monthKey(d),
+        label: d.toLocaleDateString('de-CH', { month: 'long', year: 'numeric' }),
+        date: d,
+      });
+    }
+    return options;
+  }, [autoRange.start, rangeStart, rangeEnd]);
+
+  function setFromTo(from: Date, to: Date) {
+    const [start, end] = from <= to ? [from, to] : [to, from];
+    const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+    setManualRange({ start, months });
+  }
+
+  const lastMonth = addMonths(rangeEnd, -1);
+  const presetValue =
+    manualRange === null
+      ? 'auto'
+      : (RANGE_OPTIONS as readonly number[]).includes(manualRange.months)
+        ? String(manualRange.months)
+        : 'custom';
+
+  function renderMonthSelect(id: string, label: string, value: Date, onPick: (date: Date) => void) {
+    return (
+      <span className="flex items-center gap-2">
+        <label htmlFor={id} className="w-6 text-xs font-semibold text-text-muted">
+          {label}
+        </label>
+        <span className="block w-44">
+          <Select
+            id={id}
+            value={monthKey(value)}
+            onChange={(e) => {
+              const picked = monthOptions.find((o) => o.value === e.target.value)?.date;
+              if (picked) onPick(picked);
+            }}
+            className="min-h-9 py-1 text-sm"
+          >
+            {monthOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+        </span>
+      </span>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -227,11 +281,14 @@ export function RoadmapPage() {
         <Button variant="secondary" size="sm" onClick={() => shift(1)} aria-label="Einen Monat vor">
           ›
         </Button>
-        <span className="px-1 text-sm font-semibold text-text">{rangeLabel}</span>
-        <div className="ml-auto w-56">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {renderMonthSelect('roadmap-from', 'Von', rangeStart, (from) => setFromTo(from, lastMonth < from ? from : lastMonth))}
+          {renderMonthSelect('roadmap-to', 'Bis', lastMonth, (to) => setFromTo(rangeStart > to ? to : rangeStart, to))}
+        </div>
+        <div className="w-56 sm:ml-auto">
           <Select
             aria-label="Zeitraum"
-            value={manualRange === null ? 'auto' : String(manualRange.months)}
+            value={presetValue}
             onChange={(e) => {
               const value = e.target.value;
               if (value === 'auto') setManualRange(null);
@@ -240,6 +297,11 @@ export function RoadmapPage() {
             className="min-h-9 py-1 text-sm"
           >
             <option value="auto">Automatisch ({autoRange.months} Monate)</option>
+            {presetValue === 'custom' && (
+              <option value="custom" disabled>
+                Von–Bis ({rangeMonths} Monate)
+              </option>
+            )}
             {RANGE_OPTIONS.map((m) => (
               <option key={m} value={m}>
                 {m} Monate
@@ -411,6 +473,10 @@ export function RoadmapPage() {
       )}
     </div>
   );
+}
+
+function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function toIso(date: Date): string {
