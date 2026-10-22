@@ -41,6 +41,7 @@ export function EditExerciseDialog({ exercise, categories, onClose, onSaved }: E
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!window.confirm('Willst du die Übung wirklich anpassen und speichern?')) return;
     setError(null);
     setLoading(true);
     try {

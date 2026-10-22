@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { OfflineNotice } from '../../components/OfflineNotice';
-import { fetchCategories, fetchTeams, fetchAssignableUsers, deleteCategory, deleteTeam } from './api';
+import { fetchCategories, fetchTeams, fetchAssignableUsers, fetchRoles, deleteCategory, deleteTeam } from './api';
 import type { AssignableUser, TeamRow } from './api';
-import type { Category } from '../../types/database';
-import { ROLE_LABELS } from '../../auth/permissions';
+import type { Category, Role } from '../../types/database';
+import { VORSTAND_ROLE_KEY } from '../../auth/permissions';
 import { withCache } from '../../lib/withCache';
 import { CreateCategoryDialog } from './CreateCategoryDialog';
 import { EditCategoryDialog } from './EditCategoryDialog';
@@ -16,6 +16,7 @@ export function TeamsPage() {
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [users, setUsers] = useState<AssignableUser[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [offlineCachedAt, setOfflineCachedAt] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -29,16 +30,19 @@ export function TeamsPage() {
     setError(null);
     try {
       const result = await withCache('teams-page', async () => {
-        const [categoryRows, teamRows, userRows] = await Promise.all([
+        const [categoryRows, teamRows, userRows, roleRows] = await Promise.all([
           fetchCategories(),
           fetchTeams(),
           fetchAssignableUsers(),
+          fetchRoles(),
         ]);
-        return { categoryRows, teamRows, userRows };
+        return { categoryRows, teamRows, userRows, roleRows };
       });
       setCategories(result.data.categoryRows);
       setTeams(result.data.teamRows);
       setUsers(result.data.userRows);
+      // Vorstand wird nie einem einzelnen Team zugewiesen.
+      setRoles((result.data.roleRows ?? []).filter((r) => r.system_key !== VORSTAND_ROLE_KEY));
       setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Daten konnten nicht geladen werden.');
@@ -151,11 +155,10 @@ export function TeamsPage() {
                       )}
                       {team.coachAssignments.map((a) => (
                         <span
-                          key={a.userId + a.role}
+                          key={a.userId + a.roleId}
                           className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                         >
-                          {a.firstName} {a.lastName} – {ROLE_LABELS[a.role]}
-                          {a.role !== 'finance' && a.financeAccess && ' · Finanzen'}
+                          {a.firstName} {a.lastName} – {a.roleName}
                         </span>
                       ))}
                     </div>
@@ -210,6 +213,7 @@ export function TeamsPage() {
         <CreateTeamDialog
           categories={categories}
           users={users}
+          roles={roles}
           defaultCategoryId={creatingTeamFor}
           onClose={() => setCreatingTeamFor(null)}
           onCreated={() => {
@@ -224,6 +228,7 @@ export function TeamsPage() {
           team={editingTeam}
           categories={categories}
           users={users}
+          roles={roles}
           onClose={() => setEditingTeam(null)}
           onSaved={() => {
             setEditingTeam(null);

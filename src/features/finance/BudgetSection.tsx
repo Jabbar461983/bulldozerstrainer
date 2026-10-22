@@ -13,8 +13,9 @@ interface BudgetSectionProps {
 }
 
 export function BudgetSection({ teamId, season, budget, onSaved }: BudgetSectionProps) {
-  const { isAdmin, profile, memberships } = useAuth();
-  const canEditBudget = isAdmin || memberships.some((m) => m.teamId === teamId && m.role === 'finance');
+  const { isAdmin, profile } = useAuth();
+  // Budget bearbeiten ist ein Admin-Sonderrecht.
+  const canEditBudget = isAdmin;
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState(budget?.amount != null ? String(budget.amount) : '0');
   const [saving, setSaving] = useState(false);

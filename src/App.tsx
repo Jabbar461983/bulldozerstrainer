@@ -22,6 +22,7 @@ import { ChecklistsAdminPage } from './features/checklists/ChecklistsAdminPage';
 import { TasksPage } from './features/tasks/TasksPage';
 import { TasksOverviewPage } from './features/tasks/TasksOverviewPage';
 import { TasksStatsPage } from './features/tasks/TasksStatsPage';
+import { RolesPage } from './features/roles/RolesPage';
 
 function App() {
   return (
@@ -45,17 +46,17 @@ function App() {
             <Route
               path="aufgaben/uebersicht"
               element={
-                <AdminRoute>
+                <ModuleRoute module="aufgaben_uebersicht">
                   <TasksOverviewPage />
-                </AdminRoute>
+                </ModuleRoute>
               }
             />
             <Route
               path="aufgaben/statistik"
               element={
-                <AdminRoute>
+                <ModuleRoute module="aufgaben_uebersicht">
                   <TasksStatsPage />
-                </AdminRoute>
+                </ModuleRoute>
               }
             />
             <Route
@@ -69,7 +70,7 @@ function App() {
             <Route
               path="saisonplanung"
               element={
-                <ModuleRoute module="training">
+                <ModuleRoute module="saisonplanung">
                   <SeasonPlanningWrapper />
                 </ModuleRoute>
               }
@@ -93,9 +94,9 @@ function App() {
             <Route
               path="trainer"
               element={
-                <AdminRoute>
+                <ModuleRoute module="trainer">
                   <CoachesPage />
-                </AdminRoute>
+                </ModuleRoute>
               }
             />
             <Route
@@ -109,7 +110,7 @@ function App() {
             <Route
               path="finanzen"
               element={
-                <ModuleRoute module="finanzen">
+                <ModuleRoute module={['finanzen', 'finanzen_verein']}>
                   <FinancePage />
                 </ModuleRoute>
               }
@@ -117,17 +118,17 @@ function App() {
             <Route
               path="finanzen/uebersicht"
               element={
-                <AdminRoute>
+                <ModuleRoute module="finanzen_verein">
                   <FinanceOverviewPage />
-                </AdminRoute>
+                </ModuleRoute>
               }
             />
             <Route
               path="teams"
               element={
-                <AdminRoute>
+                <ModuleRoute module="teams">
                   <TeamsPage />
-                </AdminRoute>
+                </ModuleRoute>
               }
             />
             <Route
@@ -141,8 +142,16 @@ function App() {
             <Route
               path="checklisten-verwaltung"
               element={
-                <AdminRoute>
+                <ModuleRoute module="checklisten_verwaltung">
                   <ChecklistsAdminPage />
+                </ModuleRoute>
+              }
+            />
+            <Route
+              path="rollen"
+              element={
+                <AdminRoute>
+                  <RolesPage />
                 </AdminRoute>
               }
             />

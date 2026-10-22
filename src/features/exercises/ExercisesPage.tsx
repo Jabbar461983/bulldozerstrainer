@@ -22,7 +22,7 @@ import { EditExerciseDialog } from './EditExerciseDialog';
 import { ImportExercisesDialog } from './ImportExercisesDialog';
 
 export function ExercisesPage() {
-  const { profile, isAdmin } = useAuth();
+  const { profile, isAdmin, canAccess } = useAuth();
   const [exercises, setExercises] = useState<ExerciseRow[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [focusFilter, setFocusFilter] = useState<string[]>([]);
@@ -160,7 +160,8 @@ export function ExercisesPage() {
 
       <div className="flex flex-col gap-3">
         {filteredExercises?.map((exercise) => {
-          const canEdit = isAdmin || exercise.author_id === profile?.id || Boolean(profile?.can_edit_exercises);
+          // Alle mit Zugriff auf die Übungsdatenbank dürfen jede Übung bearbeiten (mit Rückfrage beim Speichern).
+          const canEdit = isAdmin || exercise.author_id === profile?.id || canAccess('uebungen');
           return (
             <Card key={exercise.id} className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">

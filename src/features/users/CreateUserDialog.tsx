@@ -4,24 +4,25 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { TeamRolePicker } from './TeamRolePicker';
+import type { Role } from '../../types/database';
 import { createUser } from './api';
 import type { TeamOption, TeamRoleInput } from './api';
 import { generatePassword } from '../../lib/password';
 
 interface CreateUserDialogProps {
   teamOptions: TeamOption[];
+  roles: Role[];
   onClose: () => void;
   onCreated: () => void;
 }
 
-export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUserDialogProps) {
+export function CreateUserDialog({ teamOptions, roles, onClose, onCreated }: CreateUserDialogProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState(() => generatePassword());
   const [isAdmin, setIsAdmin] = useState(false);
-  const [canEditExercises, setCanEditExercises] = useState(false);
   const [teamRoles, setTeamRoles] = useState<TeamRoleInput[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,6 @@ export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUser
         last_name: lastName,
         phone: phone || null,
         is_admin: isAdmin,
-        can_edit_exercises: canEditExercises,
         team_roles: teamRoles,
       });
       setCreated(true);
@@ -160,22 +160,11 @@ export function CreateUserDialog({ teamOptions, onClose, onCreated }: CreateUser
           Admin (voller Zugriff auf alle Teams &amp; Module)
         </label>
 
-        {!isAdmin && (
-          <label className="flex items-center gap-2 text-sm text-text">
-            <input
-              type="checkbox"
-              className="size-5"
-              checked={canEditExercises}
-              onChange={(e) => setCanEditExercises(e.target.checked)}
-            />
-            Kann alle Übungen in der Übungsdatenbank bearbeiten
-          </label>
-        )}
 
         {!isAdmin && (
           <div>
-            <Label>Team- &amp; Rollenzuweisung</Label>
-            <TeamRolePicker teamOptions={teamOptions} value={teamRoles} onChange={setTeamRoles} />
+            <Label>Zuweisungen (Bereich und Rolle)</Label>
+            <TeamRolePicker teamOptions={teamOptions} roles={roles} value={teamRoles} onChange={setTeamRoles} />
           </div>
         )}
 

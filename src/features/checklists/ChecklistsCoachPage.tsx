@@ -7,6 +7,7 @@ import { Select } from '../../components/Select';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { withCache } from '../../lib/withCache';
 import { fetchTeamOptions } from '../../lib/teams';
+import { filterTeamsForModule } from '../../auth/permissions';
 import type { TeamOption } from '../../lib/teams';
 import { fetchChecklists, fetchChecklistInstances, fetchArchivedChecklistInstances } from './api';
 import type { ChecklistRow } from './api';
@@ -30,12 +31,8 @@ export function ChecklistsCoachPage() {
   useEffect(() => {
     withCache('team-options', fetchTeamOptions)
       .then((result) => {
-        // Filter teams based on user memberships (non-admins only see their teams)
-        let filtered = result.data;
-        if (!isAdmin && memberships.length > 0) {
-          const membershipTeamIds = new Set(memberships.map((m) => m.teamId));
-          filtered = result.data.filter((t) => membershipTeamIds.has(t.teamId));
-        }
+        // Nur Teams, in denen der Nutzer das Modul Checklisten sieht
+        const filtered = filterTeamsForModule(result.data, 'checklisten', isAdmin, memberships);
         setTeamOptions(filtered);
         if (filtered.length > 0) setTeamId(filtered[0].teamId);
       })

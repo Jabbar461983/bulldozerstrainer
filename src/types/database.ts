@@ -32,11 +32,26 @@ export interface Team {
   created_at: string;
 }
 
+/** Frei definierbare Rolle (Migration 0096). */
+export interface Role {
+  id: string;
+  name: string;
+  /** Fest eingebaute Rollen: 'headcoach', 'assistant_coach', 'vorstand' (nicht löschbar); 'finance' aus der Übernahme. */
+  system_key: string | null;
+  modules: string[];
+  sort_order: number;
+  created_at: string;
+}
+
 export interface UserTeamRole {
   id: string;
   user_id: string;
-  team_id: string;
-  role: CoachRole;
+  /** null = "Alle Teams" (vereinsweit). */
+  team_id: string | null;
+  role_id: string;
+  /** Veraltet (nur noch für die Übergangszeit vor Migration 0096 befüllt). */
+  role: CoachRole | null;
+  /** Veraltet, siehe role. */
   finance_access: boolean;
 }
 
@@ -412,6 +427,7 @@ export interface Database {
       profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> };
       categories: { Row: Category; Insert: Partial<Category>; Update: Partial<Category> };
       teams: { Row: Team; Insert: Partial<Team>; Update: Partial<Team> };
+      roles: { Row: Role; Insert: Partial<Role>; Update: Partial<Role> };
       user_team_roles: {
         Row: UserTeamRole;
         Insert: Partial<UserTeamRole>;

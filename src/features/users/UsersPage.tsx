@@ -3,9 +3,9 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { List, ListRow } from '../../components/List';
 import { useAuth } from '../../auth/AuthContext';
-import { fetchUsers, fetchTeamOptions, deleteUser } from './api';
+import { fetchUsers, fetchTeamOptions, fetchRoles, deleteUser } from './api';
+import type { Role } from '../../types/database';
 import type { UserRow, TeamOption } from './api';
-import { ROLE_LABELS } from '../../auth/permissions';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { SetPasswordDialog } from './SetPasswordDialog';
@@ -14,6 +14,7 @@ export function UsersPage() {
   const { profile: currentProfile } = useAuth();
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
@@ -23,9 +24,10 @@ export function UsersPage() {
   async function load() {
     setError(null);
     try {
-      const [userRows, teams] = await Promise.all([fetchUsers(), fetchTeamOptions()]);
+      const [userRows, teams, roleRows] = await Promise.all([fetchUsers(), fetchTeamOptions(), fetchRoles()]);
       setUsers(userRows);
       setTeamOptions(teams);
+      setRoles(roleRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Benutzer konnten nicht geladen werden.');
     }
@@ -95,16 +97,14 @@ export function UsersPage() {
             {!user.is_admin && (
               <div className="flex flex-wrap gap-1.5">
                 {user.teamRoles.length === 0 && (
-                  <span className="text-xs text-text-muted">Keinem Team zugewiesen</span>
+                  <span className="text-xs text-text-muted">Keine Rolle zugewiesen</span>
                 )}
                 {user.teamRoles.map((tr) => (
                   <span
-                    key={tr.teamId}
+                    key={`${tr.teamId ?? 'alle'}-${tr.roleId}`}
                     className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                   >
-                    {tr.categoryName} · {tr.teamName} –{' '}
-                    {ROLE_LABELS[tr.role]}
-                    {tr.role !== 'finance' && tr.financeAccess && ' · Finanzen'}
+                    {tr.teamId ? `${tr.categoryName} · ${tr.teamName}` : 'Alle Teams'} – {tr.roleName}
                   </span>
                 ))}
               </div>
@@ -134,6 +134,7 @@ export function UsersPage() {
       {showCreate && (
         <CreateUserDialog
           teamOptions={teamOptions}
+          roles={roles}
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
@@ -146,6 +147,7 @@ export function UsersPage() {
         <EditUserDialog
           user={editingUser}
           teamOptions={teamOptions}
+          roles={roles}
           onClose={() => setEditingUser(null)}
           onSaved={() => {
             setEditingUser(null);

@@ -7,6 +7,8 @@ import { Select } from '../../components/Select';
 import { StarRating } from '../../components/StarRating';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTeamOptions } from '../../lib/teams';
+import { useAuth } from '../../auth/AuthContext';
+import { filterTeamsForModule } from '../../auth/permissions';
 import type { TeamOption } from '../../lib/teams';
 import { todayIso } from '../../lib/dates';
 import { withCache } from '../../lib/withCache';
@@ -71,6 +73,7 @@ function CollapsibleSection({
 }
 
 export function TrainingsPage() {
+  const { isAdmin, memberships } = useAuth();
   const [openSections, setOpenSections] = useState(readOpenSections);
 
   function toggleSection(section: 'upcoming' | 'past') {
@@ -100,11 +103,13 @@ export function TrainingsPage() {
   useEffect(() => {
     withCache('team-options', fetchTeamOptions)
       .then((result) => {
-        setTeamOptions(result.data);
-        if (result.data.length > 0) setTeamId(result.data[0].teamId);
+        const visible = filterTeamsForModule(result.data, 'training', isAdmin, memberships);
+        setTeamOptions(visible);
+        if (visible.length > 0) setTeamId(visible[0].teamId);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Teams konnten nicht geladen werden.'));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, memberships]);
 
   async function load(currentTeamId: string) {
     if (!currentTeamId) return;

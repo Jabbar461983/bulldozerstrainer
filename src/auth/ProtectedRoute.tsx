@@ -15,7 +15,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-export function ModuleRoute({ module, children }: { module: Module; children: ReactNode }) {
+export function ModuleRoute({ module, children }: { module: Module | Module[]; children: ReactNode }) {
   const { canAccess, loading } = useAuth();
   if (loading) return null;
   if (!canAccess(module)) {

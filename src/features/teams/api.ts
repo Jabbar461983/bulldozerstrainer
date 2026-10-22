@@ -1,15 +1,16 @@
 import { supabase } from '../../lib/supabase';
-import type { Category, CoachRole, Profile, Team } from '../../types/database';
+import type { Category, Profile, Team } from '../../types/database';
 import { fetchCategories } from '../../lib/categories';
 
 export { fetchCategories };
+export { fetchRoles } from '../roles/api';
 
 export interface CoachAssignmentView {
   userId: string;
   firstName: string;
   lastName: string;
-  role: CoachRole;
-  financeAccess: boolean;
+  roleId: string;
+  roleName: string;
 }
 
 export interface TeamRow extends Team {
@@ -25,8 +26,7 @@ export interface AssignableUser {
 
 export interface CoachAssignmentInput {
   user_id: string;
-  role: CoachRole;
-  finance_access: boolean;
+  role_id: string;
 }
 
 const FOREIGN_KEY_VIOLATION = '23503';
@@ -59,7 +59,7 @@ export async function fetchTeams(): Promise<TeamRow[]> {
       supabase.from('teams').select('*').order('season', { ascending: false }),
       supabase.from('categories').select('*'),
       supabase.from('profiles').select('id, first_name, last_name'),
-      supabase.from('user_team_roles').select('user_id, team_id, role, finance_access'),
+      supabase.from('user_team_roles').select('user_id, team_id, role_id, roles(name)'),
     ]);
   if (teamsError) throw teamsError;
   if (categoriesError) throw categoriesError;
@@ -75,15 +75,15 @@ export async function fetchTeams(): Promise<TeamRow[]> {
     ...team,
     categoryName: categoryById.get(team.category_id)?.name ?? '?',
     coachAssignments: (roles ?? [])
-      .filter((r: { team_id: string }) => r.team_id === team.id)
-      .map((r: { user_id: string; role: CoachRole; finance_access: boolean }) => {
+      .filter((r: { team_id: string | null }) => r.team_id === team.id)
+      .map((r: { user_id: string; role_id: string; roles: { name: string } | null }) => {
         const profile = profileById.get(r.user_id);
         return {
           userId: r.user_id,
           firstName: profile?.first_name ?? 'Unbekannt',
           lastName: profile?.last_name ?? '',
-          role: r.role,
-          financeAccess: r.finance_access,
+          roleId: r.role_id,
+          roleName: r.roles?.name ?? 'Unbekannte Rolle',
         };
       }),
   }));
@@ -147,11 +147,11 @@ export async function replaceCoachAssignments(teamId: string, assignments: Coach
   const { error: deleteError } = await supabase.from('user_team_roles').delete().eq('team_id', teamId);
   if (deleteError) throw deleteError;
   if (assignments.length === 0) return;
-  const rows = assignments.map((a) => ({
+  const unique = new Map(assignments.map((a) => [`${a.user_id}|${a.role_id}`, a]));
+  const rows = Array.from(unique.values()).map((a) => ({
     user_id: a.user_id,
     team_id: teamId,
-    role: a.role,
-    finance_access: a.finance_access,
+    role_id: a.role_id,
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: insertError } = await (supabase.from('user_team_roles') as any).insert(rows);

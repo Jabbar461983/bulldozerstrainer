@@ -7,6 +7,7 @@ import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchPlayers, deletePlayer, fetchPlayerGoalSeasons, fetchPlayerGoals, fetchPlayerNotes } from './api';
 import type { PlayerRow } from './api';
 import { fetchTeamOptions } from '../../lib/teams';
+import { accessibleTeamIds, filterTeamsForModule } from '../../auth/permissions';
 import type { TeamOption } from '../../lib/teams';
 import { withCache } from '../../lib/withCache';
 import { CreatePlayerDialog } from './CreatePlayerDialog';
@@ -44,10 +45,10 @@ export function PlayersPage() {
 
       let filteredPlayers = result.data.playerRows;
 
-      // Filter players based on user role
-      if (!isAdmin && memberships.length > 0) {
-        const userTeamIds = memberships.map((m) => m.teamId);
-        filteredPlayers = filteredPlayers.filter((p) => p.teams.some((t) => userTeamIds.includes(t.teamId)));
+      // Nur Spieler aus Teams, in denen der Nutzer das Modul Spieler sieht
+      const scope = accessibleTeamIds('spieler', isAdmin, memberships);
+      if (!scope.allTeams) {
+        filteredPlayers = filteredPlayers.filter((p) => p.teams.some((t) => scope.teamIds.includes(t.teamId)));
       }
 
       // Load goals and notes for each player
@@ -76,7 +77,7 @@ export function PlayersPage() {
       );
 
       setPlayers(playersWithExtras);
-      setTeamOptions(result.data.teams);
+      setTeamOptions(filterTeamsForModule(result.data.teams, 'spieler', isAdmin, memberships));
       setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Spieler konnten nicht geladen werden.');

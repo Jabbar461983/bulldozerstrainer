@@ -2,9 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import type { Profile, UserTeamRole } from '../types/database';
+import type { Profile, Role } from '../types/database';
 import type { TeamMembership } from './permissions';
-import { hasAnyModuleAccess, type Module } from './permissions';
+import { hasAnyModuleAccess, VORSTAND_ROLE_KEY, type Module } from './permissions';
 
 interface AuthState {
   session: Session | null;
@@ -12,7 +12,10 @@ interface AuthState {
   memberships: TeamMembership[];
   loading: boolean;
   isAdmin: boolean;
-  canAccess: (module: Module) => boolean;
+  /** Hat die fest eingebaute Rolle "Vorstand". */
+  isVorstand: boolean;
+  /** true, wenn der Nutzer (eines der) Module sieht. */
+  canAccess: (module: Module | Module[]) => boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -30,14 +33,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase
         .from('user_team_roles')
-        .select('team_id, role, finance_access')
+        .select('team_id, role_id, roles(name, system_key, modules)')
         .eq('user_id', userId) as unknown as Promise<{
-        data: Pick<UserTeamRole, 'team_id' | 'role' | 'finance_access'>[] | null;
+        data:
+          | {
+              team_id: string | null;
+              role_id: string;
+              roles: Pick<Role, 'name' | 'system_key' | 'modules'> | null;
+            }[]
+          | null;
       }>,
     ]);
     setProfile(profileData ?? null);
     setMemberships(
-      (roleData ?? []).map((r) => ({ teamId: r.team_id, role: r.role, financeAccess: r.finance_access })),
+      (roleData ?? []).map((r) => ({
+        teamId: r.team_id,
+        roleId: r.role_id,
+        roleName: r.roles?.name ?? '',
+        systemKey: r.roles?.system_key ?? null,
+        modules: r.roles?.modules ?? [],
+      })),
     );
   }
 
@@ -74,7 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       memberships,
       loading,
       isAdmin: profile?.is_admin ?? false,
-      canAccess: (module) => hasAnyModuleAccess(module, profile?.is_admin ?? false, memberships),
+      isVorstand: memberships.some((m) => m.systemKey === VORSTAND_ROLE_KEY),
+      canAccess: (module) =>
+        (Array.isArray(module) ? module : [module]).some((m) =>
+          hasAnyModuleAccess(m, profile?.is_admin ?? false, memberships),
+        ),
       refreshProfile: async () => {
         if (session) await loadProfile(session.user.id);
       },

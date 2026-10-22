@@ -7,23 +7,27 @@ import { Select } from '../../components/Select';
 import { CoachAssignmentPicker } from './CoachAssignmentPicker';
 import { createTeam } from './api';
 import type { AssignableUser, CoachAssignmentInput } from './api';
-import type { Category } from '../../types/database';
+import type { Category, Role } from '../../types/database';
+import { useAuth } from '../../auth/AuthContext';
 import { currentSeason as defaultSeason } from '../../lib/dates';
 
 interface CreateTeamDialogProps {
   categories: Category[];
   users: AssignableUser[];
+  roles: Role[];
   defaultCategoryId?: string;
   onClose: () => void;
   onCreated: () => void;
 }
 
-export function CreateTeamDialog({ categories, users, defaultCategoryId, onClose, onCreated }: CreateTeamDialogProps) {
+export function CreateTeamDialog({ roles, categories, users, defaultCategoryId, onClose, onCreated }: CreateTeamDialogProps) {
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? categories[0]?.id ?? '');
   const [name, setName] = useState('');
   const [season, setSeason] = useState(defaultSeason());
   const [duration, setDuration] = useState(90);
   const [coachAssignments, setCoachAssignments] = useState<CoachAssignmentInput[]>([]);
+  // Rollen vergeben bleibt beim Admin (auch wenn die Teamverwaltung über eine Rolle freigegeben ist).
+  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,10 +99,12 @@ export function CreateTeamDialog({ categories, users, defaultCategoryId, onClose
           />
         </div>
 
-        <div>
-          <Label>Trainer-Zuweisung</Label>
-          <CoachAssignmentPicker users={users} value={coachAssignments} onChange={setCoachAssignments} />
-        </div>
+        {isAdmin && (
+          <div>
+            <Label>Trainer-Zuweisung</Label>
+            <CoachAssignmentPicker users={users} roles={roles} value={coachAssignments} onChange={setCoachAssignments} />
+          </div>
+        )}
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </form>

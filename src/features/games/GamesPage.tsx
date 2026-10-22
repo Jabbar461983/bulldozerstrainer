@@ -5,6 +5,8 @@ import { DateChip, List, ListRow } from '../../components/List';
 import { Select } from '../../components/Select';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { fetchTeamOptions } from '../../lib/teams';
+import { useAuth } from '../../auth/AuthContext';
+import { filterTeamsForModule } from '../../auth/permissions';
 import type { TeamOption } from '../../lib/teams';
 import { todayIso } from '../../lib/dates';
 import { withCache } from '../../lib/withCache';
@@ -15,6 +17,7 @@ import { ImportGamesDialog } from './ImportGamesDialog';
 import { GameDetailDialog } from './GameDetailDialog';
 
 export function GamesPage() {
+  const { isAdmin, memberships } = useAuth();
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
   const [teamId, setTeamId] = useState('');
   const [games, setGames] = useState<Game[] | null>(null);
@@ -27,11 +30,13 @@ export function GamesPage() {
   useEffect(() => {
     withCache('team-options', fetchTeamOptions)
       .then((result) => {
-        setTeamOptions(result.data);
-        if (result.data.length > 0) setTeamId(result.data[0].teamId);
+        const visible = filterTeamsForModule(result.data, 'spiele', isAdmin, memberships);
+        setTeamOptions(visible);
+        if (visible.length > 0) setTeamId(visible[0].teamId);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Teams konnten nicht geladen werden.'));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, memberships]);
 
   const selectedTeam = teamOptions?.find((t) => t.teamId === teamId) ?? null;
 

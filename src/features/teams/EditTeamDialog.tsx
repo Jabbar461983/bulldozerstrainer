@@ -7,24 +7,28 @@ import { Select } from '../../components/Select';
 import { CoachAssignmentPicker } from './CoachAssignmentPicker';
 import { updateTeam, replaceCoachAssignments } from './api';
 import type { AssignableUser, CoachAssignmentInput, TeamRow } from './api';
-import type { Category } from '../../types/database';
+import type { Category, Role } from '../../types/database';
+import { useAuth } from '../../auth/AuthContext';
 
 interface EditTeamDialogProps {
   team: TeamRow;
   categories: Category[];
   users: AssignableUser[];
+  roles: Role[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function EditTeamDialog({ team, categories, users, onClose, onSaved }: EditTeamDialogProps) {
+export function EditTeamDialog({ roles, team, categories, users, onClose, onSaved }: EditTeamDialogProps) {
   const [categoryId, setCategoryId] = useState(team.category_id);
   const [name, setName] = useState(team.name);
   const [season, setSeason] = useState(team.season);
   const [duration, setDuration] = useState(team.default_training_duration_minutes);
   const [coachAssignments, setCoachAssignments] = useState<CoachAssignmentInput[]>(
-    team.coachAssignments.map((a) => ({ user_id: a.userId, role: a.role, finance_access: a.financeAccess })),
+    team.coachAssignments.map((a) => ({ user_id: a.userId, role_id: a.roleId })),
   );
+  // Rollen vergeben bleibt beim Admin (auch wenn die Teamverwaltung über eine Rolle freigegeben ist).
+  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +43,7 @@ export function EditTeamDialog({ team, categories, users, onClose, onSaved }: Ed
         season,
         default_training_duration_minutes: duration,
       });
-      await replaceCoachAssignments(team.id, coachAssignments);
+      if (isAdmin) await replaceCoachAssignments(team.id, coachAssignments);
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Änderungen konnten nicht gespeichert werden.');
@@ -96,10 +100,12 @@ export function EditTeamDialog({ team, categories, users, onClose, onSaved }: Ed
           />
         </div>
 
-        <div>
-          <Label>Trainer-Zuweisung</Label>
-          <CoachAssignmentPicker users={users} value={coachAssignments} onChange={setCoachAssignments} />
-        </div>
+        {isAdmin && (
+          <div>
+            <Label>Trainer-Zuweisung</Label>
+            <CoachAssignmentPicker users={users} roles={roles} value={coachAssignments} onChange={setCoachAssignments} />
+          </div>
+        )}
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </form>

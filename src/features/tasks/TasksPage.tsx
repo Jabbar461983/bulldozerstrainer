@@ -32,7 +32,8 @@ function StatusBadge({ status }: { status: ReturnType<typeof deriveTaskStatus> }
 }
 
 export function TasksPage() {
-  const { isAdmin } = useAuth();
+  const { canAccess } = useAuth();
+  const canSeeOverviews = canAccess('aufgaben_uebersicht');
   const [tab, setTab] = useState<Tab>('mine');
   const [myTasks, setMyTasks] = useState<TaskRow[] | null>(null);
   const [createdTasks, setCreatedTasks] = useState<TaskRow[] | null>(null);
@@ -75,7 +76,7 @@ export function TasksPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben</h1>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin && (
+          {canSeeOverviews && (
             <>
               <LinkButton to="/aufgaben/statistik">Übersicht Team/Person</LinkButton>
               <LinkButton to="/aufgaben/uebersicht">Gesamtübersicht</LinkButton>

@@ -4,7 +4,8 @@ import type { Module } from '../auth/permissions';
 export interface NavItem {
   to: string;
   label: string;
-  module?: Module;
+  /** Sichtbar, wenn der Nutzer eines dieser Module sieht. */
+  module?: Module | Module[];
   adminOnly?: boolean;
   icon: ReactNode;
 }
@@ -33,7 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/saisonplanung',
     label: 'Saisonplanung',
-    module: 'training',
+    module: 'saisonplanung',
     icon: <Icon d="M3 6h18M3 6v12a1 1 0 001 1h16a1 1 0 001-1V6M3 9h18M7 12h10M7 15h10" />,
   },
   {
@@ -51,7 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/trainer',
     label: 'Trainer',
-    adminOnly: true,
+    module: 'trainer',
     icon: <Icon d="M4 20a5 5 0 0110-.2M9 12a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm10 8v-2a3 3 0 00-2.3-2.9M15 5.1a3 3 0 010 5.8" />,
   },
   {
@@ -63,13 +64,13 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/finanzen',
     label: 'Finanzen',
-    module: 'finanzen',
+    module: ['finanzen', 'finanzen_verein'],
     icon: <Icon d="M3 7h18M3 7v11a1 1 0 001 1h16a1 1 0 001-1V7M7 12h4M3 7l2-4h14l2 4" />,
   },
   {
     to: '/teams',
     label: 'Teamverwaltung',
-    adminOnly: true,
+    module: 'teams',
     icon: <Icon d="M4 20a4 4 0 018 0M12 20a4 4 0 018 0M8 12a3 3 0 100-6 3 3 0 000 6zm8 0a3 3 0 100-6 3 3 0 000 6z" />,
   },
   {
@@ -81,7 +82,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/checklisten-verwaltung',
     label: 'Checklisten-Verwaltung',
-    adminOnly: true,
+    module: 'checklisten_verwaltung',
     icon: <Icon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 15h6" />,
   },
   {
@@ -89,5 +90,11 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Benutzer',
     adminOnly: true,
     icon: <Icon d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21a8 8 0 0116 0" />,
+  },
+  {
+    to: '/rollen',
+    label: 'Rollen',
+    adminOnly: true,
+    icon: <Icon d="M15 7a3 3 0 11-6 0 3 3 0 016 0zM12 10v11M12 14h4M12 18h3" />,
   },
 ];

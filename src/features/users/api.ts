@@ -1,18 +1,20 @@
 import { supabase } from '../../lib/supabase';
-import type { CoachRole, Profile } from '../../types/database';
+import type { Profile } from '../../types/database';
 import { fetchTeamOptions } from '../../lib/teams';
 import type { TeamOption } from '../../lib/teams';
 import { functionErrorMessage } from '../../lib/functionsError';
 
 export { fetchTeamOptions };
+export { fetchRoles } from '../roles/api';
 export type { TeamOption };
 
 export interface UserTeamRoleView {
-  teamId: string;
+  /** null = "Alle Teams". */
+  teamId: string | null;
   teamName: string;
   categoryName: string;
-  role: CoachRole;
-  financeAccess: boolean;
+  roleId: string;
+  roleName: string;
 }
 
 export interface UserRow extends Profile {
@@ -23,7 +25,7 @@ export async function fetchUsers(): Promise<UserRow[]> {
   const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }, teamOptions] =
     await Promise.all([
       supabase.from('profiles').select('*').order('last_name', { ascending: true }),
-      supabase.from('user_team_roles').select('user_id, team_id, role, finance_access'),
+      supabase.from('user_team_roles').select('user_id, team_id, role_id, roles(name)'),
       fetchTeamOptions(),
     ]);
   if (profilesError) throw profilesError;
@@ -35,23 +37,23 @@ export async function fetchUsers(): Promise<UserRow[]> {
     ...profile,
     teamRoles: (roles ?? [])
       .filter((r: { user_id: string }) => r.user_id === profile.id)
-      .map((r: { team_id: string; role: CoachRole; finance_access: boolean }) => {
-        const team = teamById.get(r.team_id);
+      .map((r: { team_id: string | null; role_id: string; roles: { name: string } | null }) => {
+        const team = r.team_id ? teamById.get(r.team_id) : undefined;
         return {
           teamId: r.team_id,
-          teamName: team?.teamName ?? 'Unbekanntes Team',
+          teamName: r.team_id ? (team?.teamName ?? 'Unbekanntes Team') : 'Alle Teams',
           categoryName: team?.categoryName ?? '',
-          role: r.role,
-          financeAccess: r.finance_access,
+          roleId: r.role_id,
+          roleName: r.roles?.name ?? 'Unbekannte Rolle',
         };
       }),
   }));
 }
 
 export interface TeamRoleInput {
-  team_id: string;
-  role: CoachRole;
-  finance_access: boolean;
+  /** null = "Alle Teams". */
+  team_id: string | null;
+  role_id: string;
 }
 
 export async function createUser(payload: {
@@ -61,12 +63,26 @@ export async function createUser(payload: {
   last_name: string;
   phone: string | null;
   is_admin: boolean;
-  can_edit_exercises: boolean;
   team_roles: TeamRoleInput[];
 }) {
-  const { data, error } = await supabase.functions.invoke('admin-create-user', { body: payload });
+  // Die Edge Function legt nur das Konto an; die Rollen-Zuweisungen setzt der
+  // Admin danach direkt (Format mit role_id, siehe Migration 0096).
+  const { team_roles, ...body } = payload;
+  const { data, error } = await supabase.functions.invoke('admin-create-user', { body });
   if (error) throw new Error(await functionErrorMessage(error, 'Benutzer konnte nicht angelegt werden.'));
   if (data?.error) throw new Error(data.error);
+  const userId: string | undefined = data?.user?.id;
+  if (userId && team_roles.length > 0) {
+    try {
+      await replaceTeamRoles(userId, team_roles);
+    } catch (err) {
+      throw new Error(
+        `Benutzer wurde angelegt, die Rollen-Zuweisung ist aber fehlgeschlagen: ${
+          err instanceof Error ? err.message : String(err)
+        }. Bitte beim Benutzer unter „Bearbeiten“ nachtragen.`,
+      );
+    }
+  }
   return data;
 }
 
@@ -90,7 +106,7 @@ export async function deleteUser(userId: string) {
 
 export async function updateProfile(
   id: string,
-  updates: Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'is_admin' | 'can_edit_exercises'>>,
+  updates: Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'is_admin'>>,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('profiles') as any).update(updates).eq('id', id);
@@ -101,11 +117,12 @@ export async function replaceTeamRoles(userId: string, teamRoles: TeamRoleInput[
   const { error: deleteError } = await supabase.from('user_team_roles').delete().eq('user_id', userId);
   if (deleteError) throw deleteError;
   if (teamRoles.length === 0) return;
-  const rows = teamRoles.map((tr) => ({
+  // Doppelte Zeilen (gleicher Bereich + gleiche Rolle) nur einmal speichern.
+  const unique = new Map(teamRoles.map((tr) => [`${tr.team_id ?? 'alle'}|${tr.role_id}`, tr]));
+  const rows = Array.from(unique.values()).map((tr) => ({
     user_id: userId,
     team_id: tr.team_id,
-    role: tr.role,
-    finance_access: tr.finance_access,
+    role_id: tr.role_id,
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: insertError } = await (supabase.from('user_team_roles') as any).insert(rows);

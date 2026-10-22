@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { TeamOption } from '../../lib/teams';
 import { fetchTeamOptions } from '../../lib/teams';
+import { useAuth } from '../../auth/AuthContext';
+import { filterTeamsForModule } from '../../auth/permissions';
 import { withCache } from '../../lib/withCache';
 import { Select } from '../../components/Select';
 import { OfflineNotice } from '../../components/OfflineNotice';
 import { SeasonPlanningPage } from './SeasonPlanningPage';
 
 export function SeasonPlanningWrapper() {
+  const { isAdmin, memberships } = useAuth();
   const [teamOptions, setTeamOptions] = useState<TeamOption[] | null>(null);
   const [teamId, setTeamId] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -15,12 +18,14 @@ export function SeasonPlanningWrapper() {
   useEffect(() => {
     withCache('team-options', fetchTeamOptions)
       .then((result) => {
-        setTeamOptions(result.data);
-        if (result.data.length > 0) setTeamId(result.data[0].teamId);
+        const visible = filterTeamsForModule(result.data, 'saisonplanung', isAdmin, memberships);
+        setTeamOptions(visible);
+        if (visible.length > 0) setTeamId(visible[0].teamId);
         if (result.fromCache) setOfflineCachedAt(result.cachedAt);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Teams konnten nicht geladen werden.'));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, memberships]);
 
   if (error) {
     console.error('SeasonPlanningWrapper error:', error);

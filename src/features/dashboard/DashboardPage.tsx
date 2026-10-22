@@ -23,7 +23,7 @@ export function DashboardPage() {
         <p className="text-sm text-text-muted">
           {isAdmin
             ? 'Du bist als Admin angemeldet und hast Zugriff auf alle Teams und Module.'
-            : `Du bist Coach in ${memberships.length} Team(s).`}
+            : `Du bist Coach in ${new Set(memberships.map((m) => m.teamId ?? 'alle')).size} Team(s).`}
         </p>
       </div>
 

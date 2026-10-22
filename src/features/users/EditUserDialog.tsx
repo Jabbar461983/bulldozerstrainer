@@ -4,6 +4,7 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { TeamRolePicker } from './TeamRolePicker';
+import type { Role } from '../../types/database';
 import { updateProfile, replaceTeamRoles } from './api';
 import type { TeamOption, TeamRoleInput, UserRow } from './api';
 import { useAuth } from '../../auth/AuthContext';
@@ -11,19 +12,19 @@ import { useAuth } from '../../auth/AuthContext';
 interface EditUserDialogProps {
   user: UserRow;
   teamOptions: TeamOption[];
+  roles: Role[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function EditUserDialog({ user, teamOptions, onClose, onSaved }: EditUserDialogProps) {
+export function EditUserDialog({ user, teamOptions, roles, onClose, onSaved }: EditUserDialogProps) {
   const { profile: currentProfile } = useAuth();
   const [firstName, setFirstName] = useState(user.first_name);
   const [lastName, setLastName] = useState(user.last_name);
   const [phone, setPhone] = useState(user.phone ?? '');
   const [isAdmin, setIsAdmin] = useState(user.is_admin);
-  const [canEditExercises, setCanEditExercises] = useState(user.can_edit_exercises);
   const [teamRoles, setTeamRoles] = useState<TeamRoleInput[]>(
-    user.teamRoles.map((tr) => ({ team_id: tr.teamId, role: tr.role, finance_access: tr.financeAccess })),
+    user.teamRoles.map((tr) => ({ team_id: tr.teamId, role_id: tr.roleId })),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,6 @@ export function EditUserDialog({ user, teamOptions, onClose, onSaved }: EditUser
         last_name: lastName,
         phone: phone || null,
         is_admin: isAdmin,
-        can_edit_exercises: canEditExercises,
       });
       await replaceTeamRoles(user.id, isAdmin ? [] : teamRoles);
       onSaved();
@@ -102,22 +102,11 @@ export function EditUserDialog({ user, teamOptions, onClose, onSaved }: EditUser
           </p>
         )}
 
-        {!isAdmin && (
-          <label className="flex items-center gap-2 text-sm text-text">
-            <input
-              type="checkbox"
-              className="size-5"
-              checked={canEditExercises}
-              onChange={(e) => setCanEditExercises(e.target.checked)}
-            />
-            Kann alle Übungen in der Übungsdatenbank bearbeiten
-          </label>
-        )}
 
         {!isAdmin && (
           <div>
-            <Label>Team- &amp; Rollenzuweisung</Label>
-            <TeamRolePicker teamOptions={teamOptions} value={teamRoles} onChange={setTeamRoles} />
+            <Label>Zuweisungen (Bereich und Rolle)</Label>
+            <TeamRolePicker teamOptions={teamOptions} roles={roles} value={teamRoles} onChange={setTeamRoles} />
           </div>
         )}
 

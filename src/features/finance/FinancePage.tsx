@@ -24,7 +24,9 @@ const CLUB_SCOPE = '__club__';
 const CLUB_LABEL = 'Verein (kein Team)';
 
 export function FinancePage() {
-  const { isAdmin, memberships } = useAuth();
+  const { isAdmin, memberships, canAccess } = useAuth();
+  // "Verein" und Gesamtübersicht: Modul finanzen_verein (Admin hat es immer).
+  const canClub = canAccess('finanzen_verein');
   const [searchParams] = useSearchParams();
   // Absprung aus der Gesamtübersicht: ?team=<id|__club__>&season=<saison>
   const [requestedTeamId] = useState(() => searchParams.get('team'));
@@ -78,14 +80,14 @@ export function FinancePage() {
   useEffect(() => {
     if (!visibleTeamOptions) return;
     const isValid =
-      (teamId === CLUB_SCOPE && isAdmin) || visibleTeamOptions.some((t) => t.teamId === teamId);
+      (teamId === CLUB_SCOPE && canClub) || visibleTeamOptions.some((t) => t.teamId === teamId);
     if (isValid) return;
     if (requestedTeamId && !teamId) {
-      if (requestedTeamId === CLUB_SCOPE && isAdmin) return setTeamId(CLUB_SCOPE);
+      if (requestedTeamId === CLUB_SCOPE && canClub) return setTeamId(CLUB_SCOPE);
       if (visibleTeamOptions.some((t) => t.teamId === requestedTeamId)) return setTeamId(requestedTeamId);
     }
     if (visibleTeamOptions.length > 0) setTeamId(visibleTeamOptions[0].teamId);
-    else setTeamId(isAdmin ? CLUB_SCOPE : '');
+    else setTeamId(canClub ? CLUB_SCOPE : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleTeamOptions]);
 
@@ -124,16 +126,14 @@ export function FinancePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight text-text">Finanzen</h1>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin && (
-            <LinkButton to="/finanzen/uebersicht">Gesamtübersicht</LinkButton>
-          )}
+          {canClub && <LinkButton to="/finanzen/uebersicht">Gesamtübersicht</LinkButton>}
           <Button disabled={!teamId} onClick={() => setShowCreateReceipt(true)}>
             + Neuer Beleg
           </Button>
         </div>
       </div>
 
-      {teamOptions !== null && teamOptions.length === 0 && !isAdmin && (
+      {teamOptions !== null && teamOptions.length === 0 && !canClub && (
         <Card>
           <p className="text-sm text-text-muted">
             Dir ist kein Team für Finanzen zugewiesen. Bitte wende dich an einen Admin.
@@ -145,7 +145,7 @@ export function FinancePage() {
         teamOptions.length > 0 &&
         visibleTeamOptions !== null &&
         visibleTeamOptions.length === 0 &&
-        !isAdmin && (
+        !canClub && (
           <Card>
             <p className="text-sm text-text-muted">
               Für die Saison {season} ist für dein Team noch kein Budget hinterlegt. Bitte wende dich an einen
@@ -154,7 +154,7 @@ export function FinancePage() {
           </Card>
         )}
 
-      {visibleTeamOptions && (visibleTeamOptions.length > 0 || isAdmin) && (
+      {visibleTeamOptions && (visibleTeamOptions.length > 0 || canClub) && (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="team">Team</Label>
@@ -164,7 +164,7 @@ export function FinancePage() {
                   {t.categoryName} · {t.teamName}
                 </option>
               ))}
-              {isAdmin && <option value={CLUB_SCOPE}>{CLUB_LABEL}</option>}
+              {canClub && <option value={CLUB_SCOPE}>{CLUB_LABEL}</option>}
             </Select>
             {isAdmin && (
               <label className="mt-1.5 flex items-center gap-2 text-xs text-text-muted">
