@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 import { Modal } from '../components/Modal';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
-import { NAV_ITEMS } from './navItems';
+import { NAV_ITEMS, groupNavItems, type NavGroupKey } from './navItems';
 
 function MoreIcon() {
   return (
@@ -17,10 +17,35 @@ function MoreIcon() {
   );
 }
 
+const COLLAPSED_KEY = 'nav-collapsed-groups';
+
+function loadCollapsed(): NavGroupKey[] {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY);
+    return raw ? (JSON.parse(raw) as NavGroupKey[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function AppLayout() {
   const { profile, isAdmin, canAccess, signOut } = useAuth();
   const isOnline = useOnlineStatus();
   const [showMore, setShowMore] = useState(false);
+  // Eingeklappte Bereiche der Seitenleiste (pro Gerät gemerkt)
+  const [collapsed, setCollapsed] = useState<NavGroupKey[]>(loadCollapsed);
+
+  function toggleGroup(key: NavGroupKey) {
+    setCollapsed((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      try {
+        localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next));
+      } catch {
+        // ohne Speicher einfach nicht merken
+      }
+      return next;
+    });
+  }
 
   const items = NAV_ITEMS.filter((item) => {
     if (item.adminOnly) return isAdmin;
@@ -32,6 +57,8 @@ export function AppLayout() {
   // daher passen daneben höchstens 4 Menüpunkte in die Fussleiste.
   const mobileMainItems = items.slice(0, 4);
   const mobileOverflowItems = items.slice(4);
+  const groups = groupNavItems(items);
+  const mobileOverflowGroups = groupNavItems(mobileOverflowItems);
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     clsx(
@@ -55,16 +82,51 @@ export function AppLayout() {
         <p className="mt-4 mb-2 truncate px-3 text-xs text-nav-text/70">
           {profile ? `${profile.first_name} ${profile.last_name}` : ''}
         </p>
-        <ul className="flex flex-col gap-0.5">
-          {items.map((item) => (
-            <li key={item.to}>
-              <NavLink to={item.to} end={item.to === '/'} className={navLinkClass}>
-                <span className="[&>svg]:size-5">{item.icon}</span>
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col">
+          {groups.map(({ group, items: groupItems }, index) => {
+            const isCollapsed = group.label !== null && collapsed.includes(group.key);
+            return (
+              <div key={group.key} className={clsx(index > 0 && 'mt-2 border-t border-nav-border pt-2')}>
+                {group.label && (
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.key)}
+                    aria-expanded={!isCollapsed}
+                    className={clsx(
+                      'flex w-full items-center justify-between rounded px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-nav-hover',
+                      group.navHeadingClass,
+                    )}
+                  >
+                    {group.label}
+                    <svg
+                      viewBox="0 0 24 24"
+                      className={clsx('size-3.5 transition-transform', isCollapsed && '-rotate-90')}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                )}
+                {!isCollapsed && (
+                  <ul className="flex flex-col gap-0.5">
+                    {groupItems.map((item) => (
+                      <li key={item.to}>
+                        <NavLink to={item.to} end={item.to === '/'} className={navLinkClass}>
+                          <span className="[&>svg]:size-5">{item.icon}</span>
+                          {item.label}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
         <div className="mt-auto flex items-center gap-2 border-t border-nav-border pt-3">
           <button
             type="button"
@@ -134,25 +196,35 @@ export function AppLayout() {
       {showMore && (
         <Modal title="Mehr" onClose={() => setShowMore(false)}>
           <ul className="flex flex-col gap-1">
-            {mobileOverflowItems.map((item) => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  onClick={() => setShowMore(false)}
-                  className={({ isActive }) =>
-                    clsx(
-                      'flex items-center gap-3 rounded px-3 py-2.5 text-sm font-medium transition-colors',
-                      isActive
-                        ? 'bg-accent/10 text-accent'
-                        : 'text-text-muted hover:bg-surface-alt hover:text-text',
-                    )
-                  }
+            {mobileOverflowGroups.flatMap(({ group, items: groupItems }) => [
+              group.label ? (
+                <li
+                  key={`group-${group.key}`}
+                  className={clsx('mt-2 px-3 text-[11px] font-bold uppercase tracking-wider first:mt-0', group.headingClass)}
                 >
-                  {item.icon}
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
+                  {group.label}
+                </li>
+              ) : null,
+              ...groupItems.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    onClick={() => setShowMore(false)}
+                    className={({ isActive }) =>
+                      clsx(
+                        'flex items-center gap-3 rounded px-3 py-2.5 text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-accent/10 text-accent'
+                          : 'text-text-muted hover:bg-surface-alt hover:text-text',
+                      )
+                    }
+                  >
+                    {item.icon}
+                    {item.label}
+                  </NavLink>
+                </li>
+                )),
+            ])}
             <li className={mobileOverflowItems.length > 0 ? 'mt-1 border-t border-border pt-1' : undefined}>
               <button
                 type="button"

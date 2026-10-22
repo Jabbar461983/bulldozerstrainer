@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { Card } from '../../components/Card';
-import { NAV_ITEMS } from '../../layout/navItems';
+import { NAV_ITEMS, groupNavItems } from '../../layout/navItems';
 import { DueTasksWidget } from '../tasks/DueTasksWidget';
 
 export function DashboardPage() {
@@ -29,16 +29,23 @@ export function DashboardPage() {
 
       <DueTasksWidget />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {quickLinks.map((item) => (
-          <NavLink key={item.to} to={item.to}>
-            <Card className="flex flex-col items-center gap-2 py-6 text-center transition hover:border-accent hover:bg-accent/5">
-              <span className="text-accent">{item.icon}</span>
-              <span className="text-sm font-medium text-text">{item.label}</span>
-            </Card>
-          </NavLink>
-        ))}
-      </div>
+      {groupNavItems(quickLinks).map(({ group, items }) => (
+        <section key={group.key} className="flex flex-col gap-2">
+          {group.label && (
+            <h2 className={`text-[11px] font-bold uppercase tracking-wider ${group.headingClass}`}>{group.label}</h2>
+          )}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {items.map((item) => (
+              <NavLink key={item.to} to={item.to}>
+                <Card className="flex flex-col items-center gap-2 py-6 text-center transition hover:border-accent hover:bg-accent/5">
+                  <span className="text-accent">{item.icon}</span>
+                  <span className="text-sm font-medium text-text">{item.label}</span>
+                </Card>
+              </NavLink>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

@@ -22,6 +22,10 @@
   --club-nav-border: #232927;
   --club-nav-text: #b9c1bc;
   --club-nav-text-strong: #ffffff;
+  /* Bereichs-Überschriften in der Navigation (Hintergrund immer schwarz) */
+  --club-nav-group-sport: #2fae84;
+  --club-nav-group-verein: #c9a227;
+  --club-nav-group-admin: #8fa0b5;
 
   --club-bg: #f4f5f3;
   --club-surface: #ffffff;
@@ -34,6 +38,11 @@
   --club-success: #15803d;
   --club-warning: #b45309;
   --club-danger: #c62828;
+
+  /* Bereichs-Überschriften auf hellem/dunklem Hintergrund (Menü "Mehr", Startseite) */
+  --club-group-sport: #007057;
+  --club-group-verein: #8a6d0b;
+  --club-group-admin: #55677d;
 
   color-scheme: light;
 }
@@ -57,6 +66,10 @@
   --club-success: #4ade80;
   --club-warning: #f59e0b;
   --club-danger: #f06363;
+
+  --club-group-sport: #2fae84;
+  --club-group-verein: #c9a227;
+  --club-group-admin: #8fa0b5;
 
   color-scheme: dark;
 }
@@ -82,6 +95,10 @@
     --club-warning: #f59e0b;
     --club-danger: #f06363;
 
+    --club-group-sport: #2fae84;
+    --club-group-verein: #c9a227;
+    --club-group-admin: #8fa0b5;
+
     color-scheme: dark;
   }
 }
@@ -100,6 +117,12 @@
   --color-nav-border: var(--club-nav-border);
   --color-nav-text: var(--club-nav-text);
   --color-nav-text-strong: var(--club-nav-text-strong);
+  --color-nav-group-sport: var(--club-nav-group-sport);
+  --color-nav-group-verein: var(--club-nav-group-verein);
+  --color-nav-group-admin: var(--club-nav-group-admin);
+  --color-group-sport: var(--club-group-sport);
+  --color-group-verein: var(--club-group-verein);
+  --color-group-admin: var(--club-group-admin);
   --color-bg: var(--club-bg);
   --color-surface: var(--club-surface);
   --color-surface-alt: var(--club-surface-alt);
