@@ -23,6 +23,7 @@ import { TasksPage } from './features/tasks/TasksPage';
 import { TasksOverviewPage } from './features/tasks/TasksOverviewPage';
 import { TasksStatsPage } from './features/tasks/TasksStatsPage';
 import { RolesPage } from './features/roles/RolesPage';
+import { RoadmapPage } from './features/tasks/RoadmapPage';
 
 function App() {
   return (
@@ -48,6 +49,14 @@ function App() {
               element={
                 <ModuleRoute module="aufgaben_uebersicht">
                   <TasksOverviewPage />
+                </ModuleRoute>
+              }
+            />
+            <Route
+              path="aufgaben/roadmap"
+              element={
+                <ModuleRoute module="aufgaben_uebersicht">
+                  <RoadmapPage />
                 </ModuleRoute>
               }
             />
