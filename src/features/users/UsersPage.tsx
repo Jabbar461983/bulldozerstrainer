@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { Input } from '../../components/Input';
 import { List, ListRow } from '../../components/List';
 import { useAuth } from '../../auth/AuthContext';
 import { fetchUsers, fetchTeamOptions, fetchRoles, fetchRessorts, deleteUser } from './api';
@@ -27,6 +28,7 @@ export function UsersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [passwordUser, setPasswordUser] = useState<UserRow | null>(null);
+  const [search, setSearch] = useState('');
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   async function load() {
@@ -69,6 +71,18 @@ export function UsersPage() {
     }
   }
 
+  // Suche: Treffer im Vor- oder Nachnamen (Gross-/Kleinschreibung egal).
+  const visibleUsers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!users || !term) return users;
+    return users.filter(
+      (u) =>
+        u.first_name.toLowerCase().includes(term) ||
+        u.last_name.toLowerCase().includes(term) ||
+        `${u.first_name} ${u.last_name}`.toLowerCase().includes(term),
+    );
+  }, [users, search]);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -80,15 +94,45 @@ export function UsersPage() {
         <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>
       )}
 
+      {users !== null && users.length > 0 && (
+        <div className="relative max-w-sm">
+          <Input
+            type="search"
+            aria-label="Benutzer suchen"
+            placeholder="Benutzer suchen (Vor- oder Nachname)…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+          <svg
+            viewBox="0 0 24 24"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-muted"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.5-3.5" />
+          </svg>
+        </div>
+      )}
+
       {users === null && <p className="text-sm text-text-muted">Lädt…</p>}
       {users?.length === 0 && (
         <Card>
           <p className="text-sm text-text-muted">Noch keine Benutzer angelegt.</p>
         </Card>
       )}
+      {users !== null && users.length > 0 && visibleUsers?.length === 0 && (
+        <Card>
+          <p className="text-sm text-text-muted">Kein Benutzer gefunden für „{search.trim()}“.</p>
+        </Card>
+      )}
 
       <List>
-        {users?.map((user) => (
+        {visibleUsers?.map((user) => (
           <ListRow key={user.id} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
