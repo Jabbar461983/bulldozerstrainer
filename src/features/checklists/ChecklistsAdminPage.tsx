@@ -56,7 +56,7 @@ export function ChecklistsAdminPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-text">Checklisten-Verwaltung</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-text">Checklisten-Vorlagen</h1>
         <Button onClick={() => setShowCreate(true)}>+ Neue Checkliste</Button>
       </div>
 

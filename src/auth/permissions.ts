@@ -32,7 +32,7 @@ export const MODULE_LABELS: Record<Module, string> = {
   uebungen: 'Übungsdatenbank',
   trainer: 'Trainer (Stammdaten)',
   teams: 'Teamverwaltung',
-  checklisten_verwaltung: 'Checklisten-Verwaltung',
+  checklisten_verwaltung: 'Checklisten-Vorlagen',
   finanzen_verein: 'Finanzen: Verein und Gesamtübersicht',
   aufgaben_uebersicht: 'Aufgaben: Gesamtübersicht und Statistik',
 };
@@ -48,7 +48,7 @@ export const MODULE_SHORT_LABELS: Record<Module, string> = {
   uebungen: 'Übungen',
   trainer: 'Trainer',
   teams: 'Teamverwaltung',
-  checklisten_verwaltung: 'Checklisten-Verwaltung',
+  checklisten_verwaltung: 'Checklisten-Vorlagen',
   finanzen_verein: 'Finanzen Verein',
   aufgaben_uebersicht: 'Aufgaben-Übersichten',
 };
