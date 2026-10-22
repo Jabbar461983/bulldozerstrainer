@@ -5,7 +5,7 @@ import type { TeamOption } from '../../lib/teams';
 import { functionErrorMessage } from '../../lib/functionsError';
 
 export { fetchTeamOptions };
-export { fetchRoles } from '../roles/api';
+export { fetchRoles, fetchRessorts } from '../roles/api';
 export type { TeamOption };
 
 export interface UserTeamRoleView {
@@ -15,6 +15,10 @@ export interface UserTeamRoleView {
   categoryName: string;
   roleId: string;
   roleName: string;
+  roleSystemKey: string | null;
+  /** Nur bei der Rolle Vorstand. */
+  ressortId: string | null;
+  ressortName: string | null;
 }
 
 export interface UserRow extends Profile {
@@ -25,7 +29,7 @@ export async function fetchUsers(): Promise<UserRow[]> {
   const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }, teamOptions] =
     await Promise.all([
       supabase.from('profiles').select('*').order('last_name', { ascending: true }),
-      supabase.from('user_team_roles').select('user_id, team_id, role_id, roles(name)'),
+      supabase.from('user_team_roles').select('user_id, team_id, role_id, ressort_id, roles(name, system_key), vorstand_ressorts(name)'),
       fetchTeamOptions(),
     ]);
   if (profilesError) throw profilesError;
@@ -37,7 +41,14 @@ export async function fetchUsers(): Promise<UserRow[]> {
     ...profile,
     teamRoles: (roles ?? [])
       .filter((r: { user_id: string }) => r.user_id === profile.id)
-      .map((r: { team_id: string | null; role_id: string; roles: { name: string } | null }) => {
+      .map(
+        (r: {
+          team_id: string | null;
+          role_id: string;
+          ressort_id: string | null;
+          roles: { name: string; system_key: string | null } | null;
+          vorstand_ressorts: { name: string } | null;
+        }) => {
         const team = r.team_id ? teamById.get(r.team_id) : undefined;
         return {
           teamId: r.team_id,
@@ -45,8 +56,12 @@ export async function fetchUsers(): Promise<UserRow[]> {
           categoryName: team?.categoryName ?? '',
           roleId: r.role_id,
           roleName: r.roles?.name ?? 'Unbekannte Rolle',
+          roleSystemKey: r.roles?.system_key ?? null,
+          ressortId: r.ressort_id,
+          ressortName: r.vorstand_ressorts?.name ?? null,
         };
-      }),
+        },
+      ),
   }));
 }
 
@@ -54,6 +69,8 @@ export interface TeamRoleInput {
   /** null = "Alle Teams". */
   team_id: string | null;
   role_id: string;
+  /** Nur bei der Rolle Vorstand (Pflicht). */
+  ressort_id: string | null;
 }
 
 export async function createUser(payload: {
@@ -118,11 +135,12 @@ export async function replaceTeamRoles(userId: string, teamRoles: TeamRoleInput[
   if (deleteError) throw deleteError;
   if (teamRoles.length === 0) return;
   // Doppelte Zeilen (gleicher Bereich + gleiche Rolle) nur einmal speichern.
-  const unique = new Map(teamRoles.map((tr) => [`${tr.team_id ?? 'alle'}|${tr.role_id}`, tr]));
+  const unique = new Map(teamRoles.map((tr) => [`${tr.team_id ?? 'alle'}|${tr.role_id}|${tr.ressort_id ?? ''}`, tr]));
   const rows = Array.from(unique.values()).map((tr) => ({
     user_id: userId,
     team_id: tr.team_id,
     role_id: tr.role_id,
+    ressort_id: tr.ressort_id,
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: insertError } = await (supabase.from('user_team_roles') as any).insert(rows);

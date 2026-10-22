@@ -43,12 +43,22 @@ export interface Role {
   created_at: string;
 }
 
+/** Ressort (Unterrolle) des Vorstands (Migration 0098). */
+export interface VorstandRessort {
+  id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface UserTeamRole {
   id: string;
   user_id: string;
   /** null = "Alle Teams" (vereinsweit). */
   team_id: string | null;
   role_id: string;
+  /** Nur bei der Rolle Vorstand: das Ressort. */
+  ressort_id: string | null;
   /** Veraltet (nur noch für die Übergangszeit vor Migration 0096 befüllt). */
   role: CoachRole | null;
   /** Veraltet, siehe role. */
@@ -432,6 +442,11 @@ export interface Database {
       categories: { Row: Category; Insert: Partial<Category>; Update: Partial<Category> };
       teams: { Row: Team; Insert: Partial<Team>; Update: Partial<Team> };
       roles: { Row: Role; Insert: Partial<Role>; Update: Partial<Role> };
+      vorstand_ressorts: {
+        Row: VorstandRessort;
+        Insert: Partial<VorstandRessort>;
+        Update: Partial<VorstandRessort>;
+      };
       user_team_roles: {
         Row: UserTeamRole;
         Insert: Partial<UserTeamRole>;

@@ -215,14 +215,25 @@ export interface UserOptionForTask {
   lastName: string;
 }
 
-export type TaskRecipientScope = 'team_coaches' | 'all_headcoaches' | 'all_coaches' | 'all_users' | 'vorstand_all';
+export type TaskRecipientScope =
+  | 'team_coaches'
+  | 'all_headcoaches'
+  | 'all_coaches'
+  | 'all_users'
+  | 'vorstand_all'
+  | 'vorstand_ressort';
 
 export async function fetchTaskRecipientOptions(
   scope: TaskRecipientScope,
   teamId?: string,
+  ressortId?: string,
 ): Promise<UserOptionForTask[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.rpc as any)('task_recipients', { p_scope: scope, p_team_id: teamId ?? null });
+  const { data, error } = await (supabase.rpc as any)('task_recipients', {
+    p_scope: scope,
+    p_team_id: teamId ?? null,
+    p_ressort_id: ressortId ?? null,
+  });
   if (error) throw error;
   return (data ?? []).map((u: { user_id: string; first_name: string; last_name: string }) => ({
     userId: u.user_id,
@@ -230,6 +241,19 @@ export async function fetchTaskRecipientOptions(
     lastName: u.last_name,
   }));
 }
+
+/** Ressort-Zugehörigkeit der Vorstandsmitglieder (ressortId null = ohne Ressort). */
+export async function fetchRessortMembers(): Promise<{ ressortId: string | null; userId: string }[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('task_ressort_members');
+  if (error) throw error;
+  return ((data ?? []) as { ressort_id: string | null; user_id: string }[]).map((r) => ({
+    ressortId: r.ressort_id,
+    userId: r.user_id,
+  }));
+}
+
+export { fetchRessorts } from '../roles/api';
 
 export async function uploadTaskAttachment(file: File): Promise<string> {
   if (file.size > MAX_ATTACHMENT_SIZE) {

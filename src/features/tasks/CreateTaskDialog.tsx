@@ -8,17 +8,25 @@ import { useAuth } from '../../auth/AuthContext';
 import { todayIso } from '../../lib/dates';
 import {
   createTasks,
+  fetchRessorts,
   fetchTaskPersonRoles,
   fetchTaskRecipientOptions,
   fetchTaskTeamOptions,
   TASK_CATEGORY_LABELS,
   uploadTaskAttachment,
 } from './api';
-import type { TaskCategory } from '../../types/database';
+import type { TaskCategory, VorstandRessort } from '../../types/database';
 import { TaskCategoryBadge } from './TaskCategoryBadge';
 import type { TeamOptionForTask, UserOptionForTask } from './api';
 
-type RecipientMode = 'user' | 'team_coaches' | 'all_headcoaches' | 'all_coaches' | 'vorstand_all' | 'all_users';
+type RecipientMode =
+  | 'user'
+  | 'team_coaches'
+  | 'all_headcoaches'
+  | 'all_coaches'
+  | 'vorstand_all'
+  | 'vorstand_ressort'
+  | 'all_users';
 
 const RECIPIENT_MODE_LABELS: Record<RecipientMode, string> = {
   user: 'Einzelne Person',
@@ -26,12 +34,13 @@ const RECIPIENT_MODE_LABELS: Record<RecipientMode, string> = {
   all_headcoaches: 'Alle Headcoaches',
   all_coaches: 'Alle Coaches',
   vorstand_all: 'Vorstand (alle)',
+  vorstand_ressort: 'Vorstand-Ressort',
   all_users: 'Alle User',
 };
 
 /**
  * Zuordnung Sport/Vorstand:
- * - "Vorstand (alle)" -> Vorstand, alle anderen Gruppen -> Sport
+ * - "Vorstand (alle)" und "Vorstand-Ressort" -> Vorstand, alle anderen Gruppen -> Sport
  * - Einzelperson: nur Vorstand -> Vorstand, nur Sport-Rollen (oder keine) -> Sport,
  *   beides -> der Ersteller wird gefragt.
  */
@@ -55,6 +64,8 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
   const [teams, setTeams] = useState<TeamOptionForTask[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [ressorts, setRessorts] = useState<VorstandRessort[]>([]);
+  const [selectedRessortId, setSelectedRessortId] = useState('');
 
   const [personRoles, setPersonRoles] = useState<PersonRoles>(null);
   const [chosenCategory, setChosenCategory] = useState<TaskCategory | null>(null);
@@ -83,7 +94,7 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
     recipientMode === 'user' && Boolean(personRoles?.isVorstand && personRoles?.hasSportRole);
 
   function resolveCategory(): TaskCategory | null {
-    if (recipientMode === 'vorstand_all') return 'vorstand';
+    if (recipientMode === 'vorstand_all' || recipientMode === 'vorstand_ressort') return 'vorstand';
     if (recipientMode !== 'user') return 'sport';
     if (!personRoles) return null;
     if (needsCategoryChoice) return chosenCategory;
@@ -93,10 +104,12 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
   const category = resolveCategory();
 
   useEffect(() => {
-    Promise.all([fetchTaskRecipientOptions('all_users'), fetchTaskTeamOptions()])
-      .then(([userOptions, teamOptions]) => {
+    Promise.all([fetchTaskRecipientOptions('all_users'), fetchTaskTeamOptions(), fetchRessorts()])
+      .then(([userOptions, teamOptions, ressortOptions]) => {
         setUsers(userOptions);
         setTeams(teamOptions);
+        setRessorts(ressortOptions);
+        if (ressortOptions.length > 0) setSelectedRessortId(ressortOptions[0].id);
         if (userOptions.length > 0) setSelectedUserId(userOptions[0].userId);
         if (teamOptions.length > 0) setSelectedTeamId(teamOptions[0].teamId);
       })
@@ -114,6 +127,11 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
     if (recipientMode === 'team_coaches') {
       if (!selectedTeamId) return [];
       const options = await fetchTaskRecipientOptions('team_coaches', selectedTeamId);
+      return options.map((o) => o.userId);
+    }
+    if (recipientMode === 'vorstand_ressort') {
+      if (!selectedRessortId) return [];
+      const options = await fetchTaskRecipientOptions('vorstand_ressort', undefined, selectedRessortId);
       return options.map((o) => o.userId);
     }
     const options = await fetchTaskRecipientOptions(recipientMode);
@@ -238,6 +256,19 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
               {teams.map((t) => (
                 <option key={t.teamId} value={t.teamId}>
                   {t.categoryName} · {t.teamName} ({t.season})
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+
+        {recipientMode === 'vorstand_ressort' && (
+          <div>
+            <Label htmlFor="recipientRessort">Ressort</Label>
+            <Select id="recipientRessort" value={selectedRessortId} onChange={(e) => setSelectedRessortId(e.target.value)}>
+              {ressorts.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
                 </option>
               ))}
             </Select>

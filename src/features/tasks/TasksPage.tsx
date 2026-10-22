@@ -79,7 +79,7 @@ export function TasksPage() {
         <div className="flex flex-wrap items-center gap-2">
           {canSeeOverviews && (
             <>
-              <LinkButton to="/aufgaben/statistik">Übersicht Team/Person</LinkButton>
+              <LinkButton to="/aufgaben/statistik">Übersicht Team/Ressort</LinkButton>
               <LinkButton to="/aufgaben/uebersicht">Gesamtübersicht</LinkButton>
             </>
           )}

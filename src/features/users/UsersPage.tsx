@@ -3,18 +3,26 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { List, ListRow } from '../../components/List';
 import { useAuth } from '../../auth/AuthContext';
-import { fetchUsers, fetchTeamOptions, fetchRoles, deleteUser } from './api';
-import type { Role } from '../../types/database';
+import { fetchUsers, fetchTeamOptions, fetchRoles, fetchRessorts, deleteUser } from './api';
+import type { Role, VorstandRessort } from '../../types/database';
 import type { UserRow, TeamOption } from './api';
+import { VORSTAND_ROLE_KEY } from '../../auth/permissions';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { SetPasswordDialog } from './SetPasswordDialog';
+
+/** Bereich einer Zuweisung: Team, "Alle Teams" oder (beim Vorstand) das Ressort. */
+function roleAreaLabel(tr: UserRow['teamRoles'][number]): string {
+  if (tr.roleSystemKey === VORSTAND_ROLE_KEY) return tr.ressortName ?? 'Ohne Ressort';
+  return tr.teamId ? `${tr.categoryName} · ${tr.teamName}` : 'Alle Teams';
+}
 
 export function UsersPage() {
   const { profile: currentProfile } = useAuth();
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [ressorts, setRessorts] = useState<VorstandRessort[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
@@ -24,7 +32,13 @@ export function UsersPage() {
   async function load() {
     setError(null);
     try {
-      const [userRows, teams, roleRows] = await Promise.all([fetchUsers(), fetchTeamOptions(), fetchRoles()]);
+      const [userRows, teams, roleRows, ressortRows] = await Promise.all([
+        fetchUsers(),
+        fetchTeamOptions(),
+        fetchRoles(),
+        fetchRessorts(),
+      ]);
+      setRessorts(ressortRows);
       setUsers(userRows);
       setTeamOptions(teams);
       setRoles(roleRows);
@@ -101,10 +115,10 @@ export function UsersPage() {
                 )}
                 {user.teamRoles.map((tr) => (
                   <span
-                    key={`${tr.teamId ?? 'alle'}-${tr.roleId}`}
+                    key={`${tr.teamId ?? 'alle'}-${tr.roleId}-${tr.ressortId ?? ''}`}
                     className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                   >
-                    {tr.teamId ? `${tr.categoryName} · ${tr.teamName}` : 'Alle Teams'} – {tr.roleName}
+                    {roleAreaLabel(tr)} – {tr.roleName}
                   </span>
                 ))}
               </div>
@@ -135,6 +149,7 @@ export function UsersPage() {
         <CreateUserDialog
           teamOptions={teamOptions}
           roles={roles}
+          ressorts={ressorts}
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
@@ -148,6 +163,7 @@ export function UsersPage() {
           user={editingUser}
           teamOptions={teamOptions}
           roles={roles}
+          ressorts={ressorts}
           onClose={() => setEditingUser(null)}
           onSaved={() => {
             setEditingUser(null);

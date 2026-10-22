@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import type { Role } from '../../types/database';
+import type { Role, VorstandRessort } from '../../types/database';
 
 export interface RoleRow extends Role {
   assignmentCount: number;
@@ -55,4 +55,50 @@ function friendlyRoleError(err: { code?: string; message?: string }): Error {
   }
   if (err.code === '23505') return new Error('Es gibt bereits eine Rolle mit diesem Namen.');
   return new Error(err.message ?? 'Rolle konnte nicht gespeichert werden.');
+}
+
+// ---------------- Vorstand-Ressorts ----------------
+
+export async function fetchRessorts(): Promise<VorstandRessort[]> {
+  const { data, error } = await supabase
+    .from('vorstand_ressorts')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as VorstandRessort[];
+}
+
+export async function createRessort(name: string, sortOrder: number) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('vorstand_ressorts') as any).insert({ name, sort_order: sortOrder });
+  if (error) throw friendlyRessortError(error);
+}
+
+export async function renameRessort(id: string, name: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('vorstand_ressorts') as any).update({ name }).eq('id', id);
+  if (error) throw friendlyRessortError(error);
+}
+
+export async function deleteRessort(id: string) {
+  const { error } = await supabase.from('vorstand_ressorts').delete().eq('id', id);
+  if (error) throw friendlyRessortError(error);
+}
+
+/** Speichert die Reihenfolge (sort_order = Position + 1). */
+export async function saveRessortOrder(ids: string[]) {
+  for (const [index, id] of ids.entries()) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('vorstand_ressorts') as any).update({ sort_order: index + 1 }).eq('id', id);
+    if (error) throw friendlyRessortError(error);
+  }
+}
+
+function friendlyRessortError(err: { code?: string; message?: string }): Error {
+  if (err.code === FOREIGN_KEY_VIOLATION) {
+    return new Error('Dem Ressort sind noch Personen zugewiesen. Entferne zuerst diese Zuweisungen unter „Benutzer“.');
+  }
+  if (err.code === '23505') return new Error('Es gibt bereits ein Ressort mit diesem Namen.');
+  return new Error(err.message ?? 'Ressort konnte nicht gespeichert werden.');
 }

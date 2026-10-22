@@ -4,7 +4,7 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { TeamRolePicker } from './TeamRolePicker';
-import type { Role } from '../../types/database';
+import type { Role, VorstandRessort } from '../../types/database';
 import { updateProfile, replaceTeamRoles } from './api';
 import type { TeamOption, TeamRoleInput, UserRow } from './api';
 import { useAuth } from '../../auth/AuthContext';
@@ -13,18 +13,19 @@ interface EditUserDialogProps {
   user: UserRow;
   teamOptions: TeamOption[];
   roles: Role[];
+  ressorts: VorstandRessort[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function EditUserDialog({ user, teamOptions, roles, onClose, onSaved }: EditUserDialogProps) {
+export function EditUserDialog({ user, teamOptions, roles, ressorts, onClose, onSaved }: EditUserDialogProps) {
   const { profile: currentProfile } = useAuth();
   const [firstName, setFirstName] = useState(user.first_name);
   const [lastName, setLastName] = useState(user.last_name);
   const [phone, setPhone] = useState(user.phone ?? '');
   const [isAdmin, setIsAdmin] = useState(user.is_admin);
   const [teamRoles, setTeamRoles] = useState<TeamRoleInput[]>(
-    user.teamRoles.map((tr) => ({ team_id: tr.teamId, role_id: tr.roleId })),
+    user.teamRoles.map((tr) => ({ team_id: tr.teamId, role_id: tr.roleId, ressort_id: tr.ressortId })),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export function EditUserDialog({ user, teamOptions, roles, onClose, onSaved }: E
         {!isAdmin && (
           <div>
             <Label>Zuweisungen (Bereich und Rolle)</Label>
-            <TeamRolePicker teamOptions={teamOptions} roles={roles} value={teamRoles} onChange={setTeamRoles} />
+            <TeamRolePicker teamOptions={teamOptions} roles={roles} ressorts={ressorts} value={teamRoles} onChange={setTeamRoles} />
           </div>
         )}
 

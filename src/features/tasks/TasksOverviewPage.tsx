@@ -8,11 +8,15 @@ import { Select } from '../../components/Select';
 import {
   deriveTaskStatus,
   fetchAllTasks,
+  fetchRessortMembers,
+  fetchRessorts,
+  TASK_CATEGORY_LABELS,
   fetchTaskRecipientOptions,
   fetchTaskTeamOptions,
   TASK_STATUS_LABELS,
 } from './api';
 import type { TaskRow, TeamOptionForTask } from './api';
+import type { VorstandRessort } from '../../types/database';
 import { TaskDetailDialog } from './TaskDetailDialog';
 
 const ALL = '__all__';
@@ -33,13 +37,31 @@ export function TasksOverviewPage() {
   const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
   const [personFilter, setPersonFilter] = useState(ALL);
   const [teamFilter, setTeamFilter] = useState(ALL);
+  const [categoryFilter, setCategoryFilter] = useState(ALL);
+  const [ressortFilter, setRessortFilter] = useState(ALL);
+  const [ressorts, setRessorts] = useState<VorstandRessort[]>([]);
+  const [ressortMemberIds, setRessortMemberIds] = useState<Map<string, Set<string>>>(new Map());
 
   async function load() {
     setError(null);
     try {
-      const [allTasks, teamOptions] = await Promise.all([fetchAllTasks(), fetchTaskTeamOptions()]);
+      const [allTasks, teamOptions, ressortOptions, ressortMembers] = await Promise.all([
+        fetchAllTasks(),
+        fetchTaskTeamOptions(),
+        fetchRessorts(),
+        fetchRessortMembers(),
+      ]);
       setTasks(allTasks);
       setTeams(teamOptions);
+      setRessorts(ressortOptions);
+      const byRessort = new Map<string, Set<string>>();
+      for (const m of ressortMembers) {
+        if (!m.ressortId) continue;
+        const set = byRessort.get(m.ressortId) ?? new Set<string>();
+        set.add(m.userId);
+        byRessort.set(m.ressortId, set);
+      }
+      setRessortMemberIds(byRessort);
       const memberships = await Promise.all(
         teamOptions.map(async (team) => ({
           teamId: team.teamId,
@@ -66,11 +88,21 @@ export function TasksOverviewPage() {
 
   const filteredTasks = useMemo(() => {
     return (tasks ?? []).filter((t) => {
+      const category = t.category ?? 'sport';
       if (personFilter !== ALL && t.assigned_to !== personFilter) return false;
-      if (teamFilter !== ALL && !(teamMemberIds.get(teamFilter)?.has(t.assigned_to) ?? false)) return false;
+      if (categoryFilter !== ALL && category !== categoryFilter) return false;
+      // Team-Filter zeigt nur Sport-Aufgaben, Ressort-Filter nur Vorstands-Aufgaben.
+      if (teamFilter !== ALL) {
+        if (category !== 'sport') return false;
+        if (!(teamMemberIds.get(teamFilter)?.has(t.assigned_to) ?? false)) return false;
+      }
+      if (ressortFilter !== ALL) {
+        if (category !== 'vorstand') return false;
+        if (!(ressortMemberIds.get(ressortFilter)?.has(t.assigned_to) ?? false)) return false;
+      }
       return true;
     });
-  }, [tasks, personFilter, teamFilter, teamMemberIds]);
+  }, [tasks, personFilter, teamFilter, categoryFilter, ressortFilter, teamMemberIds, ressortMemberIds]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,7 +111,15 @@ export function TasksOverviewPage() {
         <BackLinkButton to="/aufgaben">Zurück zu Aufgaben</BackLinkButton>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div>
+          <Label htmlFor="categoryFilter">Bereich</Label>
+          <Select id="categoryFilter" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value={ALL}>Alle</option>
+            <option value="sport">{TASK_CATEGORY_LABELS.sport}</option>
+            <option value="vorstand">{TASK_CATEGORY_LABELS.vorstand}</option>
+          </Select>
+        </div>
         <div>
           <Label htmlFor="personFilter">Person</Label>
           <Select id="personFilter" value={personFilter} onChange={(e) => setPersonFilter(e.target.value)}>
@@ -98,6 +138,17 @@ export function TasksOverviewPage() {
             {teams.map((t) => (
               <option key={t.teamId} value={t.teamId}>
                 {t.categoryName} · {t.teamName}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="ressortFilter">Ressort</Label>
+          <Select id="ressortFilter" value={ressortFilter} onChange={(e) => setRessortFilter(e.target.value)}>
+            <option value={ALL}>Alle</option>
+            {ressorts.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
               </option>
             ))}
           </Select>

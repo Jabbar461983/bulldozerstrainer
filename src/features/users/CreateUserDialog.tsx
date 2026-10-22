@@ -4,7 +4,7 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input, Label } from '../../components/Input';
 import { TeamRolePicker } from './TeamRolePicker';
-import type { Role } from '../../types/database';
+import type { Role, VorstandRessort } from '../../types/database';
 import { createUser } from './api';
 import type { TeamOption, TeamRoleInput } from './api';
 import { generatePassword } from '../../lib/password';
@@ -12,11 +12,12 @@ import { generatePassword } from '../../lib/password';
 interface CreateUserDialogProps {
   teamOptions: TeamOption[];
   roles: Role[];
+  ressorts: VorstandRessort[];
   onClose: () => void;
   onCreated: () => void;
 }
 
-export function CreateUserDialog({ teamOptions, roles, onClose, onCreated }: CreateUserDialogProps) {
+export function CreateUserDialog({ teamOptions, roles, ressorts, onClose, onCreated }: CreateUserDialogProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -164,7 +165,7 @@ export function CreateUserDialog({ teamOptions, roles, onClose, onCreated }: Cre
         {!isAdmin && (
           <div>
             <Label>Zuweisungen (Bereich und Rolle)</Label>
-            <TeamRolePicker teamOptions={teamOptions} roles={roles} value={teamRoles} onChange={setTeamRoles} />
+            <TeamRolePicker teamOptions={teamOptions} roles={roles} ressorts={ressorts} value={teamRoles} onChange={setTeamRoles} />
           </div>
         )}
 

@@ -13,6 +13,7 @@ import {
 import type { Module } from '../../auth/permissions';
 import { createRole, deleteRole, updateRole } from './api';
 import type { RoleRow } from './api';
+import { RessortsEditor } from './RessortsEditor';
 
 interface RoleDialogProps {
   /** null = neue Rolle anlegen. */
@@ -135,6 +136,7 @@ export function RoleDialog({ role, onClose, onSaved }: RoleDialogProps) {
             'bg-gold',
           )}
         </div>
+        {isVorstand && <RessortsEditor />}
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           <div className="rounded-md bg-surface-alt px-3 py-2.5 text-text-muted">
             <p className="text-xs font-bold uppercase tracking-wider text-text">Immer für alle</p>

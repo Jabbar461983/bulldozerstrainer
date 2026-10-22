@@ -6,10 +6,13 @@ import { Card } from '../../components/Card';
 import {
   computeTaskStats,
   fetchAllTasks,
+  fetchRessortMembers,
+  fetchRessorts,
   fetchTaskRecipientOptions,
   fetchTaskTeamOptions,
   isOverdue,
 } from './api';
+import type { TaskCategory } from '../../types/database';
 import type { TaskRow, TaskStats } from './api';
 import { TaskDetailDialog } from './TaskDetailDialog';
 
@@ -155,9 +158,37 @@ function ExpandedTasks({
   );
 }
 
+interface CategoryView {
+  /** Sport: nach Team, Vorstand: nach Ressort. */
+  groupRows: StatsRow[];
+  personRows: StatsRow[];
+}
+
+function buildPersonRows(tasks: TaskRow[], prefix: string): StatsRow[] {
+  const byPerson = new Map<string, TaskRow[]>();
+  for (const t of tasks) {
+    const list = byPerson.get(t.assigned_to) ?? [];
+    list.push(t);
+    byPerson.set(t.assigned_to, list);
+  }
+  return Array.from(byPerson.entries())
+    .map(([userId, personTasks]) => ({
+      key: `${prefix}:person:${userId}`,
+      label: personTasks[0].assigneeName,
+      stats: computeTaskStats(personTasks),
+      tasks: personTasks,
+    }))
+    .sort((x, y) => x.label.localeCompare(y.label, 'de-CH'));
+}
+
+const TABS: { key: TaskCategory; label: string; groupTitle: string; empty: string }[] = [
+  { key: 'vorstand', label: 'Vorstand', groupTitle: 'Nach Ressort', empty: 'Keinem Ressort sind Vorstands-Aufgaben zugeteilt.' },
+  { key: 'sport', label: 'Sport', groupTitle: 'Nach Team', empty: 'Keinem Team sind Sport-Aufgaben zugeteilt.' },
+];
+
 export function TasksStatsPage() {
-  const [teamRows, setTeamRows] = useState<StatsRow[] | null>(null);
-  const [personRows, setPersonRows] = useState<StatsRow[] | null>(null);
+  const [views, setViews] = useState<Record<TaskCategory, CategoryView> | null>(null);
+  const [tab, setTab] = useState<TaskCategory>('vorstand');
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Expanded | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
@@ -171,7 +202,15 @@ export function TasksStatsPage() {
     async function load() {
       setError(null);
       try {
-        const [allTasks, teams] = await Promise.all([fetchAllTasks(), fetchTaskTeamOptions()]);
+        const [allTasks, teams, ressorts, ressortMembers] = await Promise.all([
+          fetchAllTasks(),
+          fetchTaskTeamOptions(),
+          fetchRessorts(),
+          fetchRessortMembers(),
+        ]);
+        // Strikte Trennung: Sport-Aufgaben nur bei Teams, Vorstands-Aufgaben nur bei Ressorts.
+        const sportTasks = allTasks.filter((t) => (t.category ?? 'sport') === 'sport');
+        const vorstandTasks = allTasks.filter((t) => t.category === 'vorstand');
 
         const teamMemberships = await Promise.all(
           teams.map(async (team) => ({
@@ -179,10 +218,10 @@ export function TasksStatsPage() {
             members: await fetchTaskRecipientOptions('team_coaches', team.teamId),
           })),
         );
-        const teamStats: StatsRow[] = teamMemberships
+        const teamRows: StatsRow[] = teamMemberships
           .map(({ team, members }) => {
             const memberIds = new Set(members.map((m) => m.userId));
-            const teamTasks = allTasks.filter((t) => memberIds.has(t.assigned_to));
+            const teamTasks = sportTasks.filter((t) => memberIds.has(t.assigned_to));
             return {
               key: `team:${team.teamId}`,
               label: `${team.categoryName} · ${team.teamName}`,
@@ -191,23 +230,25 @@ export function TasksStatsPage() {
             };
           })
           .filter((row) => row.stats.offen + row.stats.erledigt > 0);
-        setTeamRows(teamStats);
 
-        const byPerson = new Map<string, TaskRow[]>();
-        for (const t of allTasks) {
-          const list = byPerson.get(t.assigned_to) ?? [];
-          list.push(t);
-          byPerson.set(t.assigned_to, list);
+        const ressortGroups: { key: string; label: string; memberIds: Set<string> }[] = ressorts.map((r) => ({
+          key: `ressort:${r.id}`,
+          label: r.name,
+          memberIds: new Set(ressortMembers.filter((m) => m.ressortId === r.id).map((m) => m.userId)),
+        }));
+        const withoutRessort = new Set(ressortMembers.filter((m) => m.ressortId === null).map((m) => m.userId));
+        if (withoutRessort.size > 0) {
+          ressortGroups.push({ key: 'ressort:none', label: 'Ohne Ressort', memberIds: withoutRessort });
         }
-        const personStats: StatsRow[] = Array.from(byPerson.entries())
-          .map(([userId, tasks]) => ({
-            key: `person:${userId}`,
-            label: tasks[0].assigneeName,
-            stats: computeTaskStats(tasks),
-            tasks,
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label, 'de-CH'));
-        setPersonRows(personStats);
+        const ressortRows: StatsRow[] = ressortGroups.map((g) => {
+          const groupTasks = vorstandTasks.filter((t) => g.memberIds.has(t.assigned_to));
+          return { key: g.key, label: g.label, stats: computeTaskStats(groupTasks), tasks: groupTasks };
+        });
+
+        setViews({
+          sport: { groupRows: teamRows, personRows: buildPersonRows(sportTasks, 'sport') },
+          vorstand: { groupRows: ressortRows, personRows: buildPersonRows(vorstandTasks, 'vorstand') },
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Übersicht konnte nicht geladen werden.');
       }
@@ -242,37 +283,61 @@ export function TasksStatsPage() {
     );
   }
 
+  const current = TABS.find((t) => t.key === tab)!;
+  const view = views?.[tab];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben · Übersicht Team/Person</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-text">Aufgaben · Übersicht</h1>
         <BackLinkButton to="/aufgaben">Zurück zu Aufgaben</BackLinkButton>
       </div>
 
-      {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
-      {(teamRows === null || personRows === null) && !error && <p className="text-sm text-text-muted">Lädt…</p>}
+      <div role="tablist" aria-label="Bereich" className="inline-flex gap-1 self-start rounded-md border border-border bg-surface-alt p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => {
+              setTab(t.key);
+              setExpanded(null);
+            }}
+            className={clsx(
+              'rounded px-4 py-1.5 text-sm font-semibold transition-colors',
+              tab === t.key ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {teamRows !== null && (
+      {error && <p className="rounded-xl bg-danger/10 p-3 text-sm text-danger">{error}</p>}
+      {views === null && !error && <p className="text-sm text-text-muted">Lädt…</p>}
+
+      {view && (
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-text-muted">Nach Team</h2>
-          {teamRows.length === 0 && (
+          <h2 className="text-sm font-semibold text-text-muted">{current.groupTitle}</h2>
+          {view.groupRows.length === 0 && (
             <Card>
-              <p className="text-sm text-text-muted">Keinem Team sind Aufgaben zugeteilt.</p>
+              <p className="text-sm text-text-muted">{current.empty}</p>
             </Card>
           )}
-          {teamRows.map((row) => renderRow(row, true))}
+          {view.groupRows.map((row) => renderRow(row, true))}
         </div>
       )}
 
-      {personRows !== null && (
+      {view && (
         <div className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-text-muted">Nach Person</h2>
-          {personRows.length === 0 && (
+          {view.personRows.length === 0 && (
             <Card>
-              <p className="text-sm text-text-muted">Niemandem sind Aufgaben zugeteilt.</p>
+              <p className="text-sm text-text-muted">Niemandem sind {current.label}-Aufgaben zugeteilt.</p>
             </Card>
           )}
-          {personRows.map((row) => renderRow(row, false))}
+          {view.personRows.map((row) => renderRow(row, false))}
         </div>
       )}
 
