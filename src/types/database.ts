@@ -348,8 +348,12 @@ export interface Task {
   completed: boolean;
   completed_at: string | null;
   remark: string | null;
+  /** Sport- oder Vorstands-Aufgabe (Migration 0097). */
+  category: TaskCategory;
   created_at: string;
 }
+
+export type TaskCategory = 'sport' | 'vorstand';
 
 export interface Checklist {
   id: string;

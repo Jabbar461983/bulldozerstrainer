@@ -1,3 +1,4 @@
+import { TaskCategoryBadge } from './TaskCategoryBadge';
 import { useEffect, useMemo, useState } from 'react';
 import { BackLinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -134,9 +135,12 @@ export function TasksOverviewPage() {
                   {t.is_team_task && ' · Teamaufgabe'}
                 </p>
               </div>
-              <span className={`rounded px-2.5 py-1 text-xs font-medium ${styles[status]}`}>
-                {TASK_STATUS_LABELS[status]}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <TaskCategoryBadge category={t.category} />
+                <span className={`rounded px-2.5 py-1 text-xs font-medium ${styles[status]}`}>
+                  {TASK_STATUS_LABELS[status]}
+                </span>
+              </div>
             </ListRow>
           );
         })}

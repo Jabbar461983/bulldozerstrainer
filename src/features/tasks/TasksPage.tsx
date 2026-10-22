@@ -1,3 +1,4 @@
+import { TaskCategoryBadge } from './TaskCategoryBadge';
 import { useEffect, useMemo, useState } from 'react';
 import { Button, LinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -122,7 +123,10 @@ export function TasksPage() {
                       </p>
                     )}
                   </div>
-                  <StatusBadge status={status} />
+                  <div className="flex items-center gap-1.5">
+                    <TaskCategoryBadge category={t.category} />
+                    <StatusBadge status={status} />
+                  </div>
                 </div>
               </ListRow>
             );
@@ -143,13 +147,16 @@ export function TasksPage() {
             const first = group[0];
             return (
               <Card key={first.task_group_id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTask(first)}
-                  className="font-medium text-accent hover:underline"
-                >
-                  {first.title}
-                </button>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTask(first)}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    {first.title}
+                  </button>
+                  <TaskCategoryBadge category={first.category} />
+                </div>
                 <p className="text-sm text-text-muted">
                   Fällig: {formatDate(first.due_date)}
                   {first.is_team_task && ' · Teamaufgabe'}

@@ -10,12 +10,15 @@ import {
   deriveTaskStatus,
   fetchTaskRecipientOptions,
   forwardTask,
+  TASK_CATEGORY_LABELS,
   TASK_STATUS_LABELS,
   updateTaskCompletion,
   updateTaskGroupContent,
   uploadTaskAttachment,
 } from './api';
 import type { TaskRow, UserOptionForTask } from './api';
+import type { TaskCategory } from '../../types/database';
+import { TaskCategoryBadge } from './TaskCategoryBadge';
 
 interface TaskDetailDialogProps {
   task: TaskRow;
@@ -33,6 +36,7 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
   const [description, setDescription] = useState(task.description ?? '');
   const [dueDate, setDueDate] = useState(task.due_date);
   const [isTeamTask, setIsTeamTask] = useState(task.is_team_task);
+  const [category, setCategory] = useState<TaskCategory>(task.category ?? 'sport');
   const [newFile, setNewFile] = useState<File | null>(null);
   const [savingContent, setSavingContent] = useState(false);
 
@@ -92,6 +96,7 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
         due_date: dueDate,
         attachment_path,
         is_team_task: isTeamTask,
+        category,
       });
       onChanged();
     } catch (err) {
@@ -140,9 +145,12 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
       footer={
         canEditContent ? (
           <>
-            <Button type="button" variant="danger" disabled={deleting} onClick={() => void handleDelete()}>
-              Löschen
-            </Button>
+            {/* Löschen ist ein Admin-Sonderrecht. */}
+            {isAdmin && (
+              <Button type="button" variant="danger" disabled={deleting} onClick={() => void handleDelete()}>
+                Löschen
+              </Button>
+            )}
             <Button type="button" variant="secondary" onClick={onClose}>
               Schliessen
             </Button>
@@ -174,6 +182,13 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-base text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
                 />
+              </div>
+              <div>
+                <Label htmlFor="edit-category">Zuordnung</Label>
+                <Select id="edit-category" value={category} onChange={(e) => setCategory(e.target.value as TaskCategory)}>
+                  <option value="sport">{TASK_CATEGORY_LABELS.sport}</option>
+                  <option value="vorstand">{TASK_CATEGORY_LABELS.vorstand}</option>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="edit-due-date">Fälligkeitsdatum</Label>
@@ -228,6 +243,10 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
                   <p className="text-text">{task.description}</p>
                 </div>
               )}
+              <div>
+                <p className="text-xs text-text-muted">Zuordnung</p>
+                <TaskCategoryBadge category={task.category ?? 'sport'} />
+              </div>
               <div>
                 <p className="text-xs text-text-muted">Fälligkeitsdatum</p>
                 <p className="text-text">

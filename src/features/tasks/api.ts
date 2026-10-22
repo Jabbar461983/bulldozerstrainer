@@ -1,5 +1,10 @@
 import { supabase } from '../../lib/supabase';
-import type { Task } from '../../types/database';
+import type { Task, TaskCategory } from '../../types/database';
+
+export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
+  sport: 'Sport',
+  vorstand: 'Vorstand',
+};
 
 const ATTACHMENTS_BUCKET = 'task-attachments';
 const SIGNED_URL_TTL_SECONDS = 3600;
@@ -210,7 +215,7 @@ export interface UserOptionForTask {
   lastName: string;
 }
 
-export type TaskRecipientScope = 'team_coaches' | 'all_headcoaches' | 'all_coaches' | 'all_users';
+export type TaskRecipientScope = 'team_coaches' | 'all_headcoaches' | 'all_coaches' | 'all_users' | 'vorstand_all';
 
 export async function fetchTaskRecipientOptions(
   scope: TaskRecipientScope,
@@ -243,6 +248,7 @@ export interface CreateTaskPayload {
   due_date: string;
   attachment_path: string | null;
   is_team_task: boolean;
+  category: TaskCategory;
   created_by: string;
   recipientUserIds: string[];
 }
@@ -256,6 +262,7 @@ export async function createTasks(payload: CreateTaskPayload) {
     due_date: payload.due_date,
     attachment_path: payload.attachment_path,
     is_team_task: payload.is_team_task,
+    category: payload.category,
     created_by: payload.created_by,
     assigned_to: assignedTo,
   }));
@@ -273,6 +280,7 @@ export async function updateTaskGroupContent(
     due_date: string;
     attachment_path: string | null;
     is_team_task: boolean;
+    category: TaskCategory;
   },
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -299,4 +307,13 @@ export async function forwardTask(taskId: string, toUserId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.rpc as any)('forward_task', { p_task_id: taskId, p_to_user: toUserId });
   if (error) throw error;
+}
+
+/** Rollen einer Person für die Zuordnung Sport/Vorstand beim Erstellen. */
+export async function fetchTaskPersonRoles(userId: string): Promise<{ isVorstand: boolean; hasSportRole: boolean }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('task_person_roles', { p_user_id: userId });
+  if (error) throw error;
+  const row = ((data ?? []) as { is_vorstand: boolean; has_sport_role: boolean }[])[0];
+  return { isVorstand: Boolean(row?.is_vorstand), hasSportRole: Boolean(row?.has_sport_role) };
 }

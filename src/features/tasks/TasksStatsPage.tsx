@@ -1,3 +1,4 @@
+import { TaskCategoryBadge } from './TaskCategoryBadge';
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { BackLinkButton } from '../../components/Button';
@@ -92,7 +93,10 @@ function TaskList({
             onClick={() => onSelect(t)}
             className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-0.5 py-2 text-left hover:bg-surface-alt"
           >
-            <span className="font-medium text-text">{t.title}</span>
+            <span className="flex items-center gap-2 font-medium text-text">
+              {t.title}
+              <TaskCategoryBadge category={t.category} />
+            </span>
             <span className="text-xs text-text-muted">
               Fällig {formatDate(t.due_date)}
               {showAssignee && ` · ${t.assigneeName}`}

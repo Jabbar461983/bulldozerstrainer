@@ -1,3 +1,4 @@
+import { TaskCategoryBadge } from './TaskCategoryBadge';
 import { useEffect, useState } from 'react';
 import { List, ListRow } from '../../components/List';
 import { fetchMyDueTasks } from './api';
@@ -42,7 +43,10 @@ export function DueTasksWidget() {
           const overdue = t.due_date < todayIso;
           return (
             <ListRow key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center justify-between gap-2">
-              <p className="min-w-0 font-medium text-text">{t.title}</p>
+              <p className="flex min-w-0 flex-wrap items-center gap-2 font-medium text-text">
+                {t.title}
+                <TaskCategoryBadge category={t.category} />
+              </p>
               <span className={`text-sm ${overdue ? 'font-medium text-danger' : 'text-text-muted'}`}>
                 {formatDate(t.due_date)}
               </span>
