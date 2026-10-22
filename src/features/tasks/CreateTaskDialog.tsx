@@ -8,14 +8,16 @@ import { useAuth } from '../../auth/AuthContext';
 import { todayIso } from '../../lib/dates';
 import {
   createTasks,
+  createTaskSeries,
   fetchRessorts,
   fetchTaskPersonRoles,
   fetchTaskRecipientOptions,
   fetchTaskTeamOptions,
   TASK_CATEGORY_LABELS,
+  TASK_RECURRENCE_LABELS,
   uploadTaskAttachment,
 } from './api';
-import type { TaskCategory, VorstandRessort } from '../../types/database';
+import type { TaskCategory, TaskRecurrence, VorstandRessort } from '../../types/database';
 import { TaskCategoryBadge } from './TaskCategoryBadge';
 import type { TeamOptionForTask, UserOptionForTask } from './api';
 
@@ -58,6 +60,9 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
   const [dueDate, setDueDate] = useState(todayIso());
   const [file, setFile] = useState<File | null>(null);
   const [isTeamTask, setIsTeamTask] = useState(false);
+  // Wiederholung: '' = einmalige Aufgabe
+  const [recurrence, setRecurrence] = useState<TaskRecurrence | ''>('');
+  const [endDate, setEndDate] = useState('');
 
   const [recipientMode, setRecipientMode] = useState<RecipientMode>('user');
   const [users, setUsers] = useState<UserOptionForTask[]>([]);
@@ -151,8 +156,11 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
       if (recipientUserIds.length === 0) {
         throw new Error('Es wurde kein gültiger Empfänger gefunden.');
       }
+      if (recurrence && endDate && endDate < dueDate) {
+        throw new Error('Das Enddatum der Serie liegt vor dem ersten Termin.');
+      }
       const attachment_path = file ? await uploadTaskAttachment(file) : null;
-      await createTasks({
+      const payload = {
         title,
         description: description || null,
         due_date: dueDate,
@@ -161,7 +169,12 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
         category,
         created_by: profile.id,
         recipientUserIds,
-      });
+      };
+      if (recurrence) {
+        await createTaskSeries({ ...payload, recurrence, end_date: endDate || null });
+      } else {
+        await createTasks(payload);
+      }
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Aufgabe konnte nicht erstellt werden.');
@@ -203,7 +216,42 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
         <div>
           <Label htmlFor="dueDate">Fälligkeitsdatum</Label>
           <Input id="dueDate" type="date" required value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          {recurrence && <p className="mt-1 text-xs text-text-muted">Erster Termin der Serie.</p>}
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="recurrence">Wiederholung</Label>
+            <Select
+              id="recurrence"
+              value={recurrence}
+              onChange={(e) => setRecurrence(e.target.value as TaskRecurrence | '')}
+            >
+              <option value="">Einmalig</option>
+              {(Object.keys(TASK_RECURRENCE_LABELS) as TaskRecurrence[]).map((r) => (
+                <option key={r} value={r}>
+                  {TASK_RECURRENCE_LABELS[r]}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {recurrence && (
+            <div>
+              <Label htmlFor="seriesEndDate">Enddatum (optional)</Label>
+              <Input
+                id="seriesEndDate"
+                type="date"
+                min={dueDate}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+        {recurrence && !endDate && (
+          <p className="-mt-2 text-xs text-text-muted">
+            Ohne Enddatum läuft die Serie weiter; die Termine werden laufend 12 Monate im Voraus angelegt.
+          </p>
+        )}
         <div>
           <Label htmlFor="attachment">Datei/Foto (optional, max. 20 MB)</Label>
           <input

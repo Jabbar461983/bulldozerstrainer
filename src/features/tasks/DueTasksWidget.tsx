@@ -1,4 +1,5 @@
 import { TaskCategoryBadge } from './TaskCategoryBadge';
+import { SeriesIcon } from './SeriesIcon';
 import { useEffect, useState } from 'react';
 import { List, ListRow } from '../../components/List';
 import { fetchMyDueTasks } from './api';
@@ -44,6 +45,7 @@ export function DueTasksWidget() {
           return (
             <ListRow key={t.id} onClick={() => setSelectedTask(t)} className="flex items-center justify-between gap-2">
               <p className="flex min-w-0 flex-wrap items-center gap-2 font-medium text-text">
+                <SeriesIcon series={t.series} />
                 {t.title}
                 <TaskCategoryBadge category={t.category} />
               </p>

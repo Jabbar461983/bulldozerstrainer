@@ -1,4 +1,5 @@
 import { TaskCategoryBadge } from './TaskCategoryBadge';
+import { SeriesIcon } from './SeriesIcon';
 import { useEffect, useMemo, useState } from 'react';
 import { BackLinkButton } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -177,8 +178,9 @@ export function TasksOverviewPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedTask(t)}
-                  className="font-medium text-accent hover:underline"
+                  className="flex items-center gap-1.5 font-medium text-accent hover:underline"
                 >
+                  <SeriesIcon series={t.series} />
                   {t.title}
                 </button>
                 <p className="text-sm text-text-muted">

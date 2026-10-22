@@ -6,6 +6,7 @@ import { Input, Label } from '../../components/Input';
 import { Select } from '../../components/Select';
 import { useAuth } from '../../auth/AuthContext';
 import {
+  deleteOpenTasksOfSeries,
   deleteTaskGroup,
   deriveTaskStatus,
   fetchTaskRecipientOptions,
@@ -14,11 +15,15 @@ import {
   TASK_STATUS_LABELS,
   updateTaskCompletion,
   updateTaskGroupContent,
+  updateTaskSeriesContent,
   uploadTaskAttachment,
 } from './api';
 import type { TaskRow, UserOptionForTask } from './api';
 import type { TaskCategory } from '../../types/database';
 import { TaskCategoryBadge } from './TaskCategoryBadge';
+import { SeriesIcon, seriesDescription } from './SeriesIcon';
+
+type SeriesScope = 'single' | 'series';
 
 interface TaskDetailDialogProps {
   task: TaskRow;
@@ -45,6 +50,8 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
   const [savingStatus, setSavingStatus] = useState(false);
 
   const [deleting, setDeleting] = useState(false);
+  // Serienaufgabe: Rückfrage "nur dieser Termin oder ganze Serie?"
+  const [seriesQuestion, setSeriesQuestion] = useState<'save' | 'delete' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const canForward = !task.completed && (isOwnRow || canEditContent);
@@ -84,20 +91,33 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
     setNewFile(e.target.files?.[0] ?? null);
   }
 
-  async function handleSaveContent(e: FormEvent) {
+  function handleSubmitContent(e: FormEvent) {
     e.preventDefault();
+    if (task.series) {
+      setSeriesQuestion('save');
+      return;
+    }
+    void saveContent('single');
+  }
+
+  async function saveContent(scope: SeriesScope) {
+    setSeriesQuestion(null);
     setError(null);
     setSavingContent(true);
     try {
       const attachment_path = newFile ? await uploadTaskAttachment(newFile) : task.attachment_path;
-      await updateTaskGroupContent(task.task_group_id, {
+      const content = {
         title,
         description: description || null,
-        due_date: dueDate,
         attachment_path,
         is_team_task: isTeamTask,
         category,
-      });
+      };
+      // Das Fälligkeitsdatum gilt immer nur für diesen Termin.
+      await updateTaskGroupContent(task.task_group_id, { ...content, due_date: dueDate });
+      if (scope === 'series' && task.series) {
+        await updateTaskSeriesContent(task.series.id, content);
+      }
       onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Aufgabe konnte nicht gespeichert werden.');
@@ -119,15 +139,28 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
     }
   }
 
-  async function handleDelete() {
+  function handleDelete() {
+    if (task.series) {
+      setSeriesQuestion('delete');
+      return;
+    }
     const confirmed = window.confirm(
       'Diese Aufgabe wirklich unwiderruflich löschen? Falls sie an mehrere Personen gerichtet ist, wird sie bei allen gelöscht.',
     );
     if (!confirmed) return;
+    void deleteTasks('single');
+  }
+
+  async function deleteTasks(scope: SeriesScope) {
+    setSeriesQuestion(null);
     setDeleting(true);
     setError(null);
     try {
-      await deleteTaskGroup(task.task_group_id);
+      if (scope === 'series' && task.series) {
+        await deleteOpenTasksOfSeries(task.series.id);
+      } else {
+        await deleteTaskGroup(task.task_group_id);
+      }
       onDeleted();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Aufgabe konnte nicht gelöscht werden.');
@@ -147,7 +180,7 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
           <>
             {/* Löschen ist ein Admin-Sonderrecht. */}
             {isAdmin && (
-              <Button type="button" variant="danger" disabled={deleting} onClick={() => void handleDelete()}>
+              <Button type="button" variant="danger" disabled={deleting} onClick={handleDelete}>
                 Löschen
               </Button>
             )}
@@ -166,7 +199,13 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
       }
     >
       <div className="flex flex-col gap-5">
-        <form id="task-content-form" onSubmit={handleSaveContent} className="flex flex-col gap-4">
+        <form id="task-content-form" onSubmit={handleSubmitContent} className="flex flex-col gap-4">
+          {task.series && (
+            <p className="flex items-center gap-2 rounded-md bg-surface-alt px-3 py-2 text-sm text-text-muted">
+              <SeriesIcon series={task.series} />
+              {seriesDescription(task.series)}
+            </p>
+          )}
           {canEditContent ? (
             <>
               <div>
@@ -355,6 +394,47 @@ export function TaskDetailDialog({ task, onClose, onChanged, onDeleted }: TaskDe
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
+
+      {seriesQuestion && (
+        <Modal
+          title={seriesQuestion === 'delete' ? 'Serienaufgabe löschen' : 'Serienaufgabe ändern'}
+          onClose={() => setSeriesQuestion(null)}
+          footer={
+            <Button type="button" variant="secondary" onClick={() => setSeriesQuestion(null)}>
+              Abbrechen
+            </Button>
+          }
+        >
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-text">
+              {seriesQuestion === 'delete'
+                ? 'Diese Aufgabe gehört zu einer Serie. Was möchtest du löschen?'
+                : 'Diese Aufgabe gehört zu einer Serie. Wofür sollen die Änderungen gelten?'}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void (seriesQuestion === 'delete' ? deleteTasks('single') : saveContent('single'))}
+            >
+              {seriesQuestion === 'delete' ? 'Nur diese Aufgabe löschen' : 'Nur diese Aufgabe ändern'}
+            </Button>
+            <Button
+              type="button"
+              variant={seriesQuestion === 'delete' ? 'danger' : 'primary'}
+              onClick={() => void (seriesQuestion === 'delete' ? deleteTasks('series') : saveContent('series'))}
+            >
+              {seriesQuestion === 'delete'
+                ? 'Alle Aufgaben dieser Serie löschen'
+                : 'Alle offenen Aufgaben dieser Serie ändern'}
+            </Button>
+            <p className="text-xs text-text-muted">
+              {seriesQuestion === 'delete'
+                ? 'Bereits erledigte Aufgaben der Serie bleiben erhalten; es entstehen keine neuen Termine mehr.'
+                : 'Erledigte Aufgaben bleiben unverändert. Das Fälligkeitsdatum ändert sich nur bei dieser Aufgabe.'}
+            </p>
+          </div>
+        </Modal>
+      )}
     </Modal>
   );
 }

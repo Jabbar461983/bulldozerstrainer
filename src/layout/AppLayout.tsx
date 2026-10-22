@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from '../auth/AuthContext';
@@ -6,6 +6,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { Modal } from '../components/Modal';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { NAV_ITEMS, groupNavItems, type NavGroupKey } from './navItems';
+import { extendTaskSeries } from '../features/tasks/api';
 
 function MoreIcon() {
   return (
@@ -31,6 +32,11 @@ function loadCollapsed(): NavGroupKey[] {
 export function AppLayout() {
   const { profile, isAdmin, canAccess, signOut } = useAuth();
   const isOnline = useOnlineStatus();
+
+  // Laufende Serienaufgaben ohne Enddatum um neue Termine ergänzen.
+  useEffect(() => {
+    void extendTaskSeries();
+  }, []);
   const [showMore, setShowMore] = useState(false);
   // Eingeklappte Bereiche der Seitenleiste (pro Gerät gemerkt)
   const [collapsed, setCollapsed] = useState<NavGroupKey[]>(loadCollapsed);

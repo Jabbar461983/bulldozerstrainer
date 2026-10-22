@@ -1,4 +1,5 @@
 import { TaskCategoryBadge } from './TaskCategoryBadge';
+import { SeriesIcon } from './SeriesIcon';
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { BackLinkButton } from '../../components/Button';
@@ -97,6 +98,7 @@ function TaskList({
             className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-0.5 py-2 text-left hover:bg-surface-alt"
           >
             <span className="flex items-center gap-2 font-medium text-text">
+              <SeriesIcon series={t.series} />
               {t.title}
               <TaskCategoryBadge category={t.category} />
             </span>

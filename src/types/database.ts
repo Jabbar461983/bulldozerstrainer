@@ -360,10 +360,22 @@ export interface Task {
   remark: string | null;
   /** Sport- oder Vorstands-Aufgabe (Migration 0097). */
   category: TaskCategory;
+  /** Serienaufgabe (Migration 0099), sonst null. */
+  series_id?: string | null;
   created_at: string;
 }
 
 export type TaskCategory = 'sport' | 'vorstand';
+
+export type TaskRecurrence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'halfyearly' | 'yearly';
+
+export interface TaskSeries {
+  id: string;
+  recurrence: TaskRecurrence;
+  start_date: string;
+  end_date: string | null;
+  active: boolean;
+}
 
 export interface Checklist {
   id: string;

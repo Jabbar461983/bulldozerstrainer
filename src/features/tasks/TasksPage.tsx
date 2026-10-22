@@ -1,4 +1,5 @@
 import { TaskCategoryBadge } from './TaskCategoryBadge';
+import { SeriesIcon } from './SeriesIcon';
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Button, LinkButton } from '../../components/Button';
@@ -154,7 +155,10 @@ export function TasksPage() {
               <ListRow key={t.id} onClick={() => setSelectedTask(t)}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-text">{t.title}</p>
+                    <p className="flex items-center gap-1.5 font-semibold text-text">
+                      <SeriesIcon series={t.series} />
+                      {t.title}
+                    </p>
                     <p className="text-sm text-text-muted">
                       Fällig: {formatDate(t.due_date)} · von {t.creatorName}
                     </p>
@@ -197,8 +201,9 @@ export function TasksPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedTask(first)}
-                    className="font-medium text-accent hover:underline"
+                    className="flex items-center gap-1.5 font-medium text-accent hover:underline"
                   >
+                    <SeriesIcon series={first.series} />
                     {first.title}
                   </button>
                   <TaskCategoryBadge category={first.category} />

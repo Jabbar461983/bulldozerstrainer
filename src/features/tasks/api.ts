@@ -1,9 +1,19 @@
 import { supabase } from '../../lib/supabase';
-import type { Task, TaskCategory } from '../../types/database';
+import { todayIso } from '../../lib/dates';
+import type { Task, TaskCategory, TaskRecurrence, TaskSeries } from '../../types/database';
 
 export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
   sport: 'Sport',
   vorstand: 'Vorstand',
+};
+
+export const TASK_RECURRENCE_LABELS: Record<TaskRecurrence, string> = {
+  weekly: 'Wöchentlich',
+  biweekly: '14-täglich',
+  monthly: 'Monatlich',
+  quarterly: 'Quartalsweise',
+  halfyearly: 'Halbjährlich',
+  yearly: 'Jährlich',
 };
 
 const ATTACHMENTS_BUCKET = 'task-attachments';
@@ -22,6 +32,8 @@ export interface TaskRow extends Task {
   attachmentUrl: string | null;
   /** Weiterleitungen, älteste zuerst. */
   forwards: TaskForwardInfo[];
+  /** Serie, zu der dieser Termin gehört (sonst null). */
+  series: TaskSeries | null;
 }
 
 export type TaskStatus = 'offen' | 'in_arbeit' | 'erledigt';
@@ -89,8 +101,48 @@ async function fetchForwards(taskIds: string[]): Promise<TaskForwardDbRow[]> {
   return (data ?? []) as TaskForwardDbRow[];
 }
 
+async function fetchSeries(seriesIds: string[]): Promise<Map<string, TaskSeries>> {
+  const byId = new Map<string, TaskSeries>();
+  if (seriesIds.length === 0) return byId;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)('task_series')
+    .select('id, recurrence, start_date, end_date, active')
+    .in('id', seriesIds);
+  if (error) return byId;
+  for (const s of (data ?? []) as TaskSeries[]) byId.set(s.id, s);
+  return byId;
+}
+
+/**
+ * Serien legen Termine bis zu 12 Monate im Voraus an. In Listen und Zahlen
+ * zählen pro Serie und Person nur die fälligen offenen Termine plus der
+ * nächste kommende; erledigte bleiben alle sichtbar.
+ */
+export function hideLaterSeriesOccurrences<T extends Pick<Task, 'series_id' | 'assigned_to' | 'completed' | 'due_date'>>(
+  rows: T[],
+): T[] {
+  const today = todayIso();
+  const nextBySeriesPerson = new Map<string, string>();
+  for (const r of rows) {
+    if (!r.series_id || r.completed || r.due_date <= today) continue;
+    const key = `${r.series_id}:${r.assigned_to}`;
+    const current = nextBySeriesPerson.get(key);
+    if (!current || r.due_date < current) nextBySeriesPerson.set(key, r.due_date);
+  }
+  return rows.filter(
+    (r) =>
+      !r.series_id ||
+      r.completed ||
+      r.due_date <= today ||
+      nextBySeriesPerson.get(`${r.series_id}:${r.assigned_to}`) === r.due_date,
+  );
+}
+
 async function attachRowMeta(rows: Task[]): Promise<TaskRow[]> {
-  const forwardRows = await fetchForwards(rows.map((r) => r.id));
+  const [forwardRows, seriesById] = await Promise.all([
+    fetchForwards(rows.map((r) => r.id)),
+    fetchSeries(Array.from(new Set(rows.map((r) => r.series_id).filter((id): id is string => Boolean(id))))),
+  ]);
   const ids = Array.from(
     new Set(
       [
@@ -129,6 +181,7 @@ async function attachRowMeta(rows: Task[]): Promise<TaskRow[]> {
   return rows.map((r) => ({
     ...r,
     forwards: forwardsByTask.get(r.id) ?? [],
+    series: r.series_id ? (seriesById.get(r.series_id) ?? null) : null,
     creatorName: r.created_by ? (nameById.get(r.created_by) ?? 'Unbekannt') : 'Gelöschter Benutzer',
     assigneeName: nameById.get(r.assigned_to) ?? 'Unbekannt',
     attachmentUrl: r.attachment_path ? (urlByPath.get(r.attachment_path) ?? null) : null,
@@ -145,10 +198,9 @@ export async function fetchMyDueTasks(limit: number): Promise<TaskRow[]> {
     .select('*')
     .eq('assigned_to', uid)
     .eq('completed', false)
-    .order('due_date', { ascending: true })
-    .limit(limit);
+    .order('due_date', { ascending: true });
   if (error) throw error;
-  return attachRowMeta((data ?? []) as Task[]);
+  return attachRowMeta(hideLaterSeriesOccurrences((data ?? []) as Task[]).slice(0, limit));
 }
 
 /** Alle dem Nutzer zugeteilten Aufgaben (offen zuerst, dann nach Fälligkeitsdatum; erledigte am Schluss). */
@@ -163,7 +215,7 @@ export async function fetchMyTasks(): Promise<TaskRow[]> {
     .order('completed', { ascending: true })
     .order('due_date', { ascending: true });
   if (error) throw error;
-  return attachRowMeta((data ?? []) as Task[]);
+  return attachRowMeta(hideLaterSeriesOccurrences((data ?? []) as Task[]));
 }
 
 /** Alle vom Nutzer erstellten Aufgaben (für die Übersicht "wem was zugeteilt"). */
@@ -177,17 +229,21 @@ export async function fetchTasksCreatedByMe(): Promise<TaskRow[]> {
     .eq('created_by', uid)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return attachRowMeta((data ?? []) as Task[]);
+  return attachRowMeta(hideLaterSeriesOccurrences((data ?? []) as Task[]));
 }
 
-/** Admin-Gesamtübersicht über alle Aufgaben im System. */
-export async function fetchAllTasks(): Promise<TaskRow[]> {
+/**
+ * Admin-Gesamtübersicht über alle Aufgaben im System. Spätere Serientermine
+ * nur mit `allSeriesOccurrences` (Roadmap).
+ */
+export async function fetchAllTasks(options: { allSeriesOccurrences?: boolean } = {}): Promise<TaskRow[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
     .order('due_date', { ascending: true });
   if (error) throw error;
-  return attachRowMeta((data ?? []) as Task[]);
+  const rows = (data ?? []) as Task[];
+  return attachRowMeta(options.allSeriesOccurrences ? rows : hideLaterSeriesOccurrences(rows));
 }
 
 export interface TeamOptionForTask {
@@ -292,6 +348,77 @@ export async function createTasks(payload: CreateTaskPayload) {
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('tasks') as any).insert(rows);
+  if (error) throw error;
+}
+
+export interface CreateTaskSeriesPayload extends CreateTaskPayload {
+  recurrence: TaskRecurrence;
+  end_date: string | null;
+}
+
+/** Serie anlegen; die Termine erzeugt die Datenbank (extend_task_series). */
+export async function createTaskSeries(payload: CreateTaskSeriesPayload) {
+  const seriesId = crypto.randomUUID();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from as any)('task_series').insert({
+    id: seriesId,
+    recurrence: payload.recurrence,
+    start_date: payload.due_date,
+    end_date: payload.end_date,
+    title: payload.title,
+    description: payload.description,
+    attachment_path: payload.attachment_path,
+    is_team_task: payload.is_team_task,
+    category: payload.category,
+    recipients: payload.recipientUserIds,
+    created_by: payload.created_by,
+  });
+  if (error) throw error;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: extendError } = await (supabase.rpc as any)('extend_task_series', { p_series_id: seriesId });
+  if (extendError) throw extendError;
+}
+
+/** Ergänzt laufende Serien ohne Enddatum (beim Start der App). Fehler werden ignoriert. */
+export async function extendTaskSeries() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)('extend_task_series', {});
+  } catch {
+    // offline o.ä. - beim nächsten Start wieder
+  }
+}
+
+/** Ersteller/Admin: Inhalt aller offenen Termine einer Serie (und künftiger) ändern; Datum bleibt. */
+export async function updateTaskSeriesContent(
+  seriesId: string,
+  updates: {
+    title: string;
+    description: string | null;
+    attachment_path: string | null;
+    is_team_task: boolean;
+    category: TaskCategory;
+  },
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: seriesError } = await (supabase.from as any)('task_series').update(updates).eq('id', seriesId);
+  if (seriesError) throw seriesError;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('tasks') as any)
+    .update(updates)
+    .eq('series_id', seriesId)
+    .eq('completed', false);
+  if (error) throw error;
+}
+
+/** Admin: Serie beenden und alle offenen Termine löschen; erledigte bleiben. */
+export async function deleteOpenTasksOfSeries(seriesId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: seriesError } = await (supabase.from as any)('task_series')
+    .update({ active: false })
+    .eq('id', seriesId);
+  if (seriesError) throw seriesError;
+  const { error } = await supabase.from('tasks').delete().eq('series_id', seriesId).eq('completed', false);
   if (error) throw error;
 }
 

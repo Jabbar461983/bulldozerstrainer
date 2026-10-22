@@ -7,6 +7,7 @@ import { fetchAllTasks, fetchRessortMembers, fetchRessorts, isOverdue } from './
 import type { TaskRow } from './api';
 import type { VorstandRessort } from '../../types/database';
 import { TaskDetailDialog } from './TaskDetailDialog';
+import { SeriesIcon } from './SeriesIcon';
 
 // Roadmap Vorstand: Matrix Ressorts (Zeilen) x Zeitstrahl (Monate), analog
 // Saisonplanung. Jede Vorstands-Aufgabe erscheint als Punkt am Fälligkeitsdatum
@@ -82,7 +83,7 @@ export function RoadmapPage() {
       setError(null);
       try {
         const [allTasks, ressortRows, memberRows] = await Promise.all([
-          fetchAllTasks(),
+          fetchAllTasks({ allSeriesOccurrences: true }),
           fetchRessorts(),
           fetchRessortMembers(),
         ]);
@@ -506,7 +507,10 @@ function RoadmapTooltip({ marker, rect }: { marker: RoadmapMarker; rect: DOMRect
         transform: above ? 'translateY(-100%)' : undefined,
       }}
     >
-      <p className="text-sm font-semibold text-text">{marker.title}</p>
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-text">
+        <SeriesIcon series={marker.task.series} />
+        {marker.title}
+      </p>
       {marker.description && (
         <p className="mt-1 line-clamp-4 whitespace-pre-line text-xs text-text-muted">{marker.description}</p>
       )}
