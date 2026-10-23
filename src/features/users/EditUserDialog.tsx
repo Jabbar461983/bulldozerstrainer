@@ -43,7 +43,7 @@ export function EditUserDialog({ user, teamOptions, roles, ressorts, onClose, on
         phone: phone || null,
         is_admin: isAdmin,
       });
-      await replaceTeamRoles(user.id, isAdmin ? [] : teamRoles);
+      await replaceTeamRoles(user.id, teamRoles);
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Änderungen konnten nicht gespeichert werden.');
@@ -104,12 +104,16 @@ export function EditUserDialog({ user, teamOptions, roles, ressorts, onClose, on
         )}
 
 
-        {!isAdmin && (
-          <div>
-            <Label>Zuweisungen (Bereich und Rolle)</Label>
-            <TeamRolePicker teamOptions={teamOptions} roles={roles} ressorts={ressorts} value={teamRoles} onChange={setTeamRoles} />
-          </div>
-        )}
+        <div>
+          <Label>Zuweisungen (Bereich und Rolle)</Label>
+          {isAdmin && (
+            <p className="mb-1.5 text-xs text-text-muted">
+              Als Admin hat die Person ohnehin Zugriff auf alles. Rollen legen zusätzlich fest, wo sie im Sport
+              oder im Vorstand mitwirkt (z.B. Aufgaben-Empfänger, Abmeldungen).
+            </p>
+          )}
+          <TeamRolePicker teamOptions={teamOptions} roles={roles} ressorts={ressorts} value={teamRoles} onChange={setTeamRoles} />
+        </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </form>

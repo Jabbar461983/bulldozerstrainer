@@ -162,12 +162,16 @@ export function CreateUserDialog({ teamOptions, roles, ressorts, onClose, onCrea
         </label>
 
 
-        {!isAdmin && (
-          <div>
-            <Label>Zuweisungen (Bereich und Rolle)</Label>
-            <TeamRolePicker teamOptions={teamOptions} roles={roles} ressorts={ressorts} value={teamRoles} onChange={setTeamRoles} />
-          </div>
-        )}
+        <div>
+          <Label>Zuweisungen (Bereich und Rolle)</Label>
+          {isAdmin && (
+            <p className="mb-1.5 text-xs text-text-muted">
+              Als Admin hat die Person ohnehin Zugriff auf alles. Rollen legen zusätzlich fest, wo sie im Sport
+              oder im Vorstand mitwirkt (z.B. Aufgaben-Empfänger, Abmeldungen).
+            </p>
+          )}
+          <TeamRolePicker teamOptions={teamOptions} roles={roles} ressorts={ressorts} value={teamRoles} onChange={setTeamRoles} />
+        </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </form>

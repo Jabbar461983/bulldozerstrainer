@@ -41,11 +41,11 @@ function friendlyError(err: unknown, fallback: string): Error {
 export async function fetchAssignableUsers(): Promise<AssignableUser[]> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, first_name, last_name, is_admin')
+    .select('id, first_name, last_name')
     .order('last_name', { ascending: true });
   if (error) throw error;
+  // Auch Admins können zusätzlich eine Rolle im Team haben.
   return (data ?? [])
-    .filter((p: Pick<Profile, 'is_admin'>) => !p.is_admin)
     .map((p: Pick<Profile, 'id' | 'first_name' | 'last_name'>) => ({
       id: p.id,
       firstName: p.first_name,

@@ -152,7 +152,7 @@ export function UsersPage() {
               )}
             </div>
 
-            {!user.is_admin && (
+            {(!user.is_admin || user.teamRoles.length > 0) && (
               <div className="flex flex-wrap gap-1.5">
                 {user.teamRoles.length === 0 && (
                   <span className="text-xs text-text-muted">Keine Rolle zugewiesen</span>
