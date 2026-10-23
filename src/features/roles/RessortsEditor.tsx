@@ -112,6 +112,9 @@ export function RessortsEditor() {
                 }}
               >
                 {r.name}
+                {r.modules?.includes('finanzen_verein') && (
+                  <span className="ml-2 text-xs text-text-muted">· voller Finanzzugriff</span>
+                )}
               </button>
             )}
             <Button type="button" variant="secondary" size="sm" className="px-2.5" disabled={busy || index === 0} onClick={() => handleMove(index, -1)} aria-label={`${r.name} nach oben`}>

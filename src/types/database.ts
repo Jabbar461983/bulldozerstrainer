@@ -48,6 +48,8 @@ export interface VorstandRessort {
   id: string;
   name: string;
   sort_order: number;
+  /** Zusätzliche Module des Ressorts, z.B. Finanzen (Migration 0101). */
+  modules?: string[];
   created_at: string;
 }
 

@@ -25,7 +25,7 @@ export function EditTeamDialog({ roles, team, categories, users, onClose, onSave
   const [season, setSeason] = useState(team.season);
   const [duration, setDuration] = useState(team.default_training_duration_minutes);
   const [coachAssignments, setCoachAssignments] = useState<CoachAssignmentInput[]>(
-    team.coachAssignments.map((a) => ({ user_id: a.userId, role_id: a.roleId })),
+    team.coachAssignments.map((a) => ({ user_id: a.userId, role_id: a.roleId, finance_access: a.financeAccess })),
   );
   // Rollen vergeben bleibt beim Admin (auch wenn die Teamverwaltung über eine Rolle freigegeben ist).
   const { isAdmin } = useAuth();

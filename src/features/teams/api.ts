@@ -11,6 +11,7 @@ export interface CoachAssignmentView {
   lastName: string;
   roleId: string;
   roleName: string;
+  financeAccess: boolean;
 }
 
 export interface TeamRow extends Team {
@@ -27,6 +28,8 @@ export interface AssignableUser {
 export interface CoachAssignmentInput {
   user_id: string;
   role_id: string;
+  /** Häkchen Finanzzugriff (nur Assistenzcoach). */
+  finance_access: boolean;
 }
 
 const FOREIGN_KEY_VIOLATION = '23503';
@@ -59,7 +62,7 @@ export async function fetchTeams(): Promise<TeamRow[]> {
       supabase.from('teams').select('*').order('season', { ascending: false }),
       supabase.from('categories').select('*'),
       supabase.from('profiles').select('id, first_name, last_name'),
-      supabase.from('user_team_roles').select('user_id, team_id, role_id, roles(name)'),
+      supabase.from('user_team_roles').select('user_id, team_id, role_id, finance_access, roles(name)'),
     ]);
   if (teamsError) throw teamsError;
   if (categoriesError) throw categoriesError;
@@ -76,7 +79,7 @@ export async function fetchTeams(): Promise<TeamRow[]> {
     categoryName: categoryById.get(team.category_id)?.name ?? '?',
     coachAssignments: (roles ?? [])
       .filter((r: { team_id: string | null }) => r.team_id === team.id)
-      .map((r: { user_id: string; role_id: string; roles: { name: string } | null }) => {
+      .map((r: { user_id: string; role_id: string; finance_access: boolean | null; roles: { name: string } | null }) => {
         const profile = profileById.get(r.user_id);
         return {
           userId: r.user_id,
@@ -84,6 +87,7 @@ export async function fetchTeams(): Promise<TeamRow[]> {
           lastName: profile?.last_name ?? '',
           roleId: r.role_id,
           roleName: r.roles?.name ?? 'Unbekannte Rolle',
+          financeAccess: Boolean(r.finance_access),
         };
       }),
   }));
@@ -152,6 +156,7 @@ export async function replaceCoachAssignments(teamId: string, assignments: Coach
     user_id: a.user_id,
     team_id: teamId,
     role_id: a.role_id,
+    finance_access: a.finance_access,
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: insertError } = await (supabase.from('user_team_roles') as any).insert(rows);

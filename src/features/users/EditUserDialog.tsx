@@ -25,7 +25,12 @@ export function EditUserDialog({ user, teamOptions, roles, ressorts, onClose, on
   const [phone, setPhone] = useState(user.phone ?? '');
   const [isAdmin, setIsAdmin] = useState(user.is_admin);
   const [teamRoles, setTeamRoles] = useState<TeamRoleInput[]>(
-    user.teamRoles.map((tr) => ({ team_id: tr.teamId, role_id: tr.roleId, ressort_id: tr.ressortId })),
+    user.teamRoles.map((tr) => ({
+      team_id: tr.teamId,
+      role_id: tr.roleId,
+      ressort_id: tr.ressortId,
+      finance_access: tr.financeAccess,
+    })),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +110,7 @@ export function EditUserDialog({ user, teamOptions, roles, ressorts, onClose, on
 
 
         <div>
-          <Label>Zuweisungen (Bereich und Rolle)</Label>
+          <Label>Zuweisungen (Rolle und Bereich)</Label>
           {isAdmin && (
             <p className="mb-1.5 text-xs text-text-muted">
               Als Admin hat die Person ohnehin Zugriff auf alles. Rollen legen zusätzlich fest, wo sie im Sport

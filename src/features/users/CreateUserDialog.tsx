@@ -163,7 +163,7 @@ export function CreateUserDialog({ teamOptions, roles, ressorts, onClose, onCrea
 
 
         <div>
-          <Label>Zuweisungen (Bereich und Rolle)</Label>
+          <Label>Zuweisungen (Rolle und Bereich)</Label>
           {isAdmin && (
             <p className="mb-1.5 text-xs text-text-muted">
               Als Admin hat die Person ohnehin Zugriff auf alles. Rollen legen zusätzlich fest, wo sie im Sport

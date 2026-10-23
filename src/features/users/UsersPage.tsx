@@ -163,6 +163,7 @@ export function UsersPage() {
                     className="rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
                   >
                     {roleAreaLabel(tr)} – {tr.roleName}
+                    {tr.financeAccess && ' · Finanzen'}
                   </span>
                 ))}
               </div>

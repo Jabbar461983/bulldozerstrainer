@@ -17,6 +17,7 @@ interface TeamRolePickerProps {
 
 export function TeamRolePicker({ teamOptions, roles, ressorts, value, onChange }: TeamRolePickerProps) {
   const vorstandRoleId = roles.find((r) => r.system_key === VORSTAND_ROLE_KEY)?.id;
+  const assistantRoleId = roles.find((r) => r.system_key === 'assistant_coach')?.id;
 
   function update(index: number, patch: Partial<TeamRoleInput>) {
     const next = value.map((row, i) => {
@@ -30,6 +31,8 @@ export function TeamRolePicker({ teamOptions, roles, ressorts, value, onChange }
         merged.ressort_id = null;
         if (row.role_id === vorstandRoleId && merged.team_id === null) merged.team_id = teamOptions[0]?.teamId ?? null;
       }
+      // Häkchen Finanzzugriff gibt es nur beim Assistenzcoach.
+      if (merged.role_id !== assistantRoleId) merged.finance_access = false;
       return merged;
     });
     onChange(next);
@@ -42,7 +45,10 @@ export function TeamRolePicker({ teamOptions, roles, ressorts, value, onChange }
   function add() {
     if (roles.length === 0) return;
     const defaultRole = roles.find((r) => r.system_key === 'assistant_coach') ?? roles[0];
-    onChange([...value, { team_id: teamOptions[0]?.teamId ?? null, role_id: defaultRole.id, ressort_id: null }]);
+    onChange([
+      ...value,
+      { team_id: teamOptions[0]?.teamId ?? null, role_id: defaultRole.id, ressort_id: null, finance_access: false },
+    ]);
   }
 
   return (
@@ -52,15 +58,27 @@ export function TeamRolePicker({ teamOptions, roles, ressorts, value, onChange }
         return (
           <div
             key={index}
-            className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-md border border-border p-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] sm:border-0 sm:p-0"
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-md border border-border p-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] sm:border-0 sm:p-0"
           >
+            <Select
+              aria-label="Rolle"
+              value={row.role_id}
+              onChange={(e) => update(index, { role_id: e.target.value })}
+              className="col-start-1 row-start-1"
+            >
+              {roles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </Select>
             {isVorstand ? (
               <Select
                 aria-label="Ressort"
                 required
                 value={row.ressort_id ?? ''}
                 onChange={(e) => update(index, { ressort_id: e.target.value || null })}
-                className="col-span-2 sm:col-span-1"
+                className="col-span-2 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1"
               >
                 {!row.ressort_id && <option value="">Ressort wählen…</option>}
                 {ressorts.map((r) => (
@@ -74,7 +92,7 @@ export function TeamRolePicker({ teamOptions, roles, ressorts, value, onChange }
                 aria-label="Bereich"
                 value={row.team_id ?? ALL_TEAMS}
                 onChange={(e) => update(index, { team_id: e.target.value === ALL_TEAMS ? null : e.target.value })}
-                className="col-span-2 sm:col-span-1"
+                className="col-span-2 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1"
               >
                 <option value={ALL_TEAMS}>Alle Teams</option>
                 {teamOptions.map((t) => (
@@ -84,16 +102,26 @@ export function TeamRolePicker({ teamOptions, roles, ressorts, value, onChange }
                 ))}
               </Select>
             )}
-            <Select aria-label="Rolle" value={row.role_id} onChange={(e) => update(index, { role_id: e.target.value })}>
-              {roles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </Select>
-            <Button type="button" variant="ghost" onClick={() => remove(index)} aria-label="Zeile entfernen">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => remove(index)}
+              aria-label="Zeile entfernen"
+              className="col-start-2 row-start-1 sm:col-start-3"
+            >
               ✕
             </Button>
+            {row.role_id === assistantRoleId && (
+              <label className="col-span-2 flex items-center gap-2 text-sm text-text sm:col-span-3">
+                <input
+                  type="checkbox"
+                  className="size-5"
+                  checked={row.finance_access}
+                  onChange={(e) => update(index, { finance_access: e.target.checked })}
+                />
+                Finanzzugriff für dieses Team
+              </label>
+            )}
           </div>
         );
       })}

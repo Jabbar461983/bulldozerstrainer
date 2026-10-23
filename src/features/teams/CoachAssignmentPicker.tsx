@@ -12,8 +12,16 @@ interface CoachAssignmentPickerProps {
 }
 
 export function CoachAssignmentPicker({ users, roles, value, onChange }: CoachAssignmentPickerProps) {
+  const assistantRoleId = roles.find((r) => r.system_key === 'assistant_coach')?.id;
+
   function update(index: number, patch: Partial<CoachAssignmentInput>) {
-    const next = value.map((row, i) => (i === index ? { ...row, ...patch } : row));
+    const next = value.map((row, i) => {
+      if (i !== index) return row;
+      const merged = { ...row, ...patch };
+      // Häkchen Finanzzugriff gibt es nur beim Assistenzcoach.
+      if (merged.role_id !== assistantRoleId) merged.finance_access = false;
+      return merged;
+    });
     onChange(next);
   }
 
@@ -24,7 +32,7 @@ export function CoachAssignmentPicker({ users, roles, value, onChange }: CoachAs
   function add() {
     if (users.length === 0 || roles.length === 0) return;
     const defaultRole = roles.find((r) => r.system_key === 'assistant_coach') ?? roles[0];
-    onChange([...value, { user_id: users[0].id, role_id: defaultRole.id }]);
+    onChange([...value, { user_id: users[0].id, role_id: defaultRole.id, finance_access: false }]);
   }
 
   if (users.length === 0) {
@@ -62,6 +70,17 @@ export function CoachAssignmentPicker({ users, roles, value, onChange }: CoachAs
               </option>
             ))}
           </Select>
+          {row.role_id === assistantRoleId && (
+            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-text">
+              <input
+                type="checkbox"
+                className="size-5"
+                checked={row.finance_access}
+                onChange={(e) => update(index, { finance_access: e.target.checked })}
+              />
+              Finanzzugriff
+            </label>
+          )}
           <Button type="button" variant="ghost" onClick={() => remove(index)} aria-label="Zeile entfernen" className="self-start sm:self-center">
             ✕
           </Button>

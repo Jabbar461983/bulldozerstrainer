@@ -33,13 +33,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase
         .from('user_team_roles')
-        .select('team_id, role_id, roles(name, system_key, modules)')
+        .select('team_id, role_id, finance_access, roles(name, system_key, modules), vorstand_ressorts(modules)')
         .eq('user_id', userId) as unknown as Promise<{
         data:
           | {
               team_id: string | null;
               role_id: string;
+              finance_access: boolean | null;
               roles: Pick<Role, 'name' | 'system_key' | 'modules'> | null;
+              vorstand_ressorts: { modules: string[] | null } | null;
             }[]
           | null;
       }>,
@@ -51,7 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roleId: r.role_id,
         roleName: r.roles?.name ?? '',
         systemKey: r.roles?.system_key ?? null,
-        modules: r.roles?.modules ?? [],
+        // Module aus Rolle + Vorstands-Ressort + Häkchen Finanzzugriff (wie has_module in der DB)
+        modules: Array.from(
+          new Set([
+            ...(r.roles?.modules ?? []),
+            ...(r.vorstand_ressorts?.modules ?? []),
+            ...(r.finance_access ? ['finanzen'] : []),
+          ]),
+        ),
       })),
     );
   }
