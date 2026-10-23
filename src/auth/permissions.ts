@@ -11,7 +11,6 @@
 export const TEAM_MODULES = ['training', 'saisonplanung', 'spiele', 'spieler', 'checklisten', 'finanzen'] as const;
 export const CLUB_MODULES = [
   'uebungen',
-  'trainer',
   'teams',
   'checklisten_verwaltung',
   'finanzen_verein',
@@ -30,7 +29,6 @@ export const MODULE_LABELS: Record<Module, string> = {
   checklisten: 'Checklisten (abhaken)',
   finanzen: 'Finanzen (Belege erfassen und ansehen)',
   uebungen: 'Übungsdatenbank',
-  trainer: 'Trainer (Stammdaten)',
   teams: 'Teamverwaltung',
   checklisten_verwaltung: 'Checklisten-Vorlagen',
   finanzen_verein: 'Finanzen: Verein und Gesamtübersicht',
@@ -46,7 +44,6 @@ export const MODULE_SHORT_LABELS: Record<Module, string> = {
   checklisten: 'Checklisten',
   finanzen: 'Finanzen',
   uebungen: 'Übungen',
-  trainer: 'Trainer',
   teams: 'Teamverwaltung',
   checklisten_verwaltung: 'Checklisten-Vorlagen',
   finanzen_verein: 'Finanzen Verein',

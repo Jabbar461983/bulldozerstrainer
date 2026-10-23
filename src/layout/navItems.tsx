@@ -96,13 +96,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: <Icon d="M3 7h18M3 7v11a1 1 0 001 1h16a1 1 0 001-1V7M7 12h4M3 7l2-4h14l2 4" />,
   },
   {
-    to: '/trainer',
-    label: 'Trainer',
-    group: 'verein',
-    module: 'trainer',
-    icon: <Icon d="M4 20a5 5 0 0110-.2M9 12a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm10 8v-2a3 3 0 00-2.3-2.9M15 5.1a3 3 0 010 5.8" />,
-  },
-  {
     to: '/teams',
     label: 'Teamverwaltung',
     group: 'verein',

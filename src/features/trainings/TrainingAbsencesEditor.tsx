@@ -35,7 +35,7 @@ function usePersonAbsences(
     [absences, personType],
   );
   const absentIds = useMemo(
-    () => new Set(personAbsences.map((a) => (personType === 'player' ? a.player_id : a.trainer_id))),
+    () => new Set(personAbsences.map((a) => (personType === 'player' ? a.player_id : a.profile_id))),
     [personAbsences, personType],
   );
   const availableOptions = options.filter((o) => !absentIds.has(o.id));
@@ -129,14 +129,14 @@ export function TrainingAbsencesEditor({ trainingId, teamId }: TrainingAbsencesE
         {group.personAbsences.length === 0 && <p className="text-sm text-text-muted">Niemand abgemeldet.</p>}
         <div className="flex flex-wrap gap-1.5">
           {group.personAbsences.map((a) => {
-            const personId = a.person_type === 'player' ? a.player_id : a.trainer_id;
+            const personId = a.person_type === 'player' ? a.player_id : a.profile_id;
             const option = options.find((o) => o.id === personId);
             return (
               <span
                 key={a.id}
                 className="flex items-center gap-1.5 rounded bg-surface-alt px-2.5 py-1 text-xs text-text-muted"
               >
-                {option?.label ?? 'Unbekannt'}
+                {option?.label ?? (a.person_type === 'trainer' ? 'Unbekannt (alter Eintrag)' : 'Unbekannt')}
                 <button
                   type="button"
                   disabled={group.busy}

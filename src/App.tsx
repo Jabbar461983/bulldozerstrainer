@@ -10,7 +10,6 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { TeamsPage } from './features/teams/TeamsPage';
 import { UsersPage } from './features/users/UsersPage';
 import { PlayersPage } from './features/players/PlayersPage';
-import { CoachesPage } from './features/coaches/CoachesPage';
 import { ExercisesPage } from './features/exercises/ExercisesPage';
 import { TrainingsPage } from './features/trainings/TrainingsPage';
 import { GamesPage } from './features/games/GamesPage';
@@ -97,14 +96,6 @@ function App() {
               element={
                 <ModuleRoute module="spieler">
                   <PlayersPage />
-                </ModuleRoute>
-              }
-            />
-            <Route
-              path="trainer"
-              element={
-                <ModuleRoute module="trainer">
-                  <CoachesPage />
                 </ModuleRoute>
               }
             />

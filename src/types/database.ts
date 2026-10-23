@@ -203,7 +203,10 @@ export interface TrainingAbsence {
   training_id: string;
   person_type: 'player' | 'trainer';
   player_id: string | null;
+  /** Alte Trainer-Liste (vor Migration 0100), nur noch lesend. */
   trainer_id: string | null;
+  /** Trainer = Benutzer mit Coach-Rolle im Team (Migration 0100). */
+  profile_id?: string | null;
 }
 
 export interface TrainingTrainer {
@@ -254,7 +257,10 @@ export interface GameAbsence {
   game_id: string;
   person_type: 'player' | 'trainer';
   player_id: string | null;
+  /** Alte Trainer-Liste (vor Migration 0100), nur noch lesend. */
   trainer_id: string | null;
+  /** Trainer = Benutzer mit Coach-Rolle im Team (Migration 0100). */
+  profile_id?: string | null;
 }
 
 export type GameRatingCategory =

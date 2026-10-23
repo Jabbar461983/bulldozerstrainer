@@ -374,7 +374,7 @@ export async function addTrainingAbsence(
   const payload =
     personType === 'player'
       ? { training_id: trainingId, person_type: 'player', player_id: personId, trainer_id: null }
-      : { training_id: trainingId, person_type: 'trainer', player_id: null, trainer_id: personId };
+      : { training_id: trainingId, person_type: 'trainer', player_id: null, trainer_id: null, profile_id: personId };
   const { error } = await (supabase.from('training_absences') as any).insert(payload); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (error) throw error;
 }

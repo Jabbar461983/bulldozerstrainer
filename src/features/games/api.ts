@@ -115,11 +115,22 @@ export async function fetchGameAbsences(gameId: string): Promise<GameAbsence[]> 
 }
 
 export async function replaceGameAbsences(gameId: string, playerIds: string[], trainerIds: string[]) {
-  const { error: deleteError } = await supabase.from('game_absences').delete().eq('game_id', gameId);
+  // Alte Trainer-Abmeldungen ohne zugeordneten Benutzer bleiben erhalten.
+  const { error: deleteError } = await supabase
+    .from('game_absences')
+    .delete()
+    .eq('game_id', gameId)
+    .or('person_type.eq.player,profile_id.not.is.null');
   if (deleteError) throw deleteError;
   const rows = [
     ...playerIds.map((playerId) => ({ game_id: gameId, person_type: 'player' as const, player_id: playerId, trainer_id: null })),
-    ...trainerIds.map((trainerId) => ({ game_id: gameId, person_type: 'trainer' as const, player_id: null, trainer_id: trainerId })),
+    ...trainerIds.map((profileId) => ({
+      game_id: gameId,
+      person_type: 'trainer' as const,
+      player_id: null,
+      trainer_id: null,
+      profile_id: profileId,
+    })),
   ];
   if (rows.length === 0) return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

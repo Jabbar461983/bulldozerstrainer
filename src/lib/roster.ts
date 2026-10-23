@@ -33,22 +33,13 @@ export interface RosterTrainer {
   lastName: string;
 }
 
+/** Trainer eines Teams = Benutzer mit Rolle Headcoach/Assistenzcoach in diesem Team. trainerId ist die Benutzer-ID. */
 export async function fetchTeamTrainerRoster(teamId: string): Promise<RosterTrainer[]> {
-  const { data: links, error: linksError } = await supabase
-    .from('trainer_teams')
-    .select('trainer_id')
-    .eq('team_id', teamId);
-  if (linksError) throw linksError;
-  const trainerIds = (links ?? []).map((l: { trainer_id: string }) => l.trainer_id);
-  if (trainerIds.length === 0) return [];
-  const { data: trainers, error: trainersError } = await supabase
-    .from('trainers')
-    .select('id, first_name, last_name')
-    .in('id', trainerIds)
-    .order('last_name', { ascending: true });
-  if (trainersError) throw trainersError;
-  return (trainers ?? []).map((t: { id: string; first_name: string; last_name: string }) => ({
-    trainerId: t.id,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('team_coach_roster', { p_team_id: teamId });
+  if (error) throw error;
+  return ((data ?? []) as { user_id: string; first_name: string; last_name: string }[]).map((t) => ({
+    trainerId: t.user_id,
     firstName: t.first_name,
     lastName: t.last_name,
   }));

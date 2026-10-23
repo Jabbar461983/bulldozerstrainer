@@ -63,14 +63,14 @@ export function RolesPage() {
             </div>
             <div className="flex min-w-0 flex-[2] flex-wrap gap-1.5">
               {role.modules.length === 0 && <span className="text-xs text-text-muted">Keine Module</span>}
-              {role.modules.map((m) => (
+              {role.modules.filter((m) => m in MODULE_SHORT_LABELS).map((m) => (
                 <span
                   key={m}
                   className={`rounded px-2 py-0.5 text-xs font-semibold ${
                     isClubModule(m) ? 'bg-gold/15 text-gold-text' : 'bg-accent/10 text-accent'
                   }`}
                 >
-                  {MODULE_SHORT_LABELS[m as Module] ?? m}
+                  {MODULE_SHORT_LABELS[m as Module]}
                 </span>
               ))}
             </div>

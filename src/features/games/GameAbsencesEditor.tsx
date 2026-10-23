@@ -29,7 +29,9 @@ export function GameAbsencesEditor({ gameId, teamId }: GameAbsencesEditorProps) 
       setPlayers(playerRows);
       setTrainers(trainerRows);
       setAbsentPlayerIds(absences.filter((a) => a.person_type === 'player').map((a) => a.player_id as string));
-      setAbsentTrainerIds(absences.filter((a) => a.person_type === 'trainer').map((a) => a.trainer_id as string));
+      setAbsentTrainerIds(
+        absences.filter((a) => a.person_type === 'trainer' && a.profile_id).map((a) => a.profile_id as string),
+      );
       setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Abwesenheiten konnten nicht geladen werden.');
